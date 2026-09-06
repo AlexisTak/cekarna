@@ -17,8 +17,10 @@ pour Go (4 Argon2id simultanés), 128 Mio de données Redis pour le développeme
 PostgreSQL dimensionné selon utilisateurs, sessions, audits et rétention.
 Pas de coût mensuel annoncé sans choix d’hébergeur et charge. Formulaires web
 raccordés le 6 septembre 2026 ; vérification email et récupération de mot de
-passe livrées (transport mailer `log` en développement, SMTP à brancher avant
-ouverture publique). MFA/passkeys : tranche B à spécifier. Les données du
+passe livrées (transport `log` en développement, SMTP direct ou file Rust
+`services/notifications` configurable en production). MFA/passkeys : tranche B
+spécifiée dans `docs/superpowers/specs/2026-09-06-auth-passkeys-tranche-b-design.md`,
+mais non implémentée. Les données du
 candidat sont synchronisées avec PostgreSQL pour les comptes connectés et restent
 disponibles localement comme repli.
 

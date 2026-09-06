@@ -19,7 +19,7 @@ Ouvrir http://127.0.0.1:5173 pour la page d’accueil, puis utiliser http://127.
 
 ## État réel
 
-Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C et un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis. Il ne contient pas encore de moteur IA. Les PDF V2 du dossier parent décrivent le B2B différé. Le cadrage prioritaire actuel est `docs/B2C.md`.
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. Il ne contient pas encore de moteur IA. Les PDF V2 du dossier parent décrivent le B2B différé. Le cadrage prioritaire actuel est `docs/B2C.md`.
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.

@@ -40,7 +40,7 @@ demande une confirmation explicite.
 4. Ajouter collecte d’offres depuis des sources autorisées et une comparaison évaluée sur corpus.
 5. Préparer des brouillons personnalisés, sans inventer d’expériences ; validation et export avant tout envoi.
 
-L’import de CV, la recherche automatique, les notifications et les modèles IA ne sont pas simulés dans cette première tranche. Aucun abonnement ni envoi de candidature n’est activé.
+L’import de CV PDF textuel est livré dans la tranche suivante documentée ci-dessus. La recherche automatique, les notifications visibles dans l’interface et les modèles IA ne sont pas livrés. Aucun abonnement ni envoi de candidature n’est activé.
 
 ## Vérification
 

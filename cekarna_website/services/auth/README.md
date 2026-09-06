@@ -193,8 +193,8 @@ les livraisons sans conserver l’adresse ou le contenu du message. Lorsque le
 service Rust `services/notifications` est déployé, choisir
 `AUTH_MAILER=notifications`, `NOTIFICATIONS_URL` et
 `NOTIFICATIONS_INTERNAL_TOKEN` : l'authentification place alors le message dans
-sa file PostgreSQL durable, qui porte les tentatives et l'état final. Restent aussi :
-notifications et MFA/passkeys (tranche B).
+sa file PostgreSQL durable, qui porte les tentatives et l'état final. Restent les
+notifications produit visibles dans l’interface et MFA/passkeys (tranche B).
 
 Les comptes créés ont `email_verified=false` jusqu'à confirmation par jeton ;
 ne jamais traiter un email non vérifié comme vérifié ni l’utiliser pour rattacher

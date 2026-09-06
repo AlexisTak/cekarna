@@ -6,7 +6,7 @@ Lire `README.md` et `docs/PROJECT.md` comme références de l’état réel du p
 
 ## Stack actuelle
 
-NestJS 11, adaptateur Express, TypeScript strict, npm. Frontend React/Vite dans `web/` avec stockage navigateur. Pas encore de base de données serveur, de worker ni d’intégration IA. Ne pas utiliser les anciennes commandes de workspaces Next.js/Fastify.
+NestJS 11, adaptateur Express, TypeScript strict, npm. Frontend React/Vite dans `web/` avec stockage navigateur. Le service Go `services/auth/` ajoute PostgreSQL, Redis et l’identité ; le service Rust `services/notifications/` ajoute une file PostgreSQL et un worker SMTP transactionnel. Il n’existe pas de moteur IA. Ne pas utiliser les anciennes commandes de workspaces Next.js/Fastify.
 
 ## Commandes
 

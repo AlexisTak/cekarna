@@ -8,9 +8,9 @@ L’utilisateur a décidé de **commencer par l’application web pour les parti
 
 - Référence actuelle : `cekarna_website/docs/B2C.md`.
 - Interface : `cekarna_website/web/`, React + Vite + TypeScript, npm. La racine est la page d’accueil publique ; `?workspace=candidate` ouvre l’espace candidat sans exiger de règle de réécriture serveur.
-- Première version : profil manuel, offres ajoutées manuellement, filtres, suivi de candidature, notes, export/restauration JSON. État conservé localement dans le navigateur ; mode découverte explicitement fictif.
-- Aucun compte cloud, import/parsing de CV, scraping, envoi ou génération IA dans cette tranche. Ne pas présenter les repères textuels comme un score IA.
-- Backend NestJS conservé. Le microservice Go/Chi demandé ensuite est dans `cekarna_website/services/auth/` : PostgreSQL, Redis, Argon2id, JWT Ed25519 de 5 min, JWKS, refresh opaques avec rotation et audit. Lire son README avant modification. Formulaires et données candidat non raccordés ; MFA, preuve email et récupération à construire. Cette demande explicite autorise le service Go malgré le report historique ci-dessous.
+- Socle B2C : profil manuel, offres ajoutées manuellement, filtres, suivi de candidature, notes, export/restauration JSON. État local conservé dans le navigateur ; mode découverte explicitement fictif. L’import de CV PDF textuel, avec extraits visibles et correction, est également livré ; aucune valeur ne doit être inventée.
+- Le compte connecté, la vérification d’adresse, la récupération et la synchronisation du dossier candidat sont livrés. La recherche automatique, l’envoi de candidatures et la génération IA ne sont pas livrés. Ne pas présenter les repères textuels comme un score IA.
+- Backend NestJS conservé. Le microservice Go/Chi est dans `cekarna_website/services/auth/` : PostgreSQL, Redis, Argon2id, JWT Ed25519 de 5 min, JWKS, refresh opaques avec rotation et audit. Lire son README avant modification. Le microservice Rust `cekarna_website/services/notifications/` gère la file SMTP transactionnelle durable. MFA/passkeys restent à construire. Ces demandes explicites autorisent ces services malgré le report historique ci-dessous.
 - Les PDF V2 restent conservés comme cadrage B2B historique, **pas comme cahier des charges prioritaire du B2C**. Ne pas les réécrire sans demande ou besoin explicite.
 
 ## Décisions B2B antérieures — historique du 6 septembre 2026

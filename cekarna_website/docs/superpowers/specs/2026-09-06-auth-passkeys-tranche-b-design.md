@@ -59,9 +59,10 @@ attestation rejetée ; 429 quota ; 503 dépendance indisponible.
 - Aucun coût d'infrastructure nouveau : même Redis, quelques clés éphémères de
   plus (à noter dans `docs/PROJECT.md`).
 
-### Migration `003_passkeys.sql`
+### Migration `004_passkeys.sql`
 
-Idempotente, verrou consultatif comme 001/002 :
+Idempotente, verrou consultatif comme 001/002 (003 étant prise par
+`003_candidate_workspaces.sql`) :
 
 ```sql
 CREATE TABLE IF NOT EXISTS passkeys (

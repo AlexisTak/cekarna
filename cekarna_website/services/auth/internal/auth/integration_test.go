@@ -194,6 +194,53 @@ func TestIntegrationCandidateWorkspaceIsPrivate(t *testing.T) {
 	if r := other.call("GET", "/v1/candidate/workspace", ""); r.Code != 204 {
 		t.Fatal("workspace leaked to another account", r.Code, r.Body.String())
 	}
+	conflict := b.call("PUT", "/v1/candidate/workspace", body)
+	if conflict.Code != 409 {
+		t.Fatal("stale workspace write accepted", conflict.Code, conflict.Body.String())
+	}
+	overwrite := `{"workspace":{"version":1,"demo":false,"profile":{"firstName":"Marie"},"jobs":[]},"revision":0,"overwrite":true}`
+	if r := b.call("PUT", "/v1/candidate/workspace", overwrite); r.Code != 200 {
+		t.Fatal("explicit workspace overwrite", r.Code, r.Body.String())
+	}
+}
+
+func TestIntegrationLogoutAllAndDeleteAccount(t *testing.T) {
+	s := fixture(t)
+	first := newBrowser(t, s)
+	registerAndLogin(t, first)
+	second := newBrowser(t, s)
+	body := `{"email":"person@example.test","password":"a long unique passphrase"}`
+	if r := second.call("POST", "/v1/auth/login", body); r.Code != 200 {
+		t.Fatal("second login", r.Code)
+	}
+	if r := first.call("POST", "/v1/auth/logout-all", "{}"); r.Code != 204 {
+		t.Fatal("logout all", r.Code, r.Body.String())
+	}
+	if r := second.call("GET", "/v1/auth/me", ""); r.Code != 401 {
+		t.Fatal("second session survived logout all", r.Code)
+	}
+	if r := first.call("POST", "/v1/auth/login", body); r.Code != 200 {
+		t.Fatal("login before deletion", r.Code)
+	}
+	if r := first.call("POST", "/v1/auth/delete", `{"password":"wrong passphrase"}`); r.Code != 401 {
+		t.Fatal("account deleted with wrong password", r.Code)
+	}
+	if r := first.call("POST", "/v1/auth/delete", `{"password":"a long unique passphrase"}`); r.Code != 204 {
+		t.Fatal("account deletion", r.Code, r.Body.String())
+	}
+	var users, credentials, sessions, audits int
+	if err := s.Store.DB.QueryRow(context.Background(), "SELECT count(*) FROM users").Scan(&users); err != nil || users != 0 {
+		t.Fatal("user remained after deletion", err, users)
+	}
+	if err := s.Store.DB.QueryRow(context.Background(), "SELECT count(*) FROM credentials").Scan(&credentials); err != nil || credentials != 0 {
+		t.Fatal("credential remained after deletion", err, credentials)
+	}
+	if err := s.Store.DB.QueryRow(context.Background(), "SELECT count(*) FROM sessions").Scan(&sessions); err != nil || sessions != 0 {
+		t.Fatal("session remained after deletion", err, sessions)
+	}
+	if err := s.Store.DB.QueryRow(context.Background(), "SELECT count(*) FROM audit_events WHERE user_id IS NOT NULL").Scan(&audits); err != nil || audits != 0 {
+		t.Fatal("account audit remained after deletion", err, audits)
+	}
 }
 func TestIntegrationConcurrentRefresh(t *testing.T) {
 	s := fixture(t)

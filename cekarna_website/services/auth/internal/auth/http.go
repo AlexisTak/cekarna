@@ -82,6 +82,8 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/login", s.login)
 			r.Post("/refresh", s.refresh)
 			r.Post("/logout", s.logout)
+			r.Post("/logout-all", s.logoutAll)
+			r.Post("/delete", s.deleteAccount)
 			r.Post("/verify/request", s.verifyRequest)
 			r.Post("/verify/confirm", s.verifyConfirm)
 			r.Post("/reset/request", s.resetRequest)
@@ -140,7 +142,7 @@ func (s *Server) candidateWorkspace(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	workspace, updated, err := s.Store.CandidateWorkspace(r.Context(), u.ID)
+	workspace, updated, revision, err := s.Store.CandidateWorkspace(r.Context(), u.ID)
 	if err != nil {
 		problem(w, 503, "unavailable")
 		return
@@ -149,7 +151,7 @@ func (s *Server) candidateWorkspace(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	respond(w, 200, map[string]any{"workspace": workspace, "updated_at": updated})
+	respond(w, 200, map[string]any{"workspace": workspace, "updated_at": updated, "revision": revision})
 }
 
 func (s *Server) saveCandidateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -159,17 +161,23 @@ func (s *Server) saveCandidateWorkspace(w http.ResponseWriter, r *http.Request) 
 	}
 	var input struct {
 		Workspace json.RawMessage `json:"workspace"`
+		Revision  int64           `json:"revision"`
+		Overwrite bool            `json:"overwrite"`
 	}
-	if decode(r, &input) != nil || len(input.Workspace) == 0 || len(input.Workspace) > 5_000_000 || !json.Valid(input.Workspace) {
+	if decode(r, &input) != nil || input.Revision < 0 || len(input.Workspace) == 0 || len(input.Workspace) > 5_000_000 || !json.Valid(input.Workspace) {
 		problem(w, 400, "invalid_input")
 		return
 	}
-	updated, err := s.Store.SaveCandidateWorkspace(r.Context(), u.ID, input.Workspace)
+	updated, revision, err := s.Store.SaveCandidateWorkspace(r.Context(), u.ID, input.Workspace, input.Revision, input.Overwrite)
+	if errors.Is(err, ErrConflict) {
+		problem(w, 409, "workspace_conflict")
+		return
+	}
 	if err != nil {
 		problem(w, 503, "unavailable")
 		return
 	}
-	respond(w, 200, map[string]any{"updated_at": updated})
+	respond(w, 200, map[string]any{"updated_at": updated, "revision": revision})
 }
 func (s *Server) limit(w http.ResponseWriter, r *http.Request, bucket string, max int, window time.Duration) bool {
 	ok, err := s.Guard.Allow(r.Context(), bucket, max, window)
@@ -397,6 +405,59 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.cacheRevocation(r.Context(), session.ID)
+	}
+	s.cookie(w, "refresh", "", -1)
+	respond(w, 204, nil)
+}
+
+func (s *Server) logoutAll(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.authenticatedUser(w, r)
+	if !ok {
+		return
+	}
+	sessionIDs, err := s.Store.RevokeAll(r.Context(), u.ID, s.Guard.Identity(peer(r)))
+	if err != nil {
+		problem(w, 503, "unavailable")
+		return
+	}
+	for _, sessionID := range sessionIDs {
+		s.cacheRevocation(r.Context(), sessionID)
+	}
+	s.cookie(w, "refresh", "", -1)
+	respond(w, 204, nil)
+}
+
+func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.authenticatedUser(w, r)
+	if !ok {
+		return
+	}
+	var input struct {
+		Password string `json:"password"`
+	}
+	if decode(r, &input) != nil || len(input.Password) > 128 || input.Password == "" || !s.acquire(w) {
+		if input.Password == "" || len(input.Password) > 128 {
+			problem(w, 400, "invalid_input")
+		}
+		return
+	}
+	defer func() { <-s.hashSlots }()
+	_, hash, err := s.Store.Credential(r.Context(), u.Email)
+	if err != nil || !verifyPassword(input.Password, hash) {
+		if err != nil && !errors.Is(err, ErrDenied) {
+			problem(w, 503, "unavailable")
+			return
+		}
+		problem(w, 401, "invalid_credentials")
+		return
+	}
+	if err = s.Store.DeleteUser(r.Context(), u.ID); err != nil {
+		if errors.Is(err, ErrDenied) {
+			problem(w, 401, "invalid_session")
+			return
+		}
+		problem(w, 503, "unavailable")
+		return
 	}
 	s.cookie(w, "refresh", "", -1)
 	respond(w, 204, nil)

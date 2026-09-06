@@ -12,6 +12,7 @@ import (
 
 var ErrDenied = errors.New("authentication denied")
 var ErrReuse = errors.New("refresh token reused")
+var ErrConflict = errors.New("workspace conflict")
 
 type User struct {
 	ID            string `json:"id"`
@@ -25,22 +26,74 @@ type Session struct {
 }
 type Store struct{ DB *pgxpool.Pool }
 
-func (s Store) CandidateWorkspace(ctx context.Context, uid string) (json.RawMessage, time.Time, error) {
+func (s Store) CandidateWorkspace(ctx context.Context, uid string) (json.RawMessage, time.Time, int64, error) {
 	var workspace json.RawMessage
 	var updated time.Time
-	err := s.DB.QueryRow(ctx, "SELECT workspace,updated_at FROM candidate_workspaces WHERE user_id=$1", uid).Scan(&workspace, &updated)
+	var revision int64
+	err := s.DB.QueryRow(ctx, "SELECT workspace,updated_at,revision FROM candidate_workspaces WHERE user_id=$1", uid).Scan(&workspace, &updated, &revision)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, time.Time{}, nil
+		return nil, time.Time{}, 0, nil
 	}
-	return workspace, updated, err
+	return workspace, updated, revision, err
 }
 
-func (s Store) SaveCandidateWorkspace(ctx context.Context, uid string, workspace json.RawMessage) (time.Time, error) {
+func (s Store) SaveCandidateWorkspace(ctx context.Context, uid string, workspace json.RawMessage, revision int64, overwrite bool) (time.Time, int64, error) {
 	var updated time.Time
-	err := s.DB.QueryRow(ctx, `INSERT INTO candidate_workspaces(user_id,workspace)
-VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET workspace=EXCLUDED.workspace,updated_at=now()
-RETURNING updated_at`, uid, workspace).Scan(&updated)
-	return updated, err
+	var nextRevision int64
+	err := s.DB.QueryRow(ctx, `INSERT INTO candidate_workspaces(user_id,workspace,revision)
+VALUES($1,$2,1) ON CONFLICT(user_id) DO UPDATE SET workspace=EXCLUDED.workspace,updated_at=now(),revision=candidate_workspaces.revision+1
+WHERE $4 OR candidate_workspaces.revision=$3 RETURNING updated_at,revision`, uid, workspace, revision, overwrite).Scan(&updated, &nextRevision)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return time.Time{}, 0, ErrConflict
+	}
+	return updated, nextRevision, err
+}
+
+func (s Store) RevokeAll(ctx context.Context, uid, actor string) ([]string, error) {
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	rows, err := tx.Query(ctx, "UPDATE sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL RETURNING id", uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sessionIDs []string
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		sessionIDs = append(sessionIDs, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	if err = auditTx(ctx, tx, "logout_all", uid, "", actor); err != nil {
+		return nil, err
+	}
+	return sessionIDs, tx.Commit(ctx)
+}
+
+func (s Store) DeleteUser(ctx context.Context, uid string) error {
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, "DELETE FROM audit_events WHERE user_id=$1", uid); err != nil {
+		return err
+	}
+	command, err := tx.Exec(ctx, "DELETE FROM users WHERE id=$1", uid)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return ErrDenied
+	}
+	return tx.Commit(ctx)
 }
 
 // Audit deliberately excludes emails, passwords, raw IPs and tokens.

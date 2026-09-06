@@ -129,23 +129,39 @@ export async function fetchAccount(): Promise<Account> {
   return (await response.json()) as Account;
 }
 
-export async function fetchCandidateWorkspace(): Promise<unknown | null> {
+export interface CandidateWorkspace {
+  workspace: unknown;
+  revision: number;
+}
+
+export async function fetchCandidateWorkspace(): Promise<CandidateWorkspace | null> {
   const response = await bearerGet('/v1/candidate/workspace');
   if (response.status === 204) return null;
   if (!response.ok) throw await toError(response);
-  const body = (await response.json()) as { workspace?: unknown };
-  if (body.workspace === undefined) throw new AuthError(503, 'workspace_missing');
-  return body.workspace;
+  const body = (await response.json()) as { workspace?: unknown; revision?: unknown };
+  const revision = body.revision;
+  if (body.workspace === undefined || typeof revision !== 'number' || !Number.isSafeInteger(revision) || revision < 0)
+    throw new AuthError(503, 'workspace_missing');
+  return { workspace: body.workspace, revision };
 }
 
-export async function saveCandidateWorkspace(workspace: unknown): Promise<void> {
+export async function saveCandidateWorkspace(
+  workspace: unknown,
+  revision: number,
+  overwrite = false,
+): Promise<number> {
   const response = await mutate(
     '/v1/candidate/workspace',
-    { workspace },
+    { workspace, revision, overwrite },
     true,
     'PUT',
   );
   if (!response.ok) throw await toError(response);
+  const body = (await response.json()) as { revision?: unknown };
+  const nextRevision = body.revision;
+  if (typeof nextRevision !== 'number' || !Number.isSafeInteger(nextRevision) || nextRevision < 1)
+    throw new AuthError(503, 'workspace_revision_missing');
+  return nextRevision;
 }
 
 export async function login(email: string, password: string): Promise<Account> {
@@ -183,6 +199,24 @@ export async function logout(): Promise<void> {
   }
 }
 
+export async function logoutAll(): Promise<void> {
+  try {
+    const response = await mutate('/v1/auth/logout-all', {}, true);
+    if (response.status !== 204) throw await toError(response);
+  } finally {
+    accessToken = '';
+  }
+}
+
+export async function deleteAccount(password: string): Promise<void> {
+  try {
+    const response = await mutate('/v1/auth/delete', { password }, true);
+    if (response.status !== 204) throw await toError(response);
+  } finally {
+    accessToken = '';
+  }
+}
+
 export async function requestVerificationEmail(): Promise<void> {
   const response = await mutate('/v1/auth/verify/request', {}, true);
   if (response.status !== 202) throw await toError(response);
@@ -215,6 +249,8 @@ export function describeAuthError(error: unknown): string {
     if (error.status === 400) return 'Vérifiez vos informations et réessayez.';
     if (error.status === 429)
       return 'Trop de tentatives. Réessayez dans quelques minutes.';
+    if (error.status === 409)
+      return 'Une version plus récente existe sur un autre appareil.';
   }
   return 'Le service d’identité est indisponible. Réessayez dans un instant.';
 }

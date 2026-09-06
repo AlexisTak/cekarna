@@ -45,19 +45,21 @@ sans champs inconnus et limités à 4 Kio. Les POST sans corps peuvent envoyer `
 | POST | `/v1/auth/login` | `{email, password}` ; access token JSON + refresh token en cookie HttpOnly |
 | POST | `/v1/auth/refresh` | Cookie refresh ; rotation et nouvel access token |
 | POST | `/v1/auth/logout` | Révocation de la session/famille, suppression du cookie ; 204 |
+| POST | `/v1/auth/logout-all` | Bearer + CSRF ; révoque toutes les sessions du compte ; 204 |
+| POST | `/v1/auth/delete` | Bearer + CSRF + `{password}` ; efface le compte et ses données ; 204 |
 | POST | `/v1/auth/verify/request` | Bearer requis ; renvoie l'email de vérification si nécessaire ; 202 neutre |
 | POST | `/v1/auth/verify/confirm` | `{token}` ; consomme le jeton, `email_verified=true` ; 204 |
 | POST | `/v1/auth/reset/request` | `{email}` ; toujours 202, email envoyé seulement si le compte existe |
 | POST | `/v1/auth/reset/confirm` | `{token, new_password}` ; nouveau credential Argon2id, toutes les sessions révoquées ; 204 |
 | GET | `/v1/auth/me` | Bearer access token ; utilisateur après contrôle de révocation |
-| GET | `/v1/candidate/workspace` | Bearer requis ; dossier candidat privé, ou 204 s’il est vide |
-| PUT | `/v1/candidate/workspace` | Bearer + CSRF ; remplace le dossier JSON du compte (5 Mo maximum) |
+| GET | `/v1/candidate/workspace` | Bearer requis ; dossier candidat privé, sa révision, ou 204 s’il est vide |
+| PUT | `/v1/candidate/workspace` | Bearer + CSRF ; `{workspace, revision}` (5 Mo) ; refuse avec 409 une révision obsolète. `{overwrite:true}` remplace explicitement une copie distante. |
 | GET | `/.well-known/jwks.json` | Clés publiques Ed25519, `kid`, `alg=EdDSA`, cache 60 s |
 | GET | `/health/live`, `/health/ready` | Vie du processus / disponibilité des dépendances |
 
 Erreurs : 400 entrée invalide ; 401 identifiants/token/session refusés ; 403 origine
 ou CSRF ; 429 quota de tentatives ; 503 dépendance indisponible ou hachage saturé.
-Une réponse 202 ne vaut pas validation de propriété de l’adresse email.
+Une réponse 202 ne vaut pas validation de propriété de l’adresse email. Une réponse 409 signifie qu’un autre appareil a enregistré une version plus récente du dossier : le frontend doit proposer de charger cette copie ou de confirmer l’écrasement.
 
 Exemple d’intégration à adapter dans le frontend (le JWT reste en mémoire) :
 
@@ -184,9 +186,8 @@ devront exiger un second facteur ; ne pas les ouvrir avec cette seule tranche.
 Vérification email et récupération du mot de passe sont livrées avec le transport
 `log` (`AUTH_MAILER=log`, valeur par défaut) : le message est journalisé, aucun
 email réel n’est envoyé. Restent à construire avant ouverture publique : un
-transport SMTP réel et la supervision du mailer. Restent aussi : suppression de
-compte, notifications et « déconnecter tous les appareils » explicite ;
-MFA/passkeys relèvent de la tranche B.
+transport SMTP réel et la supervision du mailer. Restent aussi : notifications
+et MFA/passkeys (tranche B).
 
 Les comptes créés ont `email_verified=false` jusqu'à confirmation par jeton ;
 ne jamais traiter un email non vérifié comme vérifié ni l’utiliser pour rattacher

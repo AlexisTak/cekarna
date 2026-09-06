@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/dm-sans';
 import App from './App';
+import Account from './Account';
 import Auth from './Auth';
 import Landing from './Landing';
 import PasswordReset from './PasswordReset';
@@ -20,6 +21,7 @@ else if (path === '/connexion') screen = <Auth mode="login" />;
 else if (path === '/mot-de-passe-oublie') screen = <Recover />;
 else if (path === '/reinitialiser') screen = <PasswordReset />;
 else if (path === '/verifier-email') screen = <VerifyEmail />;
+else if (path === '/compte') screen = <Account />;
 else screen = isCandidateSpace ? <App /> : <Landing />;
 
 createRoot(document.getElementById('root')!).render(

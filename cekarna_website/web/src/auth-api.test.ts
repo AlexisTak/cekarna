@@ -149,17 +149,37 @@ describe('auth-api', () => {
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
       .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-1' }))
-      .mockResolvedValueOnce(jsonResponse(200, { workspace }))
-      .mockResolvedValueOnce(jsonResponse(200, { updated_at: '2026-09-06T12:01:00Z' }));
+      .mockResolvedValueOnce(jsonResponse(200, { workspace, revision: 1 }))
+      .mockResolvedValueOnce(jsonResponse(200, { updated_at: '2026-09-06T12:01:00Z', revision: 2 }));
     vi.stubGlobal('fetch', fetchMock);
     const api = await loadApi();
     await api.bootstrapAuth();
-    await expect(api.fetchCandidateWorkspace()).resolves.toEqual(workspace);
-    await api.saveCandidateWorkspace(workspace);
+    await expect(api.fetchCandidateWorkspace()).resolves.toEqual({ workspace, revision: 1 });
+    await api.saveCandidateWorkspace(workspace, 1);
     const save = fetchMock.mock.calls[3];
     expect((save[1] as RequestInit).method).toBe('PUT');
     const headers = new Headers((save[1] as RequestInit).headers);
     expect(headers.get('Authorization')).toBe('Bearer at-1');
     expect(headers.get('X-CSRF-Token')).toBe('csrf-1');
+  });
+
+  it('sends protected logout-all and account deletion requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-1' }))
+      .mockResolvedValueOnce(empty(204))
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-2' }))
+      .mockResolvedValueOnce(jsonResponse(200, { id: 'u1', email: 'a@b.test', first_name: 'Camille', email_verified: true }))
+      .mockResolvedValueOnce(empty(204));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = await loadApi();
+    await api.bootstrapAuth();
+    await api.logoutAll();
+    await api.login('a@b.test', 'une longue phrase');
+    await api.deleteAccount('une longue phrase');
+    const methods = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(methods.some((url) => url.endsWith('/v1/auth/logout-all'))).toBe(true);
+    expect(methods.some((url) => url.endsWith('/v1/auth/delete'))).toBe(true);
   });
 });

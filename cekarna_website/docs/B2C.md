@@ -12,6 +12,8 @@ Le 6 septembre 2026, après le cadrage B2B, l’utilisateur a décidé de commen
 - Suivi : à préparer, envoyée, entretien et terminée ; notes modifiables.
 - Repères explicables par comparaison textuelle de ville, contrat et compétences. Ils ne constituent pas une évaluation IA.
 - Sauvegarde dans le navigateur, export/restauration JSON validé, effacement après confirmation.
+- Synchronisation du dossier avec un compte connecté, conflits explicitement signalés et résolus par choix de l’utilisateur.
+- Page compte : déconnexion, révocation de tous les appareils et suppression définitive des données après confirmation par mot de passe.
 - Navigation adaptée au mobile et formulaires utilisables au clavier.
 - Page d’accueil publique : parcours expliqué, accès à l’espace candidat, réponses aux limites de la version et rappel du stockage local.
 

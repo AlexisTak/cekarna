@@ -2947,6 +2947,34 @@ dialog::backdrop {
   gap: clamp(56px, 9vw, 120px);
 }
 
+.account-main {
+  width: min(760px, calc(100% - 48px));
+  margin: 64px auto;
+}
+.account-heading { margin-bottom: 28px; }
+.account-heading h1 { font-size: clamp(2rem, 4vw, 3.2rem); margin: 12px 0; }
+.account-heading > p:last-child { color: var(--muted); }
+.account-card {
+  padding: 24px;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.account-card > div { display: flex; gap: 14px; align-items: flex-start; }
+.account-card h2 { margin: 0 0 5px; font-size: 1.05rem; }
+.account-card p { margin: 0; color: var(--muted); }
+.account-card > .button { margin-top: 20px; }
+.account-feedback { padding: 13px 16px; border-radius: 10px; background: #fff2f0; color: #9c3027; }
+.danger-card { border-color: #e6b8b3; }
+.account-delete { display: grid; gap: 14px; margin-top: 22px; }
+.account-delete label { display: grid; gap: 7px; color: var(--text); font-weight: 600; }
+.account-delete input { padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.button.danger { background: #b42318; color: #fff; }
+.account-actions { display: grid; gap: 8px; margin: 16px 0; }
+.account-actions a, .account-actions button { color: var(--muted); font: inherit; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
+.account-actions a:hover, .account-actions button:hover { color: var(--text); }
+
 .auth-context h1 {
   max-width: 590px;
   margin: 20px 0 24px;

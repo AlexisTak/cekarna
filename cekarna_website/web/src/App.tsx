@@ -30,10 +30,12 @@ import {
   X,
 } from 'lucide-react';
 import {
+  AuthError,
   bootstrapAuth,
   describeAuthError,
   fetchAccount,
   fetchCandidateWorkspace,
+  logout,
   requestVerificationEmail,
   saveCandidateWorkspace,
   type Account,
@@ -343,9 +345,10 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [account, setAccount] = useState<Account | null>(null);
-  const [remoteStatus, setRemoteStatus] = useState<'local' | 'saved' | 'saving' | 'error'>('local');
+  const [remoteStatus, setRemoteStatus] = useState<'local' | 'saved' | 'saving' | 'error' | 'conflict'>('local');
   const importRef = useRef<HTMLInputElement>(null);
   const saveQueue = useRef(Promise.resolve());
+  const remoteRevision = useRef(0);
   const { profile, jobs, demo } = workspace;
   const selected = jobs.find((j) => j.id === selectedId);
   const counts = Object.fromEntries(
@@ -369,8 +372,9 @@ export default function App() {
         const remote = await fetchCandidateWorkspace();
         if (cancelled) return;
         if (remote !== null) {
-          const parsed = parseWorkspace(JSON.stringify(remote));
+          const parsed = parseWorkspace(JSON.stringify(remote.workspace));
           if (!parsed) throw new Error('invalid remote workspace');
+          remoteRevision.current = remote.revision;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           setWorkspace(parsed);
           setStorageError('');
@@ -378,12 +382,18 @@ export default function App() {
           return;
         }
         if (!initial.workspace.demo && window.confirm('Enregistrer sur votre compte l’espace déjà présent sur cet appareil ?')) {
-          await saveCandidateWorkspace(initial.workspace);
+          remoteRevision.current = await saveCandidateWorkspace(initial.workspace, 0);
           if (!cancelled) setRemoteStatus('saved');
         }
       })
-      .catch(() => {
-        if (!cancelled) setRemoteStatus('local');
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof AuthError && error.status === 401) {
+          setRemoteStatus('local');
+          return;
+        }
+        setRemoteStatus('error');
+        setStorageError('Impossible de joindre votre compte. Votre copie locale reste disponible : exportez-la avant de fermer la page.');
       });
     return () => {
       cancelled = true;
@@ -417,13 +427,53 @@ export default function App() {
       setRemoteStatus('saving');
       saveQueue.current = saveQueue.current
         .catch(() => undefined)
-        .then(() => saveCandidateWorkspace(next))
+        .then(() => saveCandidateWorkspace(next, remoteRevision.current))
+        .then((revision) => {
+          remoteRevision.current = revision;
+        })
         .then(() => setRemoteStatus('saved'))
-        .catch(() => {
+        .catch((error: unknown) => {
+          if (error instanceof AuthError && error.code === 'workspace_conflict') {
+            setRemoteStatus('conflict');
+            setStorageError('Une version plus récente existe sur un autre appareil. Choisissez quelle copie conserver.');
+            return;
+          }
           setRemoteStatus('error');
           setStorageError('La sauvegarde sur votre compte a échoué. Une copie reste conservée sur cet appareil.');
         });
     }
+  }
+  async function reloadServerWorkspace() {
+    try {
+      const remote = await fetchCandidateWorkspace();
+      if (!remote) return;
+      const parsed = parseWorkspace(JSON.stringify(remote.workspace));
+      if (!parsed) throw new Error('invalid remote workspace');
+      if (!window.confirm('Remplacer la copie ouverte par la version enregistrée sur votre compte ?')) return;
+      remoteRevision.current = remote.revision;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      setWorkspace(parsed);
+      setStorageError('');
+      setRemoteStatus('saved');
+      setToast('La version enregistrée sur votre compte est ouverte.');
+    } catch (error) {
+      setToast(describeAuthError(error));
+    }
+  }
+  async function overwriteServerWorkspace() {
+    if (!window.confirm('Remplacer la version enregistrée sur votre compte par cette copie ? Les modifications de l’autre appareil seront perdues.')) return;
+    try {
+      remoteRevision.current = await saveCandidateWorkspace(workspace, remoteRevision.current, true);
+      setStorageError('');
+      setRemoteStatus('saved');
+      setToast('Votre copie a remplacé la version enregistrée.');
+    } catch (error) {
+      setToast(describeAuthError(error));
+    }
+  }
+  async function signOut() {
+    await logout();
+    window.location.assign('/connexion');
   }
   function saveJob(job: Job) {
     if (!jobs.some((j) => j.id === job.id) && jobs.length >= 1000) {
@@ -550,6 +600,12 @@ export default function App() {
           <button className="help-button" onClick={() => setDialog('help')}>
             <CircleHelp size={18} />À propos de cet espace
           </button>
+          {account && (
+            <div className="account-actions">
+              <a href="/compte">Gérer mon compte</a>
+              <button onClick={signOut}>Se déconnecter</button>
+            </div>
+          )}
           <div className="sidebar-profile">
             <span className="avatar">
               {profile.firstName.trim().charAt(0).toUpperCase() || 'M'}
@@ -602,9 +658,14 @@ export default function App() {
           {storageError && (
             <div role="alert" className="warning-banner">
               {storageError}
-              <button onClick={() => exportWorkspace(workspace)}>
-                Exporter mon espace
-              </button>
+              {remoteStatus === 'conflict' ? (
+                <>
+                  <button onClick={reloadServerWorkspace}>Voir la copie du compte</button>
+                  <button onClick={overwriteServerWorkspace}>Conserver cette copie</button>
+                </>
+              ) : (
+                <button onClick={() => exportWorkspace(workspace)}>Exporter mon espace</button>
+              )}
             </div>
           )}
           {account && !account.email_verified && (

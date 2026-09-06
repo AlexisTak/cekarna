@@ -96,8 +96,9 @@ export default function Auth({ mode }: { mode: AuthMode }) {
               <div>
                 <h2>Consultez votre boîte email</h2>
                 <p>
-                  Si l’adresse est disponible, un email de confirmation vient de
-                  partir. Suivez son lien pour activer votre espace.
+                  Si l’adresse est disponible, votre compte a été créé et un email
+                  de vérification a été demandé. Vous pouvez vous connecter ;
+                  suivez le lien reçu pour confirmer votre adresse.
                 </p>
               </div>
             </div>

@@ -26,6 +26,9 @@ disponibles localement comme repli.
 
 ## Objectif historique
 
+État du code et écarts constatés : voir [AUDIT.md](AUDIT.md). Les descriptions
+d'infrastructure ci-dessous appartiennent au cadrage B2B historique.
+
 Aider à analyser des profils et des offres, puis à préparer des candidatures fondées sur les informations confirmées. Le code actuel constitue uniquement le socle HTTP.
 
 ## Décisions du socle

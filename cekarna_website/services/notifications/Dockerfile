@@ -1,9 +1,10 @@
-FROM rust:1.96-slim AS build
+FROM rust:1.96-slim-bookworm AS build
 WORKDIR /app
 COPY Cargo.toml Cargo.lock* ./
 RUN mkdir src && printf 'fn main() {}\n' > src/main.rs && cargo build --release && rm -rf src
 COPY src ./src
-RUN cargo build --release
+COPY migrations ./migrations
+RUN touch src/main.rs && cargo build --release --locked
 
 FROM debian:bookworm-slim
 RUN useradd --system --uid 10001 --create-home app

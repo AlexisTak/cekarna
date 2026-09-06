@@ -351,6 +351,8 @@ export default function App() {
   const importRef = useRef<HTMLInputElement>(null);
   const saveQueue = useRef(Promise.resolve());
   const remoteRevision = useRef(0);
+  const accountStorageKey = useRef(STORAGE_KEY);
+  const remoteReady = useRef(false);
   const { profile, jobs, demo } = workspace;
   const selected = jobs.find((j) => j.id === selectedId);
   const counts = Object.fromEntries(
@@ -371,22 +373,42 @@ export default function App() {
       .then(async (me) => {
         if (cancelled) return;
         setAccount(me);
+        accountStorageKey.current = `${STORAGE_KEY}.account.${me.id}`;
+        const personal = emptyWorkspace();
+        personal.profile.firstName = me.first_name;
+        setWorkspace(personal);
+        try {
+          const cached = localStorage.getItem(accountStorageKey.current);
+          const parsedCache = cached ? parseWorkspace(cached) : null;
+          if (parsedCache) setWorkspace(parsedCache);
+        } catch {
+          // The server remains accessible even when browser storage is disabled.
+        }
         const remote = await fetchCandidateWorkspace();
         if (cancelled) return;
         if (remote !== null) {
           const parsed = parseWorkspace(JSON.stringify(remote.workspace));
           if (!parsed) throw new Error('invalid remote workspace');
           remoteRevision.current = remote.revision;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           setWorkspace(parsed);
-          setStorageError('');
+          remoteReady.current = true;
+          try {
+            localStorage.setItem(accountStorageKey.current, JSON.stringify(parsed));
+            setStorageError('');
+          } catch {
+            setStorageError('Votre dossier est chargé. La copie locale ne peut pas être enregistrée sur cet appareil.');
+          }
           setRemoteStatus('saved');
           return;
         }
         if (!initial.workspace.demo && window.confirm('Enregistrer sur votre compte l’espace déjà présent sur cet appareil ?')) {
           remoteRevision.current = await saveCandidateWorkspace(initial.workspace, 0);
-          if (!cancelled) setRemoteStatus('saved');
+          if (!cancelled) {
+            setWorkspace(initial.workspace);
+            setRemoteStatus('saved');
+          }
         }
+        remoteReady.current = true;
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -416,7 +438,7 @@ export default function App() {
   }, [view]);
   function commit(next: Workspace, message: string) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(accountStorageKey.current, JSON.stringify(next));
       setStorageError('');
     } catch {
       setStorageError(
@@ -426,6 +448,10 @@ export default function App() {
     setWorkspace(next);
     setToast(message);
     if (account) {
+      if (!remoteReady.current || remoteStatus === 'conflict') {
+        setStorageError('Rechargez votre dossier serveur avant de synchroniser ces modifications. Votre copie sur cet appareil est conservée.');
+        return;
+      }
       setRemoteStatus('saving');
       saveQueue.current = saveQueue.current
         .catch(() => undefined)
@@ -453,7 +479,8 @@ export default function App() {
       if (!parsed) throw new Error('invalid remote workspace');
       if (!window.confirm('Remplacer la copie ouverte par la version enregistrée sur votre compte ?')) return;
       remoteRevision.current = remote.revision;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      localStorage.setItem(accountStorageKey.current, JSON.stringify(parsed));
+      remoteReady.current = true;
       setWorkspace(parsed);
       setStorageError('');
       setRemoteStatus('saved');
@@ -474,8 +501,12 @@ export default function App() {
     }
   }
   async function signOut() {
-    await logout();
-    window.location.assign('/connexion');
+    try {
+      await logout();
+      window.location.assign('/connexion');
+    } catch (error) {
+      setToast(describeAuthError(error));
+    }
   }
   function saveJob(job: Job) {
     if (!jobs.some((j) => j.id === job.id) && jobs.length >= 1000) {
@@ -1310,14 +1341,14 @@ export default function App() {
               renseigner votre profil et suivre vos démarches.
             </p>
             <p>
-              Les données restent dans ce navigateur. Exportez une sauvegarde
-              avant de changer d’appareil ou de supprimer les données du
-              navigateur.
+              Sans compte, les données restent dans ce navigateur. Avec un compte,
+              votre dossier est synchronisé lorsque le service est disponible.
+              Vous pouvez aussi exporter une sauvegarde.
             </p>
             <p>
-              L’import de CV, la recherche automatique et la rédaction par IA ne
-              sont pas encore disponibles. Aucune candidature n’est envoyée
-              depuis cet espace.
+              L’import de CV PDF textuel est disponible dans « Mon profil », avec
+              relecture avant enregistrement. La recherche automatique et la rédaction
+              par IA ne sont pas encore disponibles. Aucune candidature n’est envoyée.
             </p>
             <button className="button primary" onClick={() => setDialog(null)}>
               C’est compris

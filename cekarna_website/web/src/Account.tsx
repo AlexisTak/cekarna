@@ -65,7 +65,7 @@ export default function Account() {
     setMessage('');
     try {
       await deleteAccount(password);
-      localStorage.removeItem(STORAGE_KEY);
+      if (account) localStorage.removeItem(`${STORAGE_KEY}.account.${account.id}`);
       leave('/');
     } catch (error) {
       if (error instanceof AuthError && error.status === 401) {

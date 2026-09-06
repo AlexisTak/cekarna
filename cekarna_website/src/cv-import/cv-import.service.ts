@@ -21,11 +21,7 @@ import {
   ConfirmProfileDto,
   ConfirmedFieldDto,
 } from './dto/confirm-profile.dto';
-import {
-  ExtractionStore,
-  StoredDocument,
-  normalizeForComparison,
-} from './extraction-store';
+import { ExtractionStore, StoredDocument } from './extraction-store';
 import { PdfTextError, readPdfText } from './pdf-text';
 import { extractProfileFields } from './profile-extractor';
 
@@ -125,17 +121,18 @@ export class CvImportService {
       );
     if (source !== 'extracted') return;
 
-    const segments = value
-      .split(/\s*,\s*/)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
-    const unsupported = segments.filter(
-      (segment) =>
-        !document.normalizedText.includes(normalizeForComparison(segment)),
-    );
-    if (unsupported.length)
+    const proposed =
+      extractProfileFields(document.pages)
+        .find((entry) => entry.field === field)
+        ?.candidates.some((candidate) => candidate.value === value) ?? false;
+    const supported =
+      proposed ||
+      document.pages.some((page) =>
+        page.lines.some((line) => line.includes(value)),
+      );
+    if (!supported)
       throw new BadRequestException(
-        `Le champ « ${field} » contient du texte absent du CV : ${unsupported.join(', ')}. Le déclarer en saisie manuelle si la valeur est volontaire.`,
+        `Le champ « ${field} » ne correspond pas à un extrait littéral du CV. Le déclarer en saisie manuelle si la valeur est volontaire.`,
       );
   }
 }

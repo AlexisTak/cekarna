@@ -192,11 +192,9 @@ export function hasSession(): boolean {
 }
 
 export async function logout(): Promise<void> {
-  try {
-    await mutate('/v1/auth/logout', {}, false);
-  } finally {
-    accessToken = '';
-  }
+  const response = await mutate('/v1/auth/logout', {}, false);
+  if (response.status !== 204) throw await toError(response);
+  accessToken = '';
 }
 
 export async function logoutAll(): Promise<void> {
@@ -209,12 +207,9 @@ export async function logoutAll(): Promise<void> {
 }
 
 export async function deleteAccount(password: string): Promise<void> {
-  try {
-    const response = await mutate('/v1/auth/delete', { password }, true);
-    if (response.status !== 204) throw await toError(response);
-  } finally {
-    accessToken = '';
-  }
+  const response = await mutate('/v1/auth/delete', { password }, true);
+  if (response.status !== 204) throw await toError(response);
+  accessToken = '';
 }
 
 export async function requestVerificationEmail(): Promise<void> {

@@ -110,6 +110,18 @@ describe('import de CV', () => {
       expect(result.provenance.city).toBe('manual');
     });
 
+    it.each(['PARIS', 'Marie, Paris', ',,,'])(
+      'refuse un extrait modifié ou recomposé : %s',
+      (value) => {
+        expect(() =>
+          service.confirmProfile({
+            documentId,
+            fields: { about: { value, source: 'extracted' } },
+          }),
+        ).toThrow(BadRequestException);
+      },
+    );
+
     it('refuse un contrat hors de la liste connue', () => {
       expect(() =>
         service.confirmProfile({

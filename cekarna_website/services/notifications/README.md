@@ -5,9 +5,11 @@ PostgreSQL avant l'envoi : une indisponibilité SMTP ne fait donc pas perdre la
 notification. Un worker livre les emails via SMTP avec STARTTLS, réessaie les
 erreurs jusqu'à `NOTIFICATIONS_MAX_ATTEMPTS`, puis marque l'élément `failed`.
 
-Le service est volontairement séparé de `services/auth/`. L'authentification
-continue d'émettre directement ses emails tant qu'un appelateur interne n'a pas
-été ajouté et validé. Le contrat ci-dessous est celui à utiliser pour ce raccord.
+Le service est séparé de `services/auth/`. L'adaptateur Go existe : choisir
+`AUTH_MAILER=notifications`, `NOTIFICATIONS_URL` et le même token interne.
+Le Compose d'authentification conserve le transport de développement `log`.
+Le raccord doit donc être configuré au déploiement ; aucun fournisseur réel
+n'est activé par la présence de ce code.
 
 ## Démarrage local
 
@@ -48,6 +50,13 @@ supervision applicative; elle ne doit jamais être rendue publique.
 `GET /health/live` indique que le processus répond. `GET /health/ready` vérifie
 PostgreSQL. Les journaux structurés indiquent une livraison, un nouvel essai ou
 un échec final, sans écrire le destinataire ni le corps du message.
+
+Un appel SMTP est borné à 30 secondes. Un envoi abandonné est repris après
+cinq minutes ; la dernière tentative abandonnée devient `failed`. Le champ
+`last_error` contient un code générique, jamais la réponse brute du fournisseur.
+`delivered` signifie accepté par SMTP, pas réception confirmée en boîte email.
+Une reprise après interruption peut envoyer un doublon si SMTP avait accepté
+le message avant l'arrêt. L'API n'offre pas encore de clé d'idempotence.
 
 ## Limites et prochaine tranche
 

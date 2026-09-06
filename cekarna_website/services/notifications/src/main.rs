@@ -220,7 +220,12 @@ async fn dispatch_loop(
     loop {
         match claim_pending(&database, max_attempts).await {
             Ok(Some(notification)) => {
-                let outcome = send_email(&transport, &smtp.from, &notification).await;
+                let outcome = tokio::time::timeout(
+                    Duration::from_secs(30),
+                    send_email(&transport, &smtp.from, &notification),
+                )
+                .await
+                .unwrap_or_else(|_| Err("smtp_timeout".into()));
                 if let Err(err) = finish_delivery(
                     &database,
                     notification.id,
@@ -246,6 +251,8 @@ async fn claim_pending(
     database: &PgPool,
     max_attempts: i32,
 ) -> Result<Option<PendingNotification>, sqlx::Error> {
+    sqlx::query("UPDATE notifications SET status = 'failed', locked_at = NULL, last_error = 'attempts_exhausted' WHERE attempts >= $1 AND (status = 'pending' OR (status = 'sending' AND locked_at < now() - interval '5 minutes'))")
+        .bind(max_attempts).execute(database).await?;
     sqlx::query_as::<_, PendingNotification>("WITH next AS (SELECT id FROM notifications WHERE ((status = 'pending' AND available_at <= now()) OR (status = 'sending' AND locked_at < now() - interval '5 minutes')) AND attempts < $1 ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE notifications SET status = 'sending', attempts = attempts + 1, locked_at = now() WHERE id = (SELECT id FROM next) RETURNING id, recipient, subject, text_body")
         .bind(max_attempts).fetch_optional(database).await
 }
@@ -270,7 +277,7 @@ async fn send_email(
         .send(email)
         .await
         .map(|_| ())
-        .map_err(|err| err.to_string())
+        .map_err(|_| "smtp_delivery_failed".to_owned())
 }
 
 async fn finish_delivery(
@@ -301,7 +308,7 @@ async fn finish_delivery(
                 .await?;
                 warn!(notification_id = %id, "notification delivery permanently failed");
             } else {
-                sqlx::query("UPDATE notifications SET status = 'pending', available_at = now() + $2 * interval '1 second', locked_at = NULL, last_error = $3 WHERE id = $1").bind(id).bind(retry_delay.as_secs() as i64).bind(sanitized).execute(database).await?;
+                sqlx::query("UPDATE notifications SET status = 'pending', available_at = now() + $2::bigint * interval '1 second', locked_at = NULL, last_error = $3 WHERE id = $1").bind(id).bind(retry_delay.as_secs() as i64).bind(sanitized).execute(database).await?;
                 warn!(notification_id = %id, "notification delivery failed; will retry");
             }
         }
@@ -353,6 +360,49 @@ async fn shutdown_signal() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[sqlx::test(migrations = "./migrations")]
+    #[ignore = "requires a local PostgreSQL DATABASE_URL with permission to create test databases"]
+    async fn retry_and_crash_recovery(pool: PgPool) {
+        let id = Uuid::now_v7();
+        sqlx::query("INSERT INTO notifications(id,kind,recipient,subject,text_body) VALUES($1,'auth.email','test@example.test','Test','Body')")
+            .bind(id).execute(&pool).await.unwrap();
+        assert_eq!(claim_pending(&pool, 2).await.unwrap().unwrap().id, id);
+        assert!(claim_pending(&pool, 2).await.unwrap().is_none());
+        finish_delivery(
+            &pool,
+            id,
+            Err("smtp_delivery_failed".into()),
+            2,
+            Duration::from_secs(60),
+        )
+        .await
+        .unwrap();
+        assert!(claim_pending(&pool, 2).await.unwrap().is_none());
+        sqlx::query(
+            "UPDATE notifications SET available_at = now() - interval '1 second' WHERE id=$1",
+        )
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert!(claim_pending(&pool, 2).await.unwrap().is_some());
+        // Crash during the last attempt must eventually become a terminal failure.
+        sqlx::query(
+            "UPDATE notifications SET locked_at = now() - interval '6 minutes' WHERE id=$1",
+        )
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert!(claim_pending(&pool, 2).await.unwrap().is_none());
+        let status: String =
+            sqlx::query_scalar("SELECT status::text FROM notifications WHERE id=$1")
+                .bind(id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(status, "failed");
+    }
     #[test]
     fn rejects_invalid_input() {
         assert!(

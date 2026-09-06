@@ -143,6 +143,27 @@ describe('auth-api', () => {
     expect(api.describeAuthError(new Error('network'))).toContain('indisponible');
   });
 
+  it('reports a refused logout instead of claiming success', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
+      .mockResolvedValueOnce(jsonResponse(503, { error: 'unavailable' })));
+    const api = await loadApi();
+    await expect(api.logout()).rejects.toMatchObject({ status: 503 });
+  });
+
+  it('keeps the session when account deletion is refused', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-1' }))
+      .mockResolvedValueOnce(jsonResponse(401, { error: 'invalid_credentials' }))
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-2' }))
+      .mockResolvedValueOnce(jsonResponse(401, { error: 'invalid_credentials' })));
+    const api = await loadApi();
+    await api.bootstrapAuth();
+    await expect(api.deleteAccount('wrong')).rejects.toMatchObject({ status: 401 });
+    expect(api.hasSession()).toBe(true);
+  });
+
   it('loads and saves the private candidate workspace with bearer and CSRF', async () => {
     const workspace = { version: 1, demo: false, profile: {}, jobs: [] };
     const fetchMock = vi

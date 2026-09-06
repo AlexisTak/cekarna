@@ -1,0 +1,42 @@
+{
+  "version": "2.0",
+  "total_pages": 20,
+  "originals_preserved": true,
+  "documents": [
+    {
+      "file": "cahier_des_charges_cekarna.pdf",
+      "pages": 4,
+      "complete_text": true,
+      "bounds": true,
+      "sha256": "8b0295bc02804772ef35bec3505f189f4f1d931cd9135dbf82313bca79e42380"
+    },
+    {
+      "file": "optimisation_cekarna_v1.pdf",
+      "pages": 4,
+      "complete_text": true,
+      "bounds": true,
+      "sha256": "0958f1d344141a94a8af39136a7f57a291fe05eddcb9cc7957abb5f538adbd28"
+    },
+    {
+      "file": "plan_b2b_saas_v1.pdf",
+      "pages": 5,
+      "complete_text": true,
+      "bounds": true,
+      "sha256": "dc80fc1230dd2d9f0522606be81f4296397eeda2dc9355da6d615b0a67d90579"
+    },
+    {
+      "file": "plan_formation_ia_v1.pdf",
+      "pages": 3,
+      "complete_text": true,
+      "bounds": true,
+      "sha256": "809f5b6cd8812db503aeb491044d4db6e3faf0b6a778142f48fc59b4feec4b91"
+    },
+    {
+      "file": "stack_microservices_rust_v1.pdf",
+      "pages": 4,
+      "complete_text": true,
+      "bounds": true,
+      "sha256": "0c320ce3b8ec371ca240588d3a64ff503c30e5148492969d562637b8012b665e"
+    }
+  ]
+}

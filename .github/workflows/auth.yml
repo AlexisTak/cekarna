@@ -1,0 +1,27 @@
+name: Auth service
+on:
+  push:
+    paths: ['cekarna_website/services/auth/**', '.github/workflows/auth.yml']
+  pull_request:
+    paths: ['cekarna_website/services/auth/**', '.github/workflows/auth.yml']
+permissions:
+  contents: read
+jobs:
+  auth:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cekarna_website/services/auth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cekarna_website/services/auth/go.mod
+          cache-dependency-path: cekarna_website/services/auth/go.sum
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - run: go run ./cmd/auth init-dev
+      - run: docker compose -f compose.yaml -f compose.test.yaml run --build --rm tests
+      - if: always()
+        run: docker compose stop

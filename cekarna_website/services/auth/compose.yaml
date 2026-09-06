@@ -1,0 +1,57 @@
+name: cekarna-auth
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cekarna_auth
+      POSTGRES_USER: cekarna
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run go run ./cmd/auth init-dev}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cekarna -d cekarna_auth"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run go run ./cmd/auth init-dev}
+    command: ["sh", "-c", 'exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 128mb --maxmemory-policy noeviction --appendonly yes']
+    ports: ["127.0.0.1:56379:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    build: .
+    command: ["migrate"]
+    environment:
+      DATABASE_URL: postgres://cekarna:${POSTGRES_PASSWORD}@postgres:5432/cekarna_auth?sslmode=disable
+    depends_on:
+      postgres: {condition: service_healthy}
+  auth:
+    build: .
+    environment:
+      APP_ENV: development
+      AUTH_ADDR: 0.0.0.0:8081
+      AUTH_ISSUER: http://localhost:8081
+      AUTH_AUDIENCE: cekarna-api
+      WEB_ORIGIN: http://127.0.0.1:5173
+      AUTH_SIGNING_KEY_FILE: /run/secrets/ed25519.key
+      AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY:?Run go run ./cmd/auth init-dev}
+      DATABASE_URL: postgres://cekarna:${POSTGRES_PASSWORD}@postgres:5432/cekarna_auth?sslmode=disable
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+    volumes: ["./.secrets/ed25519.key:/run/secrets/ed25519.key:ro"]
+    ports: ["127.0.0.1:8081:8081"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+volumes:
+  postgres-data:
+  redis-data:

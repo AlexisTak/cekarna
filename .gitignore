@@ -1,0 +1,29 @@
+# Dependencies and generated output
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/test-results/
+**/__pycache__/
+*.py[cod]
+
+# Local configuration and secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/.secrets/
+*.key
+*.pem
+*.p12
+
+# Tools, logs and runtime files
+**/.openai/*.tar.gz
+*.log
+*.pid
+*.seed
+*.exe
+.DS_Store
+.idea/
+.vscode/
+.temp/
+.tmp/

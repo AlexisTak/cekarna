@@ -1,0 +1,22 @@
+[
+  {
+    "file": "cahier_des_charges_cekarna.pdf",
+    "sha256": "e3a0f960e82cb3de60adaebc8c69088a01f32cdd0a61b01fe70c9e3bf37d01ea"
+  },
+  {
+    "file": "optimisation_cekarna_v1.pdf",
+    "sha256": "27d56c3ae017859bf9d3c0cfba219e57c2ede1c96567b68509a24c86b44ff643"
+  },
+  {
+    "file": "plan_b2b_saas_v1.pdf",
+    "sha256": "972bc48babbcca447fbcd6bb7e5631c44fae28a20e810d39f7c5e48111cf2b16"
+  },
+  {
+    "file": "plan_formation_ia_v1.pdf",
+    "sha256": "aac85a1fccc1d8eb2a1892068de0cc3de5e98ab944787a5d68e913d6eff161b7"
+  },
+  {
+    "file": "stack_microservices_rust_v1.pdf",
+    "sha256": "f9057695161b9eb531ff4f825601ee37dc63f3f2da65179b8c1be8bb58e85ad1"
+  }
+]

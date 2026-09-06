@@ -1,0 +1,77 @@
+# Cekarna — application candidats et API
+
+Priorité actuelle : application web pour les particuliers en recherche d’emploi. Le B2B est différé ; les PDF V2 du dossier parent sont conservés comme cadrage historique.
+
+## Application web B2C
+
+La racine du site est une page d’accueil publique qui présente les fonctions réellement disponibles. L’espace candidat contient un tableau de bord, un profil manuel, des offres, des filtres, un suivi des candidatures et des notes. Le mode découverte contient uniquement des exemples fictifs. Sans compte, les données sont sauvegardées dans le navigateur. Avec un compte, elles sont aussi conservées dans PostgreSQL via le service Go ; export et restauration JSON restent disponibles.
+
+Prérequis du frontend : Node.js 22.12+ (ou Node.js 24), npm. Depuis `cekarna_website` :
+
+```sh
+npm ci --prefix web
+npm run dev:web
+```
+
+Ouvrir http://127.0.0.1:5173 pour la page d’accueil, puis utiliser http://127.0.0.1:5173/?workspace=candidate pour l’espace candidat. Vérifier avec `npm run check:web`. Voir `web/README.md` et `docs/B2C.md`.
+
+## API NestJS conservée
+
+## État réel
+
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C et un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis. Il ne contient pas encore de moteur IA. Les PDF V2 du dossier parent décrivent le B2B différé. Le cadrage prioritaire actuel est `docs/B2C.md`.
+
+- `GET /` : identité de l’API et état `initialization`.
+- `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.
+- Validation globale des futurs DTO avec `class-validator` : champs inconnus refusés, sans conversion implicite des valeurs.
+- En-têtes HTTP Helmet, CORS limité aux origines configurées, arrêt sur signaux système.
+
+## Installation et démarrage
+
+Prérequis : Node.js 22 ou supérieur et npm. Exécuter les commandes depuis `cekarna_website`.
+
+```sh
+npm ci
+```
+
+Copier `.env.example` vers `.env` et ajuster si nécessaire. Les variables de l’environnement prennent priorité sur `.env`.
+
+```sh
+npm run start:dev
+```
+
+L’API écoute par défaut sur http://127.0.0.1:3000. Aucun service Docker n’est nécessaire.
+
+| Variable | Défaut | Usage |
+| --- | --- | --- |
+| `PORT` | `3000` | Entier de 1 à 65535 |
+| `HOST` | `127.0.0.1` | Adresse d’écoute ; `0.0.0.0` pour un conteneur |
+| `CORS_ORIGINS` | vide | Origines HTTP(S) exactes, séparées par des virgules, sans chemin ni slash final |
+
+CORS contrôle les autorisations des navigateurs ; il ne remplace pas une authentification. Pour les futures routes recevant des données, déclarer des classes DTO avec des décorateurs de validation ; une interface TypeScript seule ne valide pas les entrées HTTP.
+
+## Vérifications
+
+```sh
+npm run check
+```
+
+Cette commande enchaîne lint sans modification, vérification TypeScript, tests unitaires, tests HTTP et compilation. La CI GitHub exécute `npm run check:all` sur Node.js 24, après installation des dépendances des deux dossiers.
+
+- `npm run lint:fix` : corrections automatiques explicites.
+- `npm run format` : formatage des sources et tests.
+- `npm run test:cov` : couverture des tests unitaires.
+- `npm run build` puis `npm run start:prod` : exécution du code compilé.
+
+La configuration commune est appliquée en production et dans les tests HTTP. Les erreurs HTTP utilisent le traitement standard de NestJS. Les erreurs de configuration interrompent le démarrage ; elles sont journalisées avec un code de sortie non nul.
+
+## Organisation
+
+- `src/main.ts` : chargement de l’environnement et démarrage.
+- `src/config/environment.ts` : lecture et validation de la configuration.
+- `src/configure-app.ts` : configuration HTTP commune.
+- `src/app.*` : module racine et endpoints d’identification/santé.
+- `test/` : tests HTTP, dont un contrôleur de validation présent uniquement dans les tests.
+- `docs/PROJECT.md` : périmètre, décisions techniques et prochaines étapes.
+
+Les traitements métier seront ajoutés par domaine au fur et à mesure. Ne pas stocker de vrais CV, de données personnelles ou de secrets dans le dépôt.

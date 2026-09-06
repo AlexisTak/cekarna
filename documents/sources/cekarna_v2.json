@@ -1,0 +1,1173 @@
+{
+  "version": "2.0",
+  "date": "06 septembre 2026",
+  "sources": {
+    "CNIL": {
+      "label": "CNIL — Le guide du recrutement",
+      "url": "https://www.cnil.fr/fr/le-guide-du-recrutement"
+    },
+    "AI": {
+      "label": "Commission européenne — AI Act, usages à haut risque",
+      "url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai"
+    },
+    "VECTOR": {
+      "label": "pgvector — documentation officielle, index et filtres",
+      "url": "https://github.com/pgvector/pgvector"
+    },
+    "QUEUE": {
+      "label": "NestJS — files de traitement BullMQ",
+      "url": "https://docs.nestjs.com/techniques/queues"
+    },
+    "JOBS": {
+      "label": "BullMQ — tâches idempotentes",
+      "url": "https://docs.bullmq.io/patterns/idempotent-jobs"
+    },
+    "PAY": {
+      "label": "Stripe — webhooks, signatures et événements",
+      "url": "https://docs.stripe.com/webhooks"
+    }
+  },
+  "documents": [
+    {
+      "file": "cahier_des_charges_cekarna.pdf",
+      "code": "01 / PRODUIT",
+      "title": "Cahier des charges",
+      "subtitle": "Un assistant de présélection pour les cabinets de recrutement",
+      "status": "CIBLE RETENUE · EXIGENCES À IMPLÉMENTER",
+      "pages": [
+        {
+          "title": "Un produit précis, une valeur démontrable",
+          "lead": "Transformer les CV existants en une sélection argumentée, vérifiable et révisable.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "Client et problème prioritaires"
+            },
+            {
+              "type": "p",
+              "text": "Cible retenue : cabinets de recrutement. Segment initial proposé : cabinets indépendants de 2 à 10 recruteurs spécialisés dans les métiers tech. Cette spécialisation reste à tester. Le premier problème traité est le temps consacré à relire des CV et à justifier une sélection pour une mission."
+            },
+            {
+              "type": "box",
+              "label": "PROMESSE COMMERCIALE",
+              "text": "« Retrouvez les éléments pertinents de votre vivier et préparez une sélection expliquée, en gardant la décision. » Aucun placement, gain de temps ou niveau de pertinence n’est garanti avant mesure."
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Statut",
+                "Périmètre"
+              ],
+              "rows": [
+                [
+                  "Existant vérifié",
+                  "API NestJS/Express, TypeScript strict, configuration, validation HTTP, /health et 25 tests locaux."
+                ],
+                [
+                  "À construire",
+                  "Interface, comptes, organisations, stockage, import, rapprochement, génération, quotas et facturation."
+                ],
+                [
+                  "Différé",
+                  "Assistant candidat, application locale, formation commercialisée, sourcing public et microservices."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Parcours MVP"
+            },
+            {
+              "type": "p",
+              "text": "Créer une organisation → saisir une mission et ses critères → importer des CV autorisés → corriger les profils extraits → consulter une sélection expliquée → rédiger et exporter une synthèse ou un brouillon de message."
+            },
+            {
+              "type": "p",
+              "text": "Le recruteur peut consulter tous les profils, modifier les critères et réviser le classement. Aucun rejet, envoi ou partage externe automatique. Les données d’un cabinet ne constituent jamais un vivier partagé avec d’autres cabinets."
+            }
+          ]
+        },
+        {
+          "title": "Périmètre et règles fonctionnelles",
+          "lead": "Une première version complète sur un cas d’usage limité.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Fonction",
+                "Exigence MVP"
+              ],
+              "rows": [
+                [
+                  "Organisation",
+                  "Administrateur : membres, abonnement, rétention. Recruteur : missions et profils autorisés. Contrôles côté serveur sur chaque ressource."
+                ],
+                [
+                  "Import",
+                  "PDF textuels uniquement, 10 Mo et 30 pages par fichier ; lot de 100 fichiers. Vérifier le type réel. PDF scanné ou chiffré : refus expliqué."
+                ],
+                [
+                  "Profil",
+                  "Extraire compétences, expériences, formations et extraits sources avec pages. Les champs incertains restent à vérifier."
+                ],
+                [
+                  "Mission",
+                  "Description et critères professionnels obligatoires ou souhaitables. Versionner les modifications et leur auteur."
+                ],
+                [
+                  "Comparaison",
+                  "Critères satisfaits, non satisfaits ou inconnus, avec preuves. Une absence de preuve ne vaut pas absence de compétence."
+                ],
+                [
+                  "Brouillons",
+                  "Synthèse ou message fondé sur le profil confirmé. Édition et export explicites ; pas d’envoi intégré."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Comportements attendus"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Un import identique dans la même organisation est signalé ; aucune fusion silencieuse de personnes.",
+                "Une modification du profil ou des critères invalide le résultat concerné et propose un nouveau traitement.",
+                "Chaque traitement affiche son état : en attente, en cours, réussi, échoué ou annulé.",
+                "Chaque résultat mentionne les versions du profil, de la mission, du modèle et de la méthode ; une sortie non valide est bloquée."
+              ]
+            },
+            {
+              "type": "box",
+              "label": "HORS PÉRIMÈTRE INITIAL",
+              "text": "OCR, DOCX, enrichissement public, connexion ATS, facturation à la performance et messages automatiques. Réintroduire une fonction après preuve du besoin et estimation de son coût."
+            }
+          ]
+        },
+        {
+          "title": "Fiabilité, données et contrôle humain",
+          "lead": "Conditions de lancement ; ces protections ne sont pas encore toutes implémentées.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "Architecture de confiance"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Isoler organisations, fichiers, recherches, exports et tâches. Le tenant provient d’une session autorisée ; un identifiant envoyé par le navigateur ne suffit jamais.",
+                "Stockage privé, liens temporaires, TLS, chiffrement au repos et secrets hors dépôt. Journaux sans CV ni contenu de message.",
+                "Un CV est une donnée non fiable : ses instructions ne doivent piloter aucun outil ni appel externe.",
+                "Pas d’apprentissage sur les données clients par défaut. Documenter prestataires, régions et flux avant d’activer un modèle distant."
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Cycle de vie proposé"
+            },
+            {
+              "type": "p",
+              "text": "Paramétrer une durée justifiée par cabinet avant import. Proposition technique : fichiers bruts supprimés 30 jours après validation ; vivier réexaminé à 6 mois. Ce ne sont pas des durées légales universelles. La suppression purge fichiers, profils, vecteurs et caches ; les sauvegardes expirent sous 35 jours au maximum selon la politique opératoire retenue."
+            },
+            {
+              "type": "h",
+              "text": "Pertinence et équité à évaluer"
+            },
+            {
+              "type": "p",
+              "text": "Écarter du classement nom, photo, âge et informations personnelles sans lien avec la mission ; ne pas inférer de traits sensibles. Tester des profils fictifs équivalents et examiner les écarts. Les extraits sources restent attachés au profil tant qu’il est conservé. Un recruteur peut revoir la sélection entière, pas seulement les dix premiers résultats."
+            },
+            {
+              "type": "h",
+              "text": "Qualification avant les premiers CV réels"
+            },
+            {
+              "type": "p",
+              "text": "Le guide CNIL demande notamment finalité, base légale, droits d’accès, information et conservation justifiée. Qualifier les rôles client/prestataire, contractualiser le traitement et évaluer le besoin d’AIPD avec une personne compétente. [CNIL]"
+            },
+            {
+              "type": "p",
+              "text": "La Commission cite le tri de CV parmi les usages IA à haut risque. La qualification de Cekarna dépend de son usage réel ; une validation humaine ne constitue pas à elle seule une exemption. Faire confirmer obligations et calendrier applicables avant commercialisation. [AI]"
+            },
+            {
+              "type": "refs",
+              "keys": [
+                "CNIL",
+                "AI"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Recette et étapes de livraison",
+          "lead": "Objectifs de recette à tester sur un environnement documenté ; aucun SLA contractuel à ce stade.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Étape",
+                "Preuve et responsable"
+              ],
+              "rows": [
+                [
+                  "G0 · problème",
+                  "10 entretiens, workflow observé, 3 cabinets candidats au pilote. Produit."
+                ],
+                [
+                  "G1 · socle privé",
+                  "Comptes, isolation, restauration, suppression et quotas testés. Technique."
+                ],
+                [
+                  "G2 · valeur",
+                  "Import → correction → sélection → brouillon → export fonctionnel. Produit et technique."
+                ],
+                [
+                  "G3 · pilote",
+                  "Corpus évalué, coûts mesurés, cadre données validé. Produit et référent données."
+                ],
+                [
+                  "G4 · lancement",
+                  "Bilan de 3 pilotes, support opérable, offre claire et qualification réglementaire documentée. Dirigeant."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Seuils de recette proposés"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Isolation : aucun accès croisé réussi dans les scénarios couvrant API, fichiers, tâches, cache et exports.",
+                "Extraction : au moins 95 % des champs factuels annotés correctement extraits sur 100 CV représentatifs. Les inconnus comptent comme omissions.",
+                "Génération : aucune invention factuelle critique dans 100 sorties examinées ; une erreur critique bloque la vente. Ce test ne prouve pas un risque nul.",
+                "Pertinence : précision des 10 premiers résultats d’au moins 80 % sur 20 missions ayant chacune au moins 10 profils pertinents ; sinon adapter k et publier le protocole.",
+                "Performance : charge et cibles dans le document 02 ; toute promesse client attend une mesure reproductible."
+              ]
+            },
+            {
+              "type": "p",
+              "text": "Corpus fictif ou autorisé, séparé des exemples de réglage ; deux recruteurs annotent les critères et résolvent leurs désaccords avant évaluation. Rapporter aussi omissions et affirmations ajoutées à tort, puis comparer le classement à une référence par mots-clés."
+            },
+            {
+              "type": "box",
+              "label": "DÉFINITION DE « TERMINÉ »",
+              "text": "Parcours normal, erreurs, droits d’accès, suppression et documentation vérifiés. Les PDF sont une spécification V2 ; le produit reste en développement."
+            },
+            {
+              "type": "p",
+              "text": "Ce cahier fixe le périmètre ; le plan B2B définit l’offre ; l’optimisation fixe les mesures ; l’architecture décrit la trajectoire. Toute modification des quotas doit être répercutée dans la recette."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "optimisation_cekarna_v1.pdf",
+      "code": "02 / PERFORMANCE",
+      "title": "Performance & coûts",
+      "subtitle": "Mesurer avant de dimensionner — préserver qualité et marge",
+      "status": "OBJECTIFS DE PILOTE · AUCUN BENCHMARK ACQUIS",
+      "pages": [
+        {
+          "title": "Définir la charge utile",
+          "lead": "La charge se décrit par opérations et volumes, pas par le seul nombre d’inscrits.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Scénario proposé",
+                "Dimensionnement du test"
+              ],
+              "rows": [
+                [
+                  "Pilote",
+                  "3 cabinets, 2 à 10 recruteurs chacun, jusqu’à 1 000 profils par cabinet."
+                ],
+                [
+                  "Interactif",
+                  "20 sessions simulées ; montée à 10 requêtes/seconde pendant 15 minutes après échauffement."
+                ],
+                [
+                  "Import simultané",
+                  "3 lots de 100 PDF conformes aux limites de 10 Mo et 30 pages ; tailles réelles consignées."
+                ],
+                [
+                  "IA",
+                  "3 lots de 50 brouillons ; concurrence plafonnée et attente mesurée séparément du calcul."
+                ],
+                [
+                  "Étape suivante",
+                  "Rejouer à 10 fois le volume après réussite ; aucune extrapolation à 500 000 utilisateurs."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Objectifs internes initiaux"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "API courante hors transfert et IA : p95 inférieur à 500 ms, moins de 1 % de réponses 5xx sous charge interactive.",
+                "Comparaison d’une mission avec 1 000 profils déjà indexés du cabinet : p95 inférieur à 2 secondes.",
+                "PDF textuel : traitement p95 inférieur à 60 secondes ; brouillon : p95 inférieur à 30 secondes. Mesurer aussi le délai total avec attente.",
+                "Navigation disponible pendant les imports ; progression et erreurs visibles."
+              ]
+            },
+            {
+              "type": "box",
+              "label": "RÈGLE DE PUBLICATION",
+              "text": "Conserver date, commit, matériel, région, modèles, corpus et paramètres. Afficher p50, p95, taux d’échec et coût. Un résultat de laboratoire n’est pas une garantie de production."
+            }
+          ]
+        },
+        {
+          "title": "Optimiser le pipeline dans le bon ordre",
+          "lead": "Réduire les traitements inutiles avant de changer d’infrastructure.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "1 · Ingestion une seule fois"
+            },
+            {
+              "type": "p",
+              "text": "Calculer une empreinte dans le périmètre du cabinet, extraire texte puis profil. Réutiliser uniquement les sorties du même document et de la même version de parseur. Détecter les doublons sans mutualiser les viviers privés."
+            },
+            {
+              "type": "h",
+              "text": "2 · Recherche puis justification"
+            },
+            {
+              "type": "p",
+              "text": "Appliquer les critères professionnels explicites, puis combiner recherche textuelle et proximité sémantique. Comparer à une référence par mots-clés. Réserver l’IA générative à la synthèse des preuves et, si les mesures le justifient, à une réévaluation d’un petit ensemble. Aucun score n’est une probabilité de réussite."
+            },
+            {
+              "type": "h",
+              "text": "3 · Stockage et cache"
+            },
+            {
+              "type": "p",
+              "text": "PostgreSQL est proposé ; pgvector est une option. Vérifier rappel et temps avec filtres de cabinet : un index approximatif filtré peut retourner trop peu de résultats. Commencer par un calcul exact sur les petits viviers ; indexer selon les mesures. [VECTOR]"
+            },
+            {
+              "type": "box",
+              "label": "CACHE PERSONNALISÉ",
+              "text": "Organisation + profil/version + mission/version + modèle + version de consigne + méthode. Contrôler les droits avant lecture. Ne jamais réutiliser une analyse individuelle provenant d’un autre cabinet."
+            },
+            {
+              "type": "h",
+              "text": "4 · Travail asynchrone"
+            },
+            {
+              "type": "p",
+              "text": "Un worker absorbe parsing et génération. Redis/BullMQ est proposé pour la file ; NestJS fournit une intégration. Limiter concurrence par cabinet et globale, réserver les quotas avant lancement et exposer l’attente. [QUEUE]"
+            },
+            {
+              "type": "refs",
+              "keys": [
+                "VECTOR",
+                "QUEUE"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Économie unitaire avant abonnement",
+          "lead": "Simulation de gestion, sans tarif fournisseur ni prévision de ventes.",
+          "blocks": [
+            {
+              "type": "box",
+              "label": "FORMULES",
+              "text": "Coût direct = inférence + extraction + stockage + infrastructure allouée + paiement + support variable.<br/>Contribution = revenu HT − coût direct.<br/>Taux de contribution = contribution / revenu HT."
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Exemple à 299 € HT/mois",
+                "Budget supposé"
+              ],
+              "rows": [
+                [
+                  "Inférence et extraction",
+                  "18 €"
+                ],
+                [
+                  "Stockage et sauvegardes",
+                  "4 €"
+                ],
+                [
+                  "Infrastructure allouée",
+                  "12 €"
+                ],
+                [
+                  "Paiement : hypothèse, pas tarif fournisseur",
+                  "6 €"
+                ],
+                [
+                  "Support : 30 min à 40 €/h",
+                  "20 €"
+                ],
+                [
+                  "Total des coûts directs",
+                  "60 €"
+                ],
+                [
+                  "Contribution avant frais fixes et acquisition",
+                  "239 €, soit 79,9 %"
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "text": "Avec 3 000 € de coûts fixes mensuels supplémentaires, 13 abonnements de ce type les couvriraient (3 000 / 239, arrondi au supérieur). Ce n’est pas un seuil réel avant budget complet : rémunération, acquisition, remboursements, attrition et charges. Ne pas compter deux fois une charge déjà allouée."
+            },
+            {
+              "type": "h",
+              "text": "Instrumentation commerciale"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Enregistrer coût et volume par traitement, modèle et cabinet sans contenu personnel dans les journaux.",
+                "Mesurer le coût par profil utilisable et par synthèse acceptée, pas seulement par appel IA.",
+                "Objectif proposé : contribution d’au moins 70 % ; alerte si les coûts directs dépassent 30 % du revenu HT.",
+                "Au quota, arrêter les nouvelles tâches coûteuses et garder lecture/export. Aucun dépassement facturé sans accord explicite."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Quand changer de taille ou de modèle",
+          "lead": "Un incident ne se résout pas automatiquement en ajoutant des machines.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Signal",
+                "Action avant migration"
+              ],
+              "rows": [
+                [
+                  "File trop longue",
+                  "Limiter concurrence, identifier le fournisseur lent, répartir les workers."
+                ],
+                [
+                  "SQL lent",
+                  "Examiner plans, index, filtres et volumes ; comparer exact/approximatif."
+                ],
+                [
+                  "IA coûteuse",
+                  "Réduire contextes, réutiliser sorties valides, plafonner régénérations et comparer modèles."
+                ],
+                [
+                  "Parsing CPU",
+                  "Profiler, isoler le processus, mesurer une implémentation optimisée."
+                ],
+                [
+                  "GPU envisagé",
+                  "Comparer coût complet aux API pour plusieurs taux d’occupation à qualité égale."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "API ou auto-hébergement"
+            },
+            {
+              "type": "p",
+              "text": "Inclure GPU, inactivité, exploitation, supervision, redondance et secours. Le local évite une facturation au token externe mais mobilise matériel et énergie. Aucun gain ×10 ou ×50 sans test comparable. Évaluer licences et flux de données avant choix du modèle."
+            },
+            {
+              "type": "h",
+              "text": "Résilience proposée"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Au plus 3 tentatives pour panne transitoire avec temporisation ; aucune reprise automatique pour fichier invalide ou quota épuisé.",
+                "Tâches idempotentes : une reprise ne crée pas un second résultat ni une seconde facturation. [JOBS]",
+                "RPO 24 h et RTO 4 h : objectifs internes à confirmer par restauration testée, pas SLA implicite.",
+                "Suivre ancienneté des jobs, coût, erreurs et fraîcheur. Chaque alerte désigne un responsable et une action."
+              ]
+            },
+            {
+              "type": "refs",
+              "keys": [
+                "JOBS"
+              ]
+            },
+            {
+              "type": "box",
+              "label": "DÉCISION À CHAQUE PALIER",
+              "text": "Poursuivre si qualité, isolation et coût restent acceptables. Sinon réduire le périmètre ou revoir le prix avant d’élargir les volumes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "plan_b2b_saas_v1.pdf",
+      "code": "03 / COMMERCIAL",
+      "title": "Offre SaaS B2B",
+      "subtitle": "Vendre un résultat vérifiable, avec un pilote accompagné",
+      "status": "CIBLE RETENUE · PRIX ET QUOTAS À TESTER",
+      "pages": [
+        {
+          "title": "Positionnement et premier marché",
+          "lead": "Cible retenue : les cabinets de recrutement. Segment proposé : petites équipes spécialisées dans les métiers tech.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "Acheteur, utilisateur, déclencheur"
+            },
+            {
+              "type": "p",
+              "text": "Acheteur : dirigeant du cabinet. Utilisateur : recruteur qui relit un vivier pour une mission. Déclencheur : plusieurs candidatures à comparer, critères répétés et besoin de présenter une sélection justifiée au client."
+            },
+            {
+              "type": "box",
+              "label": "PROPOSITION DE VALEUR",
+              "text": "« Cekarna vous aide à retrouver les compétences utiles dans vos CV et à préparer une sélection expliquée, avec les sources sous les yeux. Vous vérifiez et décidez. »"
+            },
+            {
+              "type": "h",
+              "text": "Différenciation à démontrer"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Affirmations reliées aux extraits des CV ; incertitudes visibles.",
+                "Vivier privé et travail exportable.",
+                "Critères modifiables, versions traçables et brouillons éditables.",
+                "Temps gagné et corrections mesurés pendant le pilote."
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Qualification commerciale"
+            },
+            {
+              "type": "p",
+              "text": "Rechercher des équipes disposant de CV utilisables et d’un processus observable. Écarter du premier pilote les demandes de remplacement complet d’ATS, scraping massif, installation sur site ou envoi automatique. Noter ces besoins sans les promettre."
+            },
+            {
+              "type": "box",
+              "label": "ÉTAT À ANNONCER",
+              "text": "Produit en développement : le socle API existe, le parcours métier reste à construire. Une démo sur données fictives est un prototype. Aucun témoignage, résultat chiffré ou logo client ne doit être inventé."
+            }
+          ]
+        },
+        {
+          "title": "Une offre limitée et compréhensible",
+          "lead": "Grille expérimentale en euros HT, pour entretiens et devis pilotes ; ni prix de marché établi ni offre déjà publiée.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Offre",
+                "Inclus",
+                "Prix à tester"
+              ],
+              "rows": [
+                [
+                  "Pilote · 30 jours",
+                  "1 cabinet, 3 comptes, 3 missions actives, 300 imports, 100 brouillons ; 2 séances de 45 min.",
+                  "199 € une fois"
+                ],
+                [
+                  "Essentiel · mensuel",
+                  "3 comptes, 5 missions actives, 500 imports/mois, 200 brouillons/mois, 5 000 profils stockés, 5 Go.",
+                  "299 €/mois"
+                ],
+                [
+                  "Équipe · mensuel",
+                  "10 comptes, 20 missions actives, 2 000 imports/mois, 800 brouillons/mois, 20 000 profils stockés, 20 Go.",
+                  "699 €/mois"
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Définition des unités"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Import : fichier traité avec succès ou retraitement demandé après modification. Doublon réutilisé et échec technique non décomptés.",
+                "Brouillon : génération livrée. Une régénération demandée consomme une unité ; une reprise technique ne compte pas deux fois.",
+                "Comparaisons : 300 pour le pilote, 2 000/mois Essentiel, 10 000/mois Équipe. Une unité = une exécution mission/vivier, pas chaque candidat.",
+                "Pilote : 1 000 profils et 1 Go maximum. Les limites de 10 Mo et 30 pages par fichier valent pour chaque offre."
+              ]
+            },
+            {
+              "type": "p",
+              "text": "Quotas non reportés. Alerter à 80 % et 100 % ; au plafond, bloquer les nouvelles opérations concernées, pas la consultation. Aucun supplément automatique. Support hors périmètre chiffré séparément."
+            },
+            {
+              "type": "box",
+              "label": "CONDITIONS PROPOSÉES",
+              "text": "Pilote sans renouvellement automatique. Abonnements sans engagement annuel, résiliables pour la prochaine échéance. À la fin : export pendant 30 jours, puis suppression selon contrat et sauvegardes. Finaliser les conditions avant encaissement."
+            }
+          ]
+        },
+        {
+          "title": "Un pilote qui produit une preuve",
+          "lead": "Observer les utilisateurs avant de lancer une vente autonome.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Étape",
+                "Livrable et mesure"
+              ],
+              "rows": [
+                [
+                  "Avant signature",
+                  "Vérifier MVP, périmètre, droits sur données, contrat de traitement et support."
+                ],
+                [
+                  "Jour 1",
+                  "Fixer 3 missions et un corpus ; relever temps et qualité du processus habituel."
+                ],
+                [
+                  "Semaine 1",
+                  "Importer, corriger, comparer ; noter erreurs, abandon et questions."
+                ],
+                [
+                  "Semaines 2–3",
+                  "Comparer des tâches comparables avec/sans outil ; alterner l’ordre pour limiter l’apprentissage."
+                ],
+                [
+                  "Jour 30",
+                  "Restituer temps, corrections, pertinence, coûts et avis ; proposer ou non un abonnement."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Critères commerciaux proposés"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Activation : première sélection vérifiée et exportée dans les 48 h après onboarding.",
+                "Valeur : baisse médiane du temps de préparation d’au moins 30 %, sans baisse de qualité évaluée. Objectif, pas promesse.",
+                "Adoption : au moins 2 utilisateurs réalisent une tâche utile chaque semaine.",
+                "Décision : viser 2 conversions sur 3 pilotes, puis répéter sur une cohorte plus large ; ce faible échantillon ne valide pas le marché."
+              ]
+            },
+            {
+              "type": "box",
+              "label": "SI LE PILOTE ÉCHOUE",
+              "text": "Identifier segment, qualité des données, précision, coût ou absence d’usage répété. Ajuster une hypothèse à la fois. Ne pas compenser un manque de valeur par davantage de fonctionnalités."
+            }
+          ]
+        },
+        {
+          "title": "Acquisition, exploitation et marge",
+          "lead": "Une vente reproductible commence par une démonstration sobre et des coûts suivis.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "Acquisition proposée"
+            },
+            {
+              "type": "p",
+              "text": "Lister 30 cabinets du segment, rechercher 10 entretiens puis 3 pilotes. Objectifs d’activité, pas conversions prédites. Mesurer le canal et le temps passé. Les prises de contact réelles restent des actions commerciales distinctes de ce document."
+            },
+            {
+              "type": "h",
+              "text": "Démonstration de 15 minutes"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "3 min : mission et fonctionnement actuel.",
+                "7 min : CV fictif, extraction, correction et comparaison sourcée.",
+                "3 min : brouillon, export, quotas et suppression.",
+                "2 min : limites et proposition de pilote si le besoin correspond."
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Exploitation simple"
+            },
+            {
+              "type": "p",
+              "text": "Onboarding assisté, guide court, canal email unique. Première réponse proposée sous 2 jours ouvrés, lundi à vendredi hors jours fériés français ; pas de support 24/7. En incident, qualifier accès aux données, panne ou usage bloqué et annoncer la prochaine mise à jour sans inventer un délai de résolution."
+            },
+            {
+              "type": "h",
+              "text": "Facturation à construire"
+            },
+            {
+              "type": "p",
+              "text": "Activer les droits après confirmation serveur du paiement, pas après redirection navigateur. Vérifier la signature des webhooks, dédupliquer et gérer les événements hors ordre. Tracer résiliation, paiement échoué et remboursement. [PAY]"
+            },
+            {
+              "type": "p",
+              "text": "Suivre revenu HT, contribution par cabinet, support et acquisition. Le document 02 illustre une contribution de 79,9 % ; ce n’est pas une marge constatée. Recalculer avec les usages réels."
+            },
+            {
+              "type": "refs",
+              "keys": [
+                "PAY"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Dossier de vente et lancement",
+          "lead": "Pouvoir expliquer ce qui est livré, comment cela fonctionne et ce qui se passe en cas de problème.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Pièce",
+                "Condition de validation"
+              ],
+              "rows": [
+                [
+                  "Fiche produit",
+                  "Fonctions disponibles, limites, prérequis et captures fidèles."
+                ],
+                [
+                  "Proposition pilote",
+                  "Prix, durée, unités, corpus, accompagnement, recette et sortie."
+                ],
+                [
+                  "Dossier données",
+                  "Rôles, contrat, prestataires, régions, rétention et droits."
+                ],
+                [
+                  "Dossier IA",
+                  "Usage, risques, évaluation, supervision et qualification réglementaire."
+                ],
+                [
+                  "Guide client",
+                  "Import, correction, preuves, export et suppression."
+                ],
+                [
+                  "Exploitation",
+                  "Responsables, restauration testée, support, paiement et incidents."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Formulations commerciales"
+            },
+            {
+              "type": "p",
+              "text": "Employer « sélection expliquée à partir de vos documents », « validation par le recruteur » et « quotas transparents ». Un gain de temps publié précise contexte et échantillon, avec accord des clients concernés."
+            },
+            {
+              "type": "h",
+              "text": "Promesses à retirer"
+            },
+            {
+              "type": "p",
+              "text": "« Recrutement sans biais », « 100 % conforme », « placement garanti », « illimité », « coût presque nul » ou « souverain » sans preuve sur tous les flux. Une région d’hébergement ne décrit pas le traitement de tous les prestataires."
+            },
+            {
+              "type": "box",
+              "label": "GO / NO-GO",
+              "text": "Abonnements après parcours validé, pilote concluant, coûts compatibles, support assuré et qualification données/IA documentée. Le cahier reste la référence des exigences ; ce plan ne vaut pas validation juridique."
+            },
+            {
+              "type": "p",
+              "text": "Concentrer l’effort sur le SaaS B2B. La formation reste une offre future distincte, conditionnée à un parcours technique stabilisé."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "plan_formation_ia_v1.pdf",
+      "code": "04 / TRANSMISSION",
+      "title": "Formation & kit technique",
+      "subtitle": "Une offre complémentaire après stabilisation du SaaS",
+      "status": "OPTION FUTURE · NON PRIORITAIRE AU LANCEMENT",
+      "pages": [
+        {
+          "title": "Une seconde offre, un autre public",
+          "lead": "Le SaaS sert les recruteurs ; le kit s’adresse aux développeurs qui veulent reproduire un pipeline documentaire.",
+          "blocks": [
+            {
+              "type": "box",
+              "label": "DÉCISION DE PRIORITÉ",
+              "text": "Ne pas produire la formation complète pendant le MVP B2B. Capturer notes et démonstrations ; décider de la vente après stabilisation et test auprès de 5 apprenants."
+            },
+            {
+              "type": "h",
+              "text": "Résultat pédagogique"
+            },
+            {
+              "type": "p",
+              "text": "Importer un CV fictif textuel, vérifier le profil extrait, comparer à une mission et générer une synthèse éditable avec sources. C’est un démonstrateur pédagogique, pas un SaaS multi-organisation prêt à exploiter."
+            },
+            {
+              "type": "h",
+              "text": "Prérequis et configurations"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Git, npm et terminal ; bases de TypeScript et HTTP.",
+                "Documenter les versions réellement testées du système, de Node.js, du moteur de modèle et des dépendances.",
+                "Proposer un diagnostic matériel avant achat. Mémoire et vitesse dépendent du modèle et de sa quantification ; pas de GPU minimal universel annoncé.",
+                "Parcours local facultatif évalué séparément. Sans API distante, matériel et énergie restent à financer ; aucun débit garanti sur tout ordinateur."
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Livrables"
+            },
+            {
+              "type": "p",
+              "text": "Sources versionnées, données fictives, scripts, corrigés, journal des versions, dépannage et vidéos. Aucun CV réel, secret, identifiant client ni configuration de production."
+            },
+            {
+              "type": "p",
+              "text": "Positionnement : « Construisez et évaluez un pipeline documentaire expliqué ». Retirer la promesse d’un agent fonctionnel en une journée avant observation du temps nécessaire chez les apprenants."
+            }
+          ]
+        },
+        {
+          "title": "Programme orienté résultat",
+          "lead": "Chaque module termine par une preuve de réussite et une procédure de diagnostic.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Module",
+                "Exercice vérifiable"
+              ],
+              "rows": [
+                [
+                  "1 · Environnement",
+                  "Installer le kit ; tests réussis et réponse /health."
+                ],
+                [
+                  "2 · Ingestion",
+                  "Lire un PDF fictif avec pages ; traiter fichier invalide ou scanné."
+                ],
+                [
+                  "3 · Profil",
+                  "Valider une structure typée ; corriger l’extraction et préserver les inconnus."
+                ],
+                [
+                  "4 · Recherche",
+                  "Comparer filtres et similarité sur missions annotées ; expliquer les résultats."
+                ],
+                [
+                  "5 · Génération",
+                  "Synthèse sourcée ; détecter sortie invalide et instruction malveillante dans un CV."
+                ],
+                [
+                  "6 · Exploitation",
+                  "Mesurer coût/latence, limiter reprises, supprimer les données et exporter."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Travail final"
+            },
+            {
+              "type": "p",
+              "text": "Un rapport présente résultat, limites, temps et configuration. L’évaluation porte sur la reproductibilité et les preuves, pas sur une vidéo spectaculaire."
+            },
+            {
+              "type": "h",
+              "text": "Collecte web facultative"
+            },
+            {
+              "type": "p",
+              "text": "Utiliser un site d’exercice ou une source autorisée. Étudier limitations de débit et erreurs HTTP. Le kit ne dépend pas de contournements anti-bot ni de comptes de plateformes tierces."
+            },
+            {
+              "type": "box",
+              "label": "RECETTE PÉDAGOGIQUE",
+              "text": "Objectif : 4 apprenants sur 5 terminent avec la documentation, sans intervention en direct. Mesurer leur temps puis publier une estimation. Les tests doivent fonctionner sur chaque configuration annoncée."
+            }
+          ]
+        },
+        {
+          "title": "Prix, maintenance et décision de vente",
+          "lead": "Hypothèses à tester ; la formation n’est pas produite ni commercialisée.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Offre",
+                "Périmètre",
+                "Prix à tester"
+              ],
+              "rows": [
+                [
+                  "Kit autonome",
+                  "Vidéos, code, données fictives ; correctifs 12 mois et support installation email 30 jours.",
+                  "199 € HT"
+                ],
+                [
+                  "Accompagné",
+                  "Kit + 60 min individuelles, réservées sous 60 jours selon disponibilité ; pas de sur-mesure.",
+                  "349 € HT"
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Viabilité illustrative"
+            },
+            {
+              "type": "p",
+              "text": "50 heures de production à 40 €/h représentent 2 000 €, hors outils et maintenance. Avec 199 € HT par vente et 39 € de coûts variables supposés, contribution de 160 € : 13 ventes couvriraient 2 000 €. Aucune vente n’est prédite. Ajouter acquisition, remboursements et mises à jour au budget."
+            },
+            {
+              "type": "h",
+              "text": "Conditions à préparer"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Définir licence du code, des modèles et des contenus ; ne pas céder implicitement la propriété du SaaS.",
+                "Préciser systèmes testés, coûts externes, correctifs et support ; pas de maintenance à vie.",
+                "Si vente aux particuliers, adapter présentation TTC, conditions et parcours de fourniture numérique avant publication.",
+                "Annoncer le traitement des éditions majeures et conserver leur historique."
+              ]
+            },
+            {
+              "type": "box",
+              "label": "DÉCLENCHEUR",
+              "text": "Vendre si le kit est reproductible, les tests apprenants réussissent, le support reste soutenable et une demande payante est observée. Priorité au SaaS B2B."
+            },
+            {
+              "type": "p",
+              "text": "Acquisition proposée : démo fictive, extrait gratuit et page avec prérequis/résultats. Utiliser uniquement des témoignages réels et autorisés."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "stack_microservices_rust_v1.pdf",
+      "code": "05 / ARCHITECTURE",
+      "title": "Architecture progressive",
+      "subtitle": "Un socle modulaire, des évolutions justifiées par les mesures",
+      "status": "NESTJS EXISTANT · SERVICES SPÉCIALISÉS CONDITIONNELS",
+      "pages": [
+        {
+          "title": "Partir du code réel",
+          "lead": "Remplacer une migration prématurée Rust/Go par une trajectoire de livraison et d’exploitation.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Brique",
+                "Statut et choix"
+              ],
+              "rows": [
+                [
+                  "API",
+                  "Existant : NestJS 11, Express, TypeScript strict ; conserver."
+                ],
+                [
+                  "Interface",
+                  "À construire en TypeScript ; choix de framework à consigner avant création."
+                ],
+                [
+                  "Données",
+                  "Proposé : PostgreSQL, migrations et stockage objet privé."
+                ],
+                [
+                  "Recherche",
+                  "Proposé : SQL/textuel puis pgvector après évaluation. Pas de Qdrant initial."
+                ],
+                [
+                  "Traitements",
+                  "Proposé : worker Node.js et Redis/BullMQ lors de l’ajout du pipeline."
+                ],
+                [
+                  "IA",
+                  "Adaptateur fournisseur à choisir : délai, coût, schéma et versions. Hermes non requis au MVP."
+                ]
+              ]
+            },
+            {
+              "type": "box",
+              "label": "FLUX DE RÉFÉRENCE",
+              "text": "Interface → API et autorisations → stockage privé + job → worker d’extraction → profil validé → comparaison → brouillon → export demandé par le recruteur."
+            },
+            {
+              "type": "p",
+              "text": "Les longues opérations retournent un identifiant de traitement ; l’interface suit son état. Aucune donnée brute dans la file si une référence protégée suffit."
+            },
+            {
+              "type": "h",
+              "text": "Modules métier proposés"
+            },
+            {
+              "type": "p",
+              "text": "identity, organizations, documents, profiles, missions, matching, drafts, usage et billing. Contrôleurs courts, règles dans les services, stockage et fournisseurs derrière des adaptateurs. Créer chaque module au moment de sa fonction."
+            }
+          ]
+        },
+        {
+          "title": "Données et contrats durables",
+          "lead": "La cohérence des données prime sur un gain marginal de sérialisation.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "Modèle logique"
+            },
+            {
+              "type": "p",
+              "text": "Organization et Membership définissent les accès. Document et ProfileVersion portent source et interprétation. MissionVersion fixe les critères. MatchResult et Draft référencent ces versions. Job et UsageEvent tracent exécution et consommation. Identifiants stables, dates et contraintes de relations entre données de la même organisation."
+            },
+            {
+              "type": "h",
+              "text": "Isolation de bout en bout"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Déterminer l’organisation depuis une identité et une appartenance vérifiées ; contrôler requêtes, téléchargements et exports.",
+                "Propager l’organisation aux jobs, caches, vecteurs et fichiers. Un préfixe de stockage n’est pas une autorisation.",
+                "Tester identifiants devinés, recherche, reprise et export. Évaluer la sécurité SQL par ligne comme défense supplémentaire.",
+                "Vérifier le rappel vectoriel avec filtres de cabinet contre une recherche exacte. [VECTOR]"
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Publication fiable"
+            },
+            {
+              "type": "p",
+              "text": "Créer le job durablement en base avec l’opération métier. Prévoir une boîte d’envoi transactionnelle si base et file peuvent diverger : un relais publie puis marque l’événement. La rediffusion reste possible ; le worker doit être idempotent. [JOBS]"
+            },
+            {
+              "type": "box",
+              "label": "VERSIONNER POUR EXPLIQUER",
+              "text": "Un résultat référence document, profil, mission, modèle et méthode. Une modification produit une nouvelle version ; elle ne réécrit pas silencieusement une décision historique. Appliquer la rétention à cet historique."
+            },
+            {
+              "type": "refs",
+              "keys": [
+                "VECTOR",
+                "JOBS"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Déployer et diagnostiquer simplement",
+          "lead": "L’exploitation doit rester réalisable par l’équipe disponible.",
+          "blocks": [
+            {
+              "type": "h",
+              "text": "Environnements et livraison"
+            },
+            {
+              "type": "p",
+              "text": "Séparer développement, préproduction et production. Le workflow CI du dépôt couvre lint, typage, tests et build ; exécution distante à activer sur le dépôt hébergé. Ajouter les tests métier avec les fonctions. API et worker déployables séparément, configuration externe et migrations compatibles avec retour applicatif."
+            },
+            {
+              "type": "h",
+              "text": "Supervision"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Identifiant de corrélation entre requête, job et résultat ; journaux structurés sans CV ni jeton.",
+                "Mesurer erreurs, file, temps et coûts ; affecter chaque alerte à un responsable.",
+                "/health reste un contrôle de vie ; ajouter une readiness quand base et file existent.",
+                "Tester restauration et purge après changement du stockage."
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Modes dégradés"
+            },
+            {
+              "type": "p",
+              "text": "Une panne IA suspend la génération mais conserve la lecture. Pas de bascule vers un fournisseur non approuvé. Une panne de file est visible ; les jobs durables sont republiables. Un fichier invalide termine en erreur explicite, sans boucle de reprise."
+            },
+            {
+              "type": "box",
+              "label": "DÉPLOIEMENT INITIAL PROPOSÉ",
+              "text": "API et worker dans un environnement simple, données sauvegardées. Choisir hébergement et régions après budget et revue des flux. Kubernetes, NATS, gRPC et multi-région ne sont pas requis pour le pilote."
+            },
+            {
+              "type": "p",
+              "text": "Objectifs internes du document 02 : RPO 24 h, RTO 4 h, à démontrer avant engagement. Préparer retour applicatif et compatibilité des migrations ; une sauvegarde n’est pas un rollback instantané."
+            }
+          ]
+        },
+        {
+          "title": "Quand extraire un service",
+          "lead": "Une décision économique fondée sur un profilage reproductible.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": [
+                "Évolution",
+                "Condition avant décision"
+              ],
+              "rows": [
+                [
+                  "Parseur Rust",
+                  "Parsing dominant le CPU malgré optimisation/isolement ; prototype mesuré sur le même corpus."
+                ],
+                [
+                  "Orchestrateur Go",
+                  "Limite de concurrence démontrée ; bénéfice supérieur au coût de maintenance."
+                ],
+                [
+                  "Qdrant",
+                  "Recherche insuffisante après réglage SQL/vectoriel ; comparaison qualité/coût avec filtres tenant."
+                ],
+                [
+                  "GPU dédié",
+                  "Coût complet inférieur à l’API à qualité égale et occupation prudente."
+                ],
+                [
+                  "gRPC ou autre bus",
+                  "Besoin non satisfait par HTTP + file ; gain supérieur au coût opératoire."
+                ]
+              ]
+            },
+            {
+              "type": "h",
+              "text": "Dossier de décision"
+            },
+            {
+              "type": "p",
+              "text": "Goulot, scénario, mesures avant/après, qualité, coûts, responsable, migration et retour arrière. Un langage compilé ne réduit pas automatiquement le temps du navigateur, du réseau ou d’un modèle distant."
+            },
+            {
+              "type": "h",
+              "text": "Migration contrôlée"
+            },
+            {
+              "type": "bullets",
+              "items": [
+                "Contrat versionné et tests communs ; une seule autorité d’écriture par donnée.",
+                "Comparer hors production puis sur petite cohorte, avec retour possible.",
+                "Rejouer isolation, suppression, quotas et idempotence.",
+                "Documenter délais, annulation et reprises ; ne pas promettre « exactement une fois » sans traiter les effets de bord."
+              ]
+            },
+            {
+              "type": "box",
+              "label": "CRITÈRE FINAL",
+              "text": "Résoudre un problème mesuré sans dégrader preuves, isolation ou support. Cette trajectoire n’implique aucun service spécialisé déjà implémenté."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+name: cekarna-notifications
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cekarna_notifications
+      POSTGRES_USER: cekarna
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports: ["127.0.0.1:55433:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cekarna -d cekarna_notifications"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  notifications:
+    build: .
+    environment:
+      NOTIFICATIONS_DATABASE_URL: postgres://cekarna:${POSTGRES_PASSWORD}@postgres:5432/cekarna_notifications?sslmode=disable
+      NOTIFICATIONS_INTERNAL_TOKEN: ${NOTIFICATIONS_INTERNAL_TOKEN:?set NOTIFICATIONS_INTERNAL_TOKEN in .env}
+      NOTIFICATIONS_SMTP_HOST: ${NOTIFICATIONS_SMTP_HOST:?set NOTIFICATIONS_SMTP_HOST in .env}
+      NOTIFICATIONS_SMTP_PORT: ${NOTIFICATIONS_SMTP_PORT:-587}
+      NOTIFICATIONS_SMTP_USERNAME: ${NOTIFICATIONS_SMTP_USERNAME:?set NOTIFICATIONS_SMTP_USERNAME in .env}
+      NOTIFICATIONS_SMTP_PASSWORD: ${NOTIFICATIONS_SMTP_PASSWORD:?set NOTIFICATIONS_SMTP_PASSWORD in .env}
+      NOTIFICATIONS_SMTP_FROM: ${NOTIFICATIONS_SMTP_FROM:?set NOTIFICATIONS_SMTP_FROM in .env}
+      NOTIFICATIONS_ADDR: 0.0.0.0:8082
+      NOTIFICATIONS_MAX_ATTEMPTS: ${NOTIFICATIONS_MAX_ATTEMPTS:-5}
+      NOTIFICATIONS_RETRY_SECONDS: ${NOTIFICATIONS_RETRY_SECONDS:-60}
+    ports: ["127.0.0.1:8082:8082"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      postgres: { condition: service_healthy }
+volumes:
+  postgres-data:

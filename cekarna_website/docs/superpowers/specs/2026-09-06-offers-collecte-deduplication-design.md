@@ -17,9 +17,10 @@ brouillons ne peuvent être évalués sérieusement. La collecte est le socle.
 
 ## Décisions prises avec le porteur
 
-- **Rust assumé** malgré la réserve de `docs/PROJECT.md` (« Évaluer un besoin réel
-  avant microservices Rust/Go »). Cette spec lève la réserve explicitement et en
-  inscrit le coût ; `PROJECT.md` sera mis à jour à l'implémentation.
+- **Rust**, en suivant les conventions déjà posées par `services/notifications`
+  (édition 2024, `axum`, `sqlx`, `tracing`, `time`, `uuid` v7, migrations
+  numérotées, `Dockerfile` et `compose.yaml`). Ce service est le deuxième en Rust
+  du dépôt, pas le premier : voir la section « Coût ».
 - **Quatre familles de sources autorisées** : API France Travail, flux publiés par
   les employeurs, agrégateurs commerciaux sous contrat, dépôt manuel de fichiers.
   Ordre de construction : `file` d'abord (aucune dépendance externe, rend tout le
@@ -57,6 +58,9 @@ source ne fournit pas reste vide ; il n'est jamais comblé.
 services/offers/
   Cargo.toml
   README.md
+  .env.example
+  compose.yaml          # même forme que services/notifications
+  Dockerfile
   sources.toml          # liste blanche des sources autorisées
   migrations/001_offers.sql
   src/
@@ -75,13 +79,22 @@ services/offers/
     fixtures/           # charges synthétiques, identifiées comme telles
 ```
 
-Bibliothèques : `tokio` et `axum` (HTTP), `sqlx` en mode SQLite (requêtes
-vérifiées à la compilation), `reqwest` (connecteurs distants), `serde`, `clap`
-(CLI), `thiserror` et `anyhow` (erreurs).
+Bibliothèques, alignées sur `services/notifications` : `tokio`, `axum` 0.8,
+`sqlx` 0.8, `serde`, `thiserror`, `tracing` et `tracing-subscriber`, `time` pour
+les dates, `uuid` v7 pour les identifiants (triables par date de création),
+`dotenvy`. Ajouts propres à ce service : `reqwest` (connecteurs distants) et
+`clap` (CLI). Paquet nommé `cekarna-offers`, édition 2024.
+
+**Divergence assumée** : `services/notifications` utilise `sqlx` avec PostgreSQL,
+ce service utilise `sqlx` avec SQLite, conformément au choix de persistance. Les
+deux jeux de fonctionnalités `sqlx` diffèrent donc. Si un troisième service Rust
+demande PostgreSQL, il faudra rouvrir cette question plutôt que d'accumuler deux
+familles de migrations.
 
 ## Modèle de données
 
-Dates en texte ISO 8601 UTC, comme partout ailleurs dans le projet.
+Dates en texte ISO 8601 UTC, comme partout ailleurs dans le projet. Identifiants
+en UUID v7, triables par date de création, comme dans `services/notifications`.
 
 ```sql
 -- Ce que la source a répondu, octet pour octet. Jamais modifié.
@@ -272,16 +285,24 @@ une opération d'exploitation.
 Vérification : `cargo fmt --check && cargo clippy -- -D warnings && cargo test`,
 documentés dans `services/offers/README.md` et ajoutés à la CI.
 
-## Coût, à inscrire dans `PROJECT.md`
+## Coût
 
-Rust devient le troisième langage du dépôt : une chaîne de build, un écosystème de
-tests et une cible de déploiement de plus, plus le temps d'apprentissage pour
-quiconque reprend le projet.
+**Rust est déjà dans le dépôt** : `services/notifications` (file d'envoi des
+emails) est écrit en Rust. Le coût d'entrée du langage est donc déjà payé — chaîne
+de build, écosystème de tests et cible de déploiement existent. Ce service est le
+deuxième utilisateur d'un outillage en place, pas l'introduction d'un troisième
+langage.
+
+Le coût réel restant est celui d'un service de plus à exploiter : un binaire, une
+base et une configuration supplémentaires.
 
 En échange : un binaire unique sans runtime, une empreinte mémoire faible pour un
 collecteur destiné à tourner en continu, et des erreurs traitées à la compilation.
-La décision revient au porteur du projet et est assumée ici ; `PROJECT.md` doit
-cesser de la contredire.
+
+La réserve de `docs/PROJECT.md` (« Évaluer un besoin réel avant microservices
+Rust/Go ») est antérieure à `services/notifications` et ne décrit plus l'état du
+dépôt. `PROJECT.md` sera mis à jour à l'implémentation pour cesser de contredire
+le code.
 
 ## Hors périmètre
 

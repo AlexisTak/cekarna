@@ -19,7 +19,7 @@ export class AuthError extends Error {
 
 const BASE: string =
   (import.meta.env.VITE_AUTH_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
-  'http://127.0.0.1:8081';
+  'http://localhost:8081';
 
 let csrfToken = '';
 let accessToken = '';

@@ -183,11 +183,18 @@ challenge à usage unique stocké dans Redis, enrôlement après réauthentifica
 révocation et récupération avant activation. Les accès administrateurs futurs
 devront exiger un second facteur ; ne pas les ouvrir avec cette seule tranche.
 
-Vérification email et récupération du mot de passe sont livrées avec le transport
-`log` (`AUTH_MAILER=log`, valeur par défaut) : le message est journalisé, aucun
-email réel n’est envoyé. Restent à construire avant ouverture publique : un
-transport SMTP réel et la supervision du mailer. Restent aussi : notifications
-et MFA/passkeys (tranche B).
+Vérification email et récupération du mot de passe utilisent `AUTH_MAILER=log`
+en développement. En production, définir `AUTH_MAILER=smtp` avec `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` et `SMTP_FROM`. Le transport exige
+STARTTLS avec TLS 1.2 minimum ; le mot de passe SMTP doit provenir d’un gestionnaire
+de secrets. Les événements d’audit `email_verification_sent`,
+`password_reset_email_sent` et `email_delivery_failed` permettent de superviser
+les livraisons sans conserver l’adresse ou le contenu du message. Lorsque le
+service Rust `services/notifications` est déployé, choisir
+`AUTH_MAILER=notifications`, `NOTIFICATIONS_URL` et
+`NOTIFICATIONS_INTERNAL_TOKEN` : l'authentification place alors le message dans
+sa file PostgreSQL durable, qui porte les tentatives et l'état final. Restent aussi :
+notifications et MFA/passkeys (tranche B).
 
 Les comptes créés ont `email_verified=false` jusqu'à confirmation par jeton ;
 ne jamais traiter un email non vérifié comme vérifié ni l’utiliser pour rattacher

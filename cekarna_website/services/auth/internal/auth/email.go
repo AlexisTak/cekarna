@@ -27,10 +27,15 @@ func (s *Server) deliverVerification(r *http.Request, uid, email string) {
 	subject, text := verificationMessage(s.Config.Origin, token)
 	if err := s.Mailer.Send(r.Context(), email, subject, text); err != nil {
 		slog.Error("verification email delivery failed")
+		s.auditEmailDelivery(r, "email_delivery_failed", uid)
 		return
 	}
-	if err := s.Store.Audit(r.Context(), "email_verification_sent", uid, "", s.Guard.Identity(peer(r))); err != nil {
-		slog.Error("verification audit failed")
+	s.auditEmailDelivery(r, "email_verification_sent", uid)
+}
+
+func (s *Server) auditEmailDelivery(r *http.Request, event, uid string) {
+	if err := s.Store.Audit(r.Context(), event, uid, "", s.Guard.Identity(peer(r))); err != nil {
+		slog.Error("email delivery audit failed", "event", event)
 	}
 }
 
@@ -95,6 +100,9 @@ func (s *Server) resetRequest(w http.ResponseWriter, r *http.Request) {
 		subject, text := resetMessage(s.Config.Origin, token)
 		if serr := s.Mailer.Send(r.Context(), user.Email, subject, text); serr != nil {
 			slog.Error("reset email delivery failed")
+			s.auditEmailDelivery(r, "email_delivery_failed", user.ID)
+		} else {
+			s.auditEmailDelivery(r, "password_reset_email_sent", user.ID)
 		}
 		if aerr := s.Store.Audit(r.Context(), "password_reset_requested", user.ID, "", actor); aerr != nil {
 			slog.Error("reset audit failed")

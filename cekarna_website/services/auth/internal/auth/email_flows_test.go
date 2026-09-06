@@ -17,6 +17,12 @@ func (m *captureMailer) Send(_ context.Context, _, _, text string) error {
 	return nil
 }
 
+type failingMailer struct{}
+
+func (failingMailer) Send(context.Context, string, string, string) error {
+	return errors.New("SMTP unavailable")
+}
+
 func (m *captureMailer) link(t *testing.T, marker string) string {
 	t.Helper()
 	for _, text := range m.texts {
@@ -124,6 +130,19 @@ func TestIntegrationVerificationCycle(t *testing.T) {
 	}
 	if len(m.texts) != 1 {
 		t.Fatal("verified account must not receive another email")
+	}
+}
+
+func TestIntegrationEmailDeliveryFailureIsAudited(t *testing.T) {
+	s := fixture(t)
+	s.Mailer = failingMailer{}
+	b := newBrowser(t, s)
+	if r := b.call("POST", "/v1/auth/register", `{"email":"person@example.test","password":"une longue phrase unique","first_name":"Camille"}`); r.Code != 202 {
+		t.Fatal("registration must remain neutral when SMTP fails", r.Code)
+	}
+	var failures int
+	if err := s.Store.DB.QueryRow(context.Background(), "SELECT count(*) FROM audit_events WHERE event='email_delivery_failed'").Scan(&failures); err != nil || failures != 1 {
+		t.Fatal("SMTP failure audit", err, failures)
 	}
 }
 

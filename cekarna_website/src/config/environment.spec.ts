@@ -6,6 +6,8 @@ describe('environment', () => {
       port: 3000,
       host: '127.0.0.1',
       corsOrigins: [],
+      cvImportMaxBytes: 5_000_000,
+      cvImportRetentionSeconds: 900,
     });
   });
   it.each(['', '0', '-1', '65536', '3.5', '3000abc'])(
@@ -31,13 +33,33 @@ describe('environment', () => {
         PORT: '4000',
         HOST: '0.0.0.0',
         CORS_ORIGINS: 'http://localhost:3001, http://localhost:3001',
+        CV_IMPORT_MAX_BYTES: '2000000',
+        CV_IMPORT_RETENTION_SECONDS: '120',
       }),
     ).toEqual({
       port: 4000,
       host: '0.0.0.0',
       corsOrigins: ['http://localhost:3001'],
+      cvImportMaxBytes: 2_000_000,
+      cvImportRetentionSeconds: 120,
     });
   });
+  it.each(['0', '10000001', 'beaucoup'])(
+    'rejects an invalid CV import size %s',
+    (size) => {
+      expect(() => readEnvironment({ CV_IMPORT_MAX_BYTES: size })).toThrow(
+        'CV_IMPORT_MAX_BYTES',
+      );
+    },
+  );
+  it.each(['0', '59', '3601'])(
+    'rejects an invalid CV retention delay %s',
+    (delay) => {
+      expect(() =>
+        readEnvironment({ CV_IMPORT_RETENTION_SECONDS: delay }),
+      ).toThrow('CV_IMPORT_RETENTION_SECONDS');
+    },
+  );
   it('rejects an empty host', () => {
     expect(() => readEnvironment({ HOST: ' ' })).toThrow('HOST');
   });

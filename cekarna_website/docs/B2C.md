@@ -36,7 +36,7 @@ demande une confirmation explicite.
 
 1. Valider le parcours et le vocabulaire avec le porteur du projet.
 2. Ajouter identité, stockage serveur privé et autorisations par utilisateur, puis migration explicite des données locales.
-3. Importer un CV textuel, montrer les extraits sources et permettre la correction du profil extrait.
+3. Importer un CV textuel, montrer les extraits sources et permettre la correction du profil extrait. Côté API : livré dans `src/cv-import/` (`POST /v1/cv-import/extraction` puis `POST /v1/cv-import/profile`). Côté frontend : écran de relecture dans `web/src/CvImport.tsx`, accessible depuis « Mon profil », avec extraits sourcés, choix par champ (proposition, saisie manuelle ou vide) et enregistrement dans l'espace candidat via le flux existant.
 4. Ajouter collecte d’offres depuis des sources autorisées et une comparaison évaluée sur corpus.
 5. Préparer des brouillons personnalisés, sans inventer d’expériences ; validation et export avant tout envoi.
 

@@ -57,6 +57,18 @@ Critères principaux : preuves reliées aux documents, incertitudes visibles, au
 
 PostgreSQL, pgvector, BullMQ et un frontend sont proposés, pas installés. Hermes est facultatif ; aucun changement du socle exécutable n’est réalisé par la révision des PDF.
 
+## Import de CV PDF textuel — 6 septembre 2026
+
+Besoin : la tranche 3 de `docs/B2C.md` demande d'importer un CV textuel, de montrer les extraits sources et de permettre la correction du profil extrait, sans inventer de contenu. Réalisé dans l'API NestJS, module `src/cv-import/`.
+
+Coût et dépendances : une seule dépendance ajoutée, `pdfjs-dist` (lecture de la couche texte, sans OCR ni service externe). Aucune base de données, aucun worker, aucun appel de modèle. Le texte analysé reste en mémoire du processus, plafonné à 200 documents, expiré au bout de `CV_IMPORT_RETENTION_SECONDS` et oublié dès la confirmation du profil. Conséquence assumée : avec plusieurs instances, l'appel de confirmation doit atteindre l'instance qui a analysé le CV ; passer à un stockage partagé seulement si ce déploiement devient réel.
+
+Extraction déterministe par règles nommées (`nom-en-tete`, `ville-code-postal`, `section-competences`, …). Chaque valeur proposée est un fragment littéral d'une ligne du document et cite page, ligne et bornes. Un champ sans preuve reste vide et affiche la raison. À la confirmation, une valeur déclarée `extracted` est refusée si elle ne se retrouve pas dans le document ; une valeur assumée par la personne est marquée `manual`. Un PDF sans couche texte est refusé : pas de reconnaissance d'image, donc pas de texte deviné.
+
+Interface : `web/src/CvImport.tsx` montre pour chaque champ les propositions et leurs lignes sources surlignées, et impose un choix explicite entre proposition sourcée, saisie manuelle et champ vide. Le frontend n'écrit jamais `extracted` sur une valeur qu'il a modifiée ; l'API refuserait la requête. `VITE_API_BASE_URL` désigne l'API NestJS et `CORS_ORIGINS` doit contenir l'origine du frontend.
+
+Note : `jest` est lancé avec `NODE_OPTIONS=--experimental-vm-modules` via `cross-env`, car `pdfjs-dist` n'est plus distribué en CommonJS depuis la version 4 et les versions 3 portent l'avis de sécurité GHSA-wgrm-67xf-hhpq.
+
 ## Mesures avant montée en charge
 
 Suivre pertinence des résultats, corrections nécessaires aux lettres, latence, taux d’erreur et coût par traitement. Les anciens chiffres des PDF V1 (500 000 utilisateurs, réduction de 99 %, gains ×10 à ×50) ont été remplacés dans les V2 par des scénarios et objectifs à mesurer. Évaluer un besoin réel avant microservices Rust/Go, Qdrant distribué, Kubernetes ou GPU dédiés.

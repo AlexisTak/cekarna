@@ -1,7 +1,31 @@
+/** Jeton d'injection de la configuration lue au démarrage. */
+export const ENVIRONMENT = 'ENVIRONMENT';
+
 export interface Environment {
   port: number;
   host: string;
   corsOrigins: string[];
+  /** Taille maximale acceptée pour un CV PDF importé, en octets. */
+  cvImportMaxBytes: number;
+  /** Durée de conservation en mémoire du texte extrait, en secondes. */
+  cvImportRetentionSeconds: number;
+}
+
+/** Plafond technique de l'interception multipart : la configuration ne peut pas le dépasser. */
+export const CV_IMPORT_HARD_MAX_BYTES = 10_000_000;
+
+function readInteger(
+  raw: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+  name: string,
+): number {
+  const value = raw?.trim() ?? '';
+  if (!value) return fallback;
+  if (!/^\d+$/.test(value) || Number(value) < min || Number(value) > max)
+    throw new Error(`${name} must be an integer between ${min} and ${max}`);
+  return Number(value);
 }
 
 export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
@@ -36,5 +60,19 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
     port: Number(rawPort),
     host,
     corsOrigins: [...new Set(corsOrigins)],
+    cvImportMaxBytes: readInteger(
+      env.CV_IMPORT_MAX_BYTES,
+      5_000_000,
+      1_024,
+      CV_IMPORT_HARD_MAX_BYTES,
+      'CV_IMPORT_MAX_BYTES',
+    ),
+    cvImportRetentionSeconds: readInteger(
+      env.CV_IMPORT_RETENTION_SECONDS,
+      900,
+      60,
+      3_600,
+      'CV_IMPORT_RETENTION_SECONDS',
+    ),
   };
 }

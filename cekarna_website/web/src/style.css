@@ -3299,3 +3299,145 @@ dialog::backdrop {
     font-size: 1rem;
   }
 }
+
+/* --- Import de CV : relecture des propositions et de leurs sources --- */
+.cv-import {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cv-dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cv-dropzone input[type='file'] {
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+.cv-summary {
+  margin: 0;
+  color: var(--muted);
+}
+.cv-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.cv-field {
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.cv-field legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+.cv-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.cv-option {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+}
+.cv-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.cv-option > label {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  cursor: pointer;
+}
+.cv-option-value {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.cv-option details,
+.cv-source {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.cv-option summary,
+.cv-source summary {
+  cursor: pointer;
+}
+.excerpt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.excerpt-origin {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.excerpt-line {
+  display: block;
+  margin-top: 2px;
+  color: #29333b;
+  overflow-wrap: anywhere;
+}
+.excerpt-line mark {
+  padding: 0 2px;
+  /* Teinte plus soutenue que --accent-soft : le surlignage doit rester lisible
+     sur la carte sélectionnée, dont le fond est déjà --accent-soft. */
+  background: rgba(217, 97, 69, 0.18);
+  color: inherit;
+  border-bottom: 2px solid var(--accent);
+}
+.cv-nothing {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+.cv-fallbacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.cv-radio {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+.cv-field input:not([type='radio']),
+.cv-field select,
+.cv-field textarea {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+}
+.cv-source-lines {
+  margin: 6px 0 14px;
+  padding-left: 22px;
+  color: #29333b;
+}
+@media (max-width: 760px) {
+  .cv-field {
+    padding: 14px;
+  }
+  .cv-fallbacks {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

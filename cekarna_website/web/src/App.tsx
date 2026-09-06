@@ -40,6 +40,7 @@ import {
   saveCandidateWorkspace,
   type Account,
 } from './auth-api';
+import CvImport from './CvImport';
 import {
   CONTRACTS,
   LABELS,
@@ -342,6 +343,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>('all');
   const [dialog, setDialog] = useState<'add' | 'help' | 'edit' | null>(null);
+  const [cvImport, setCvImport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [account, setAccount] = useState<Account | null>(null);
@@ -1089,7 +1091,21 @@ export default function App() {
             </>
           )}
 
-          {view === 'profile' && (
+          {view === 'profile' && cvImport && (
+            <CvImport
+              current={profile}
+              onCancel={() => setCvImport(false)}
+              onApply={(imported) => {
+                setCvImport(false);
+                commit(
+                  { ...workspace, profile: imported },
+                  'Profil mis à jour depuis votre CV.',
+                );
+              }}
+            />
+          )}
+
+          {view === 'profile' && !cvImport && (
             <div className="profile-layout">
               <section className="panel">
                 <div className="section-heading">
@@ -1188,6 +1204,28 @@ export default function App() {
                 </form>
               </section>
               <aside className="profile-aside">
+                <section className="panel">
+                  <span className="stat-icon blue">
+                    <FileText size={21} />
+                  </span>
+                  <h2>Partir de mon CV</h2>
+                  <p>
+                    Importez un CV PDF texte : chaque proposition vous est
+                    montrée avec la ligne d’où elle vient, et vous corrigez
+                    avant d’enregistrer.
+                  </p>
+                  <p className="muted">
+                    Rien n’est inventé et rien n’est enregistré sans votre
+                    validation.
+                  </p>
+                  <button
+                    className="button secondary"
+                    onClick={() => setCvImport(true)}
+                  >
+                    Importer mon CV
+                    <ArrowUpRight size={16} />
+                  </button>
+                </section>
                 <section className="panel">
                   <span className="stat-icon coral">
                     <Compass size={21} />

@@ -6,6 +6,8 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/configure-app';
 import { readEnvironment } from '../src/config/environment';
+import { sampleCvPdf } from '../src/cv-import/pdf-text.spec';
+import type { CvExtraction } from '../src/cv-import/cv-import.types';
 
 class ProbeDto {
   @IsString()
@@ -90,5 +92,83 @@ describe('API HTTP configuration', () => {
 
   it('returns 404 for an unknown endpoint', () => {
     return request(app.getHttpServer()).get('/missing').expect(404);
+  });
+
+  describe('import de CV', () => {
+    it('refuse un fichier qui n’est pas un PDF', () => {
+      return request(app.getHttpServer())
+        .post('/v1/cv-import/extraction')
+        .attach('file', Buffer.from('texte brut'), {
+          filename: 'cv.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(400);
+    });
+
+    it('propose un profil justifié puis valide la correction manuelle', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/cv-import/extraction')
+        .attach('file', sampleCvPdf(), {
+          filename: 'cv.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(200)
+        .expect('Cache-Control', 'no-store');
+      const extraction = response.body as CvExtraction;
+
+      const city = extraction.fields.find((field) => field.field === 'city');
+      expect(city?.candidates[0]).toMatchObject({
+        value: 'Paris',
+        excerpts: [expect.objectContaining({ page: 1, text: '75011 Paris' })],
+      });
+
+      await request(app.getHttpServer())
+        .post('/v1/cv-import/profile')
+        .send({
+          documentId: extraction.documentId,
+          fields: {
+            city: { value: 'Paris', source: 'extracted' },
+            about: { value: 'Disponible en octobre.', source: 'manual' },
+          },
+        })
+        .expect(200)
+        .expect({
+          profile: {
+            firstName: '',
+            title: '',
+            city: 'Paris',
+            contract: '',
+            skills: '',
+            about: 'Disponible en octobre.',
+          },
+          provenance: {
+            firstName: 'empty',
+            title: 'empty',
+            city: 'extracted',
+            contract: 'empty',
+            skills: 'empty',
+            about: 'manual',
+          },
+        });
+    });
+
+    it('refuse une valeur présentée comme extraite mais absente du CV', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/cv-import/extraction')
+        .attach('file', sampleCvPdf(), {
+          filename: 'cv.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(200);
+      const extraction = response.body as CvExtraction;
+
+      await request(app.getHttpServer())
+        .post('/v1/cv-import/profile')
+        .send({
+          documentId: extraction.documentId,
+          fields: { city: { value: 'Bordeaux', source: 'extracted' } },
+        })
+        .expect(400);
+    });
   });
 });

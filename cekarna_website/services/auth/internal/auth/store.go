@@ -125,6 +125,21 @@ func (s Store) Register(ctx context.Context, email, name, passwordHash, actor st
 		if _, err = tx.Exec(ctx, "INSERT INTO credentials(user_id,password_hash) VALUES($1,$2)", id, passwordHash); err != nil {
 			return "", err
 		}
+		workspace, workspaceErr := json.Marshal(map[string]any{
+			"version": 1,
+			"demo":    false,
+			"profile": map[string]string{
+				"firstName": name,
+				"title":     "", "city": "", "contract": "", "skills": "", "about": "",
+			},
+			"jobs": []any{},
+		})
+		if workspaceErr != nil {
+			return "", workspaceErr
+		}
+		if _, err = tx.Exec(ctx, "INSERT INTO candidate_workspaces(user_id,workspace,revision) VALUES($1,$2,0)", id, workspace); err != nil {
+			return "", err
+		}
 	}
 	if err = auditTx(ctx, tx, "registration_requested", inserted, "", actor); err != nil {
 		return "", err

@@ -172,8 +172,8 @@ func TestIntegrationCandidateWorkspaceIsPrivate(t *testing.T) {
 		t.Fatal("anonymous workspace read", r.Code)
 	}
 	registerAndLogin(t, b)
-	if r := b.call("GET", "/v1/candidate/workspace", ""); r.Code != 204 {
-		t.Fatal("new workspace should be empty", r.Code)
+	if r := b.call("GET", "/v1/candidate/workspace", ""); r.Code != 200 || !strings.Contains(r.Body.String(), `"firstName":"Camille"`) {
+		t.Fatal("new account must receive its private personal profile", r.Code, r.Body.String())
 	}
 	body := `{"workspace":{"version":1,"demo":false,"profile":{"firstName":"Camille"},"jobs":[]}}`
 	if r := b.call("PUT", "/v1/candidate/workspace", body); r.Code != 200 {
@@ -191,7 +191,7 @@ func TestIntegrationCandidateWorkspaceIsPrivate(t *testing.T) {
 	if r := other.call("POST", "/v1/auth/login", otherBody); r.Code != 200 {
 		t.Fatal("other login", r.Code)
 	}
-	if r := other.call("GET", "/v1/candidate/workspace", ""); r.Code != 204 {
+	if r := other.call("GET", "/v1/candidate/workspace", ""); r.Code != 200 || !strings.Contains(r.Body.String(), `"firstName":"Alex"`) {
 		t.Fatal("workspace leaked to another account", r.Code, r.Body.String())
 	}
 	conflict := b.call("PUT", "/v1/candidate/workspace", body)

@@ -2197,6 +2197,25 @@ dialog::backdrop {
   background: var(--landing-coral);
   color: white;
 }
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+.legal-page {
+  width: min(760px, calc(100% - 48px));
+  margin: 72px auto;
+  color: #243840;
+}
+.legal-page h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin: 28px 0 18px;
+}
+.legal-page p {
+  font-size: 1rem;
+  line-height: 1.75;
+}
 
 .landing-header nav {
   display: flex;

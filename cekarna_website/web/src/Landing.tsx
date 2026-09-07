@@ -98,10 +98,7 @@ export default function Landing() {
               espace calme pour avancer, une étape après l’autre.
             </p>
             <div className="hero-actions">
-              <a
-                className="landing-button primary"
-                href="/inscription"
-              >
+              <a className="landing-button primary" href="/inscription">
                 Créer mon compte <ArrowRight size={17} />
               </a>
               <a className="landing-button quiet" href="#fonctionnement">
@@ -326,6 +323,12 @@ export default function Landing() {
           cekarna<span>.</span>
         </a>
         <span>Un espace pour votre recherche d’emploi.</span>
+        <nav className="legal-links" aria-label="Informations légales">
+          <a href="/mentions-legales">Mentions légales</a>
+          <a href="/confidentialite">Confidentialité</a>
+          <a href="/cookies">Cookies</a>
+          <a href="/cgu">CGU</a>
+        </nav>
         <a href="/connexion">Se connecter</a>
       </footer>
     </div>

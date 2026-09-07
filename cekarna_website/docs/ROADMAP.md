@@ -123,7 +123,7 @@ P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validatio
 
 - [x] Définir une clé d’idempotence et tester les demandes répétées. Le service Go calcule l’empreinte SHA-256 stable du message et le service Rust renvoie l’enregistrement existant sur répétition.
 - [ ] Éviter les messages devenus inutiles ou contenant un lien expiré ; définir expiration et annulation.
-- [ ] Définir et appliquer la rétention des destinataires, corps et états de livraison.
+- [x] Définir et appliquer la rétention des destinataires, corps et états de livraison. Les états terminaux sont purgés après 30 jours par défaut ; les envois en attente ou en cours sont préservés.
 - [ ] Relier les notifications au cycle de vie du compte et purger les données concernées lors de sa suppression.
 - [ ] Prévoir une reprise durable si l’opération métier et la mise en file divergent.
 - [ ] Documenter les limites de doublons après acceptation SMTP et les tester sans promettre un envoi « exactement une fois ».

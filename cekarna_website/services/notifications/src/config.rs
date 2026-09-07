@@ -11,6 +11,7 @@ pub struct Config {
     pub smtp: SmtpConfig,
     pub max_attempts: i32,
     pub retry_delay: Duration,
+    pub retention_days: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -59,6 +60,7 @@ impl Config {
             .map_err(|err| invalid("NOTIFICATIONS_SMTP_FROM", err))?;
         let max_attempts = optional_number("NOTIFICATIONS_MAX_ATTEMPTS", 5, 1, 20)? as i32;
         let retry_seconds = optional_number("NOTIFICATIONS_RETRY_SECONDS", 60, 1, 86_400)? as u64;
+        let retention_days = optional_number("NOTIFICATIONS_RETENTION_DAYS", 30, 1, 3_650)?;
         Ok(Self {
             addr,
             database_url,
@@ -72,6 +74,7 @@ impl Config {
             },
             max_attempts,
             retry_delay: Duration::from_secs(retry_seconds),
+            retention_days,
         })
     }
 }

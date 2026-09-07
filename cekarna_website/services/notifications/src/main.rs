@@ -1,6 +1,9 @@
 mod config;
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use axum::{
     Json, Router,
@@ -90,6 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.smtp,
         config.max_attempts,
         config.retry_delay,
+        config.retention_days,
     ));
 
     let app = Router::new()
@@ -223,6 +227,7 @@ async fn dispatch_loop(
     smtp: SmtpConfig,
     max_attempts: i32,
     retry_delay: Duration,
+    retention_days: i64,
 ) {
     let transport = match AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&smtp.host) {
         Ok(builder) => builder
@@ -237,7 +242,14 @@ async fn dispatch_loop(
             return;
         }
     };
+    let mut last_cleanup = Instant::now() - Duration::from_secs(3_600);
     loop {
+        if last_cleanup.elapsed() >= Duration::from_secs(3_600) {
+            if let Err(err) = purge_terminal(&database, retention_days).await {
+                error!(%err, "unable to purge terminal notifications");
+            }
+            last_cleanup = Instant::now();
+        }
         match claim_pending(&database, max_attempts).await {
             Ok(Some(notification)) => {
                 let outcome = tokio::time::timeout(
@@ -265,6 +277,14 @@ async fn dispatch_loop(
             }
         }
     }
+}
+
+async fn purge_terminal(database: &PgPool, retention_days: i64) -> Result<u64, sqlx::Error> {
+    sqlx::query("DELETE FROM notifications WHERE status IN ('delivered', 'failed') AND COALESCE(delivered_at, created_at) < now() - $1::bigint * interval '1 day'")
+        .bind(retention_days)
+        .execute(database)
+        .await
+        .map(|result| result.rows_affected())
 }
 
 async fn claim_pending(

@@ -62,6 +62,11 @@ Une reprise après interruption peut envoyer un doublon si SMTP avait accepté
 le message avant l'arrêt : l’idempotence évite les doublons de mise en file, pas
 ce cas SMTP ambigu.
 
+Les notifications `delivered` et `failed`, y compris leur destinataire et leur
+corps, sont purgées après `NOTIFICATIONS_RETENTION_DAYS` (30 jours par défaut).
+Les notifications encore `pending` ou `sending` ne sont jamais purgées par ce
+cycle afin de ne pas perdre un envoi en cours.
+
 ## Limites et prochaine tranche
 
 Ce service ne gère que les notifications email transactionnelles. Il ne contient

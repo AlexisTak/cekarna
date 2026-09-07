@@ -25,13 +25,21 @@ h3 { color: #182230; font-size: 1.1rem; margin-bottom: 0; }
 .section-heading { align-items: end; display: flex; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
 .last-check { color: #667085; font-size: .9rem; margin-bottom: 2px; text-align: right; }
 .service-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.service-card { background: #fff; border: 1px solid #eaecf0; border-radius: 12px; box-shadow: 0 1px 2px rgb(16 24 40 / 4%); min-height: 154px; padding: 20px; }
+.service-card { background: #fff; border: 1px solid #eaecf0; border-radius: 12px; box-shadow: 0 1px 2px rgb(16 24 40 / 4%); min-height: 194px; padding: 20px; }
 .service-card__heading { align-items: center; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 25px; }
 .status { border-radius: 999px; font-size: .78rem; font-weight: 750; padding: 5px 9px; white-space: nowrap; }
 .status--ok { background: #ecfdf3; color: #067647; }
 .status--error { background: #fef3f2; color: #b42318; }
 .service-detail { color: #475467; margin-bottom: 11px; }
 code { color: #667085; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; overflow-wrap: anywhere; }
+.service-card__footer { align-items: center; display: flex; justify-content: flex-end; margin-top: 17px; min-height: 34px; }
+.service-action { background: #175cd3; border: 1px solid #175cd3; border-radius: 7px; color: #fff; cursor: pointer; font-size: .88rem; font-weight: 700; padding: 7px 11px; }
+.service-action:hover:not(:disabled) { background: #004eeb; }
+.service-action--stop { background: #b42318; border-color: #b42318; }
+.service-action--stop:hover:not(:disabled) { background: #912018; }
+.service-action:focus-visible { outline: 3px solid #a4bcfd; outline-offset: 2px; }
+.service-action:disabled { cursor: wait; opacity: .65; }
+.control-note { color: #667085; font-size: .82rem; font-style: italic; margin: 0; }
 .guidance { border-top: 1px solid #d0d5dd; color: #475467; line-height: 1.55; margin-top: 46px; max-width: 900px; padding-top: 28px; }
 .guidance h2 { margin-bottom: 10px; }
 .guidance p { margin-bottom: 0; }

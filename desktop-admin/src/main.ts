@@ -1,12 +1,17 @@
 import { invoke } from '@tauri-apps/api/core'
 import './style.css'
 
+type ServiceControl = 'docker' | 'local'
+
 type ServiceStatus = {
+  id: string
   name: string
   endpoint: string
   available: boolean
   statusCode: number | null
   detail: string
+  managedByPanel: boolean
+  control: ServiceControl
 }
 
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -17,12 +22,12 @@ app.innerHTML = `
       <div>
         <p class="eyebrow">Cekarna · poste local</p>
         <h1>Administration</h1>
-        <p class="subtitle">Supervision technique des services utilisés par l’application candidat.</p>
+        <p class="subtitle">Supervision et contrôle des services utilisés par l’application candidat.</p>
       </div>
       <button id="refresh" class="button" type="button">Actualiser</button>
     </header>
     <section class="notice" aria-label="Périmètre du panneau">
-      <strong>Lecture seule.</strong> Cette application ne contient ni profils, ni CV, ni accès à l’espace candidat. Les contrôles sont effectués depuis ce poste vers les services locaux.
+      <strong>Services locaux uniquement.</strong> Les boutons Docker démarrent ou arrêtent uniquement le service Cekarna indiqué, sans supprimer les volumes. Les processus API et Ollama ne peuvent être arrêtés ici que s’ils ont été démarrés par ce panneau.
     </section>
     <section aria-labelledby="services-title">
       <div class="section-heading">
@@ -33,7 +38,7 @@ app.innerHTML = `
     </section>
     <section class="guidance" aria-labelledby="guidance-title">
       <h2 id="guidance-title">Utilisation</h2>
-      <p>Un état « indisponible » signale seulement que le service ne répond pas sur ce poste. Vérifiez son journal et sa configuration avant toute action. Ce panneau n’exécute aucune modification, n’affiche aucun secret et ne remplace pas les procédures d’exploitation.</p>
+      <p>Le démarrage de l’identité ou des notifications exige Docker Desktop et leur configuration locale. Le panneau ne lit pas les CV, profils, jetons, secrets ou contenus de notifications. Consultez les journaux du service quand un démarrage échoue.</p>
     </section>
   </main>
 `
@@ -41,6 +46,15 @@ app.innerHTML = `
 const services = document.querySelector<HTMLDivElement>('#services')!
 const refresh = document.querySelector<HTMLButtonElement>('#refresh')!
 const lastCheck = document.querySelector<HTMLParagraphElement>('#last-check')!
+
+function controlMarkup(service: ServiceStatus) {
+  if (service.control === 'local' && service.available && !service.managedByPanel) {
+    return '<p class="control-note">Démarré hors panneau</p>'
+  }
+  const action = service.available ? 'stop' : 'start'
+  const label = action === 'start' ? 'Démarrer' : 'Arrêter'
+  return `<button class="service-action ${action === 'stop' ? 'service-action--stop' : ''}" data-service="${service.id}" data-action="${action}" type="button">${label}</button>`
+}
 
 function renderStatuses(statuses: ServiceStatus[]) {
   services.innerHTML = statuses.map((service) => `
@@ -51,6 +65,7 @@ function renderStatuses(statuses: ServiceStatus[]) {
       </div>
       <p class="service-detail">${service.detail}</p>
       <code>${service.endpoint}</code>
+      <div class="service-card__footer">${controlMarkup(service)}</div>
     </article>
   `).join('')
 }
@@ -72,6 +87,27 @@ async function refreshStatuses() {
     refresh.textContent = 'Actualiser'
   }
 }
+
+services.addEventListener('click', async (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-service]')
+  if (!button) return
+
+  const { service, action } = button.dataset
+  if (!service || (action !== 'start' && action !== 'stop')) return
+  if (action === 'stop' && !window.confirm(`Arrêter ${service} ?`)) return
+
+  button.disabled = true
+  button.textContent = action === 'start' ? 'Démarrage…' : 'Arrêt…'
+  try {
+    await invoke('control_service', { service, action })
+    await new Promise((resolve) => window.setTimeout(resolve, action === 'start' ? 1200 : 350))
+    await refreshStatuses()
+  } catch (error) {
+    services.insertAdjacentHTML('afterbegin', `<p class="error">${typeof error === 'string' ? error : 'Action impossible. Consultez les journaux du service.'}</p>`)
+    button.disabled = false
+    button.textContent = action === 'start' ? 'Démarrer' : 'Arrêter'
+  }
+})
 
 refresh.addEventListener('click', refreshStatuses)
 void refreshStatuses()

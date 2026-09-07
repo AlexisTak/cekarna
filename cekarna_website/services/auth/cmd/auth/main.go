@@ -126,6 +126,9 @@ func run() error {
 		return errors.New("PostgreSQL or Redis unavailable")
 	}
 	app := auth.NewServer(config, auth.Store{DB: db}, auth.Guard{Redis: cache, Key: config.AuditKey}, config.Mailer)
+	if mailer, ok := config.Mailer.(auth.NotificationMailer); ok {
+		go auth.RunEmailOutbox(ctx, auth.Store{DB: db}, mailer)
+	}
 	server := &http.Server{Addr: config.Address, Handler: app.Routes(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 * 1024}
 	result := make(chan error, 1)
 	go func() {

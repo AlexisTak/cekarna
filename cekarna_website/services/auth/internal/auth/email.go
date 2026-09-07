@@ -40,6 +40,17 @@ type resetInput struct {
 // mailer. Delivery failure never fails the request: the link remains visible in
 // the dev journal and a later verify/request issues a fresh token.
 func (s *Server) deliverVerification(r *http.Request, uid, email string) {
+	if _, durable := s.Mailer.(NotificationMailer); durable {
+		if err := s.Store.IssueEmailTokenAndQueue(r.Context(), uid, PurposeVerifyEmail, email, verifyEmailTTL, func(token string) (string, string) {
+			return verificationMessage(s.Config.Origin, token)
+		}); err != nil {
+			slog.Error("verification email queue failed")
+			s.auditEmailDelivery(r, "email_delivery_failed", uid)
+			return
+		}
+		s.auditEmailDelivery(r, "email_verification_queued", uid)
+		return
+	}
 	token, err := s.Store.IssueEmailToken(r.Context(), uid, PurposeVerifyEmail, verifyEmailTTL)
 	if err != nil {
 		slog.Error("verification token issue failed")
@@ -113,6 +124,20 @@ func (s *Server) resetRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	if err == nil {
 		actor := s.Guard.Identity(peer(r))
+		if _, durable := s.Mailer.(NotificationMailer); durable {
+			if qerr := s.Store.IssueEmailTokenAndQueue(r.Context(), user.ID, PurposePasswordReset, user.Email, passwordResetTTL, func(token string) (string, string) {
+				return resetMessage(s.Config.Origin, token)
+			}); qerr != nil {
+				problem(w, 503, "unavailable")
+				return
+			}
+			s.auditEmailDelivery(r, "password_reset_email_queued", user.ID)
+			if aerr := s.Store.Audit(r.Context(), "password_reset_requested", user.ID, "", actor); aerr != nil {
+				slog.Error("reset audit failed")
+			}
+			respond(w, 202, map[string]string{"message": "Si un compte existe pour cette adresse, un email de récupération a été envoyé."})
+			return
+		}
 		token, terr := s.Store.IssueEmailToken(r.Context(), user.ID, PurposePasswordReset, passwordResetTTL)
 		if terr != nil {
 			problem(w, 503, "unavailable")

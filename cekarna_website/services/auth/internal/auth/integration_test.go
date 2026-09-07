@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -338,5 +339,80 @@ func TestIntegrationExpiredRefresh(t *testing.T) {
 	}
 	if r := b.call("POST", "/v1/auth/refresh", "{}"); r.Code != 401 {
 		t.Fatal(fmt.Sprint("expired refresh accepted: ", r.Code))
+	}
+}
+
+func TestIntegrationEmailOutboxRecoversAfterQueueOutage(t *testing.T) {
+	s := fixture(t)
+	ctx := context.Background()
+	uid, err := s.Store.Register(ctx, "outbox@example.test", "Camille", "test-hash", "test")
+	if err != nil || uid == "" {
+		t.Fatal("create outbox owner", err)
+	}
+
+	var unavailable atomic.Bool
+	unavailable.Store(true)
+	var calls atomic.Int32
+	queue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		if r.Header.Get("Idempotency-Key") == "" {
+			t.Error("missing idempotency key")
+		}
+		if unavailable.Load() {
+			http.Error(w, "temporarily unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer queue.Close()
+	mailer := NotificationMailer{URL: queue.URL, Token: strings.Repeat("a", 32), Client: queue.Client()}
+
+	err = s.Store.IssueEmailTokenAndQueue(ctx, uid, PurposeVerifyEmail, "outbox@example.test", time.Hour, func(token string) (string, string) {
+		return verificationMessage("https://app.test", token)
+	})
+	if err != nil {
+		t.Fatal("atomically create token and message", err)
+	}
+	var tokens, queued int
+	if err = s.Store.DB.QueryRow(ctx, "SELECT count(*) FROM verification_tokens WHERE user_id=$1", uid).Scan(&tokens); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Store.DB.QueryRow(ctx, "SELECT count(*) FROM email_outbox WHERE user_id=$1", uid).Scan(&queued); err != nil {
+		t.Fatal(err)
+	}
+	if tokens != 1 || queued != 1 {
+		t.Fatalf("token and message diverged: tokens=%d queued=%d", tokens, queued)
+	}
+
+	first, err := s.Store.ClaimOutboxEmail(ctx)
+	if err != nil || first.ID == "" {
+		t.Fatal("claim queued message", err)
+	}
+	if err = mailer.SendForOwnerUntil(ctx, first.UserID, first.Recipient, first.Subject, first.TextBody, first.ExpiresAt); err == nil {
+		t.Fatal("temporary queue outage unexpectedly succeeded")
+	}
+	if err = s.Store.DB.QueryRow(ctx, "SELECT count(*) FROM email_outbox WHERE id=$1", first.ID).Scan(&queued); err != nil || queued != 1 {
+		t.Fatal("failed delivery removed durable message", err)
+	}
+
+	unavailable.Store(false)
+	if _, err = s.Store.DB.Exec(ctx, "UPDATE email_outbox SET available_at=now() WHERE id=$1", first.ID); err != nil {
+		t.Fatal(err)
+	}
+	second, err := s.Store.ClaimOutboxEmail(ctx)
+	if err != nil || second.ID != first.ID {
+		t.Fatal("durable retry did not reclaim the same message", err)
+	}
+	if err = mailer.SendForOwnerUntil(ctx, second.UserID, second.Recipient, second.Subject, second.TextBody, second.ExpiresAt); err != nil {
+		t.Fatal("queue recovery", err)
+	}
+	if err = s.Store.CompleteOutboxEmail(ctx, second.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Store.DB.QueryRow(ctx, "SELECT count(*) FROM email_outbox WHERE id=$1", first.ID).Scan(&queued); err != nil || queued != 0 {
+		t.Fatal("accepted message remained in outbox", err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("expected failed attempt and retry, got %d calls", calls.Load())
 	}
 }

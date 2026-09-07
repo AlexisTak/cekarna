@@ -69,7 +69,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C02 | P0 | Profil professionnel structuré | Terminé | Codex | Modèle du profil, formulaire, extraction et migrations de données | C01 |
 | C03 | P0 | Autoriser et isoler les analyses de CV | Terminé | Codex | API NestJS, identité, stockage temporaire | Contrat d’identité validé |
 | C04 | P0 | Activer et vérifier les emails réels | À faire | Libre | `services/auth/`, `services/notifications/`, configuration | Fournisseur et configuration disponibles |
-| C05 | P0 | Fiabiliser les notifications et leur purge | En cours | Codex | File Rust, cycle de vie des comptes | Contrat interservices |
+| C05 | P0 | Fiabiliser les notifications et leur purge | Terminé | Codex | File Rust, cycle de vie des comptes | Contrat interservices |
 | C06 | P0 | Valider sessions, conflits et reprise locale | Terminé | Codex | `auth-api.ts`, `App.tsx`, service Go | C01/C02 validés |
 | C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
 | C08 | P1 | Comparaison expliquée profil–offre | En cours | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
@@ -125,8 +125,8 @@ P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validatio
 - [x] Éviter les messages devenus inutiles ou contenant un lien expiré ; définir expiration et annulation. L’auth transmet l’expiration réelle des liens de vérification et récupération ; le worker annule les notifications expirées avant SMTP.
 - [x] Définir et appliquer la rétention des destinataires, corps et états de livraison. Les états terminaux sont purgés après 30 jours par défaut ; les envois en attente ou en cours sont préservés.
 - [x] Relier les notifications au cycle de vie du compte et purger les données concernées lors de sa suppression. Les emails envoyés par l’auth portent désormais leur propriétaire ; la suppression appelle la purge interne avant d’effacer le compte.
-- [ ] Prévoir une reprise durable si l’opération métier et la mise en file divergent.
-- [ ] Documenter les limites de doublons après acceptation SMTP et les tester sans promettre un envoi « exactement une fois ».
+- [x] Prévoir une reprise durable si l’opération métier et la mise en file divergent. Le jeton d'authentification et l'intention d'email sont créés dans une même transaction PostgreSQL, puis une outbox réessaie avec une clé stable jusqu'à acceptation ou expiration.
+- [x] Documenter les limites de doublons après acceptation SMTP et les tester sans promettre un envoi « exactement une fois ». Les répétitions auth→file conservent la même empreinte ; une coupure après acceptation SMTP demeure explicitement observable et peut produire un doublon.
 
 ### C06 — Sessions et synchronisation
 
@@ -230,5 +230,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C05 (suppression interservices) | Codex | Migration propriétaire des notifications, contrat auth→notifications enrichi et purge interne avant suppression d’un compte | `go test ./...` et `cargo check` réussis | Une panne de la purge refuse la suppression afin de ne pas laisser de notifications orphelines ; une reprise durable transactionnelle reste à construire |
 | 2026-09-07 | C05 (expiration) | Codex | Ajout de `expires_at`, statut `cancelled` et transmission des délais réels des liens d’authentification | `go test ./...`, `cargo test` et Clippy strict réussis | Les opérations auth et mise en file ne sont pas encore coordonnées par une outbox durable |
 | 2026-09-07 | C10 | Codex | Préférence d’informations, historique effaçable et isolé par compte, rappels manuels persistés dans les offres et dédupliqués par offre/date | 57 tests frontend et build Vite réussis | Rappels évalués uniquement lorsque l’application est ouverte ; aucune notification système, aucun email et aucun envoi de candidature |
+| 2026-09-07 | C05 | Codex | Outbox PostgreSQL atomique entre jetons d'authentification et intentions d'email, worker de reprise vers la file Rust et même clé d'idempotence à chaque tentative | `go test ./... -count=1`, intégration Docker PostgreSQL/Redis avec détecteur de courses, `cargo fmt --check`, `cargo test` et Clippy strict réussis | Une acceptation SMTP suivie d'une coupure avant réponse peut encore provoquer un doublon ; cette limite est documentée et doit être supervisée chez le fournisseur |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

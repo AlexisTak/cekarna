@@ -28,8 +28,8 @@ Le service écoute sur `http://127.0.0.1:8081`, PostgreSQL sur le port 55432 et 
 sur 56379, uniquement en boucle locale. `/health/ready` contrôle les deux bases.
 Compose est un environnement **de développement** avec cookies non Secure et
 connexions internes sans TLS. Les volumes persistent après `docker compose stop`.
-Le service ne migre pas au démarrage : le conteneur `migrate` exécute la migration
-idempotente 001 dans une transaction protégée par verrou consultatif.
+Le service ne migre pas au démarrage : le conteneur `migrate` exécute les migrations
+idempotentes dans une transaction protégée par verrou consultatif.
 
 ## API navigateur
 
@@ -158,8 +158,10 @@ confiance ; le réseau doit en empêcher le contournement. Ne pas utiliser le
 Compose local comme manifeste de production.
 
 Séparer compte de migration et compte SQL runtime. Le runtime nécessite SELECT
-sur users/credentials/sessions/refresh_tokens/candidate_workspaces, INSERT sur ces tables et audit_events,
-UPDATE sur sessions/refresh_tokens/candidate_workspaces, USAGE sur la séquence audit_events. Il ne doit
+sur users/credentials/sessions/refresh_tokens/candidate_workspaces/email_outbox,
+INSERT sur ces tables et audit_events, UPDATE sur sessions/refresh_tokens/
+candidate_workspaces/email_outbox, DELETE sur email_outbox, et USAGE sur la
+séquence audit_events. Il ne doit
 pas être propriétaire du schéma ni pouvoir modifier/supprimer les audits. Redis
 doit être privé, authentifié, avec ACL limitée au préfixe auth et aux commandes
 utilisées (PING, GET/SET, EXISTS, INCR, PEXPIRE, EVAL/EVALSHA/SCRIPT LOAD).
@@ -192,9 +194,18 @@ de secrets. Les événements d’audit `email_verification_sent`,
 les livraisons sans conserver l’adresse ou le contenu du message. Lorsque le
 service Rust `services/notifications` est déployé, choisir
 `AUTH_MAILER=notifications`, `NOTIFICATIONS_URL` et
-`NOTIFICATIONS_INTERNAL_TOKEN` : l'authentification place alors le message dans
-sa file PostgreSQL durable, qui porte les tentatives et l'état final. Restent les
-notifications produit visibles dans l’interface et MFA/passkeys (tranche B).
+`NOTIFICATIONS_INTERNAL_TOKEN`. Le jeton à usage unique et l'intention d'email
+sont alors créés dans une même transaction PostgreSQL. Un worker reprend cette
+outbox jusqu'à ce que la file Rust accepte le message ou que le lien expire ; la
+même clé d'idempotence est conservée à chaque essai. Après acceptation par la file,
+le service Rust porte les tentatives SMTP et l'état final.
+
+Cette chaîne garantit la reprise après une panne entre l'authentification et la
+file, mais pas une livraison SMTP « exactement une fois ». Si SMTP accepte le
+message puis coupe la connexion avant l'accusé de réception, le worker Rust peut
+le renvoyer. Les tests vérifient la stabilité de la clé d'idempotence et la reprise
+de la même entrée d'outbox ; la réception finale et les éventuels doublons restent
+à surveiller chez le fournisseur transactionnel.
 
 Les comptes créés ont `email_verified=false` jusqu'à confirmation par jeton ;
 ne jamais traiter un email non vérifié comme vérifié ni l’utiliser pour rattacher

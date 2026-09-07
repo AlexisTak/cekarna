@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { LocalAiService } from './local-ai.service';
 
 describe('LocalAiService', () => {
@@ -48,5 +49,12 @@ describe('LocalAiService', () => {
       { criterion: 'React', status: 'satisfied', evidence: ['React'] },
       { criterion: 'Docker', status: 'unknown', evidence: [] },
     ]);
+  });
+
+  it('reports provider unavailability without affecting stored data', async () => {
+    jest.spyOn(global, 'fetch').mockRejectedValue(new Error('offline'));
+    await expect(
+      new LocalAiService().compare({ skills: 'React' }, { title: 'Poste' }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });

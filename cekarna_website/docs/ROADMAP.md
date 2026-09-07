@@ -73,7 +73,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C06 | P0 | Valider sessions, conflits et reprise locale | Terminé | Codex | `auth-api.ts`, `App.tsx`, service Go | C01/C02 validés |
 | C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
 | C08 | P1 | Comparaison expliquée profil–offre | Terminé | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
-| C09 | P1 | Brouillons corrigibles et exportables | En cours | Codex (adaptateur Hermes local uniquement) | Domaine brouillons, adaptateur IA éventuel, interface | C02/C08 et validation du parcours principal |
+| C09 | P1 | Brouillons corrigibles et exportables | Terminé | Codex | Domaine brouillons, adaptateur Hermes local, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | Terminé | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
 | C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
 | C12 | P0 avant lancement | Préparer exploitation et recette | En cours | Codex | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | À mener progressivement |
@@ -158,12 +158,12 @@ Lire d’abord [la spécification](superpowers/specs/2026-09-06-offers-collecte-
 
 ### C09 — Brouillons et IA
 
-- [ ] Définir les sorties utiles et faire valider le parcours principal avant activation.
-- [ ] Utiliser seulement les informations confirmées ; laisser les inconnus visibles.
-- [ ] Prévoir correction, validation explicite et export ; aucun envoi de candidature automatique.
-- [ ] Encadrer fournisseur éventuel, flux de données, versions, délais, coût, erreurs et validation du schéma de sortie.
-- [ ] Tester inventions factuelles, instructions malveillantes contenues dans les documents et indisponibilité du fournisseur.
-- [ ] Conserver la lecture du dossier en cas de panne de génération.
+- [x] Définir les sorties utiles et faire valider le parcours principal avant activation. La sortie livrée est un brouillon texte local par offre, séparé de l'analyse Hermes facultative.
+- [x] Utiliser seulement les informations confirmées ; laisser les inconnus visibles. Le modèle reprend les champs du profil et de l'offre tels qu'enregistrés et utilise des passages entre crochets lorsqu'ils manquent.
+- [x] Prévoir correction, validation explicite et export ; aucun envoi de candidature automatique. Objet et corps sont modifiables puis exportables en `.txt` ; aucune action d'envoi n'existe.
+- [x] Encadrer fournisseur éventuel, flux de données, versions, délais, coût, erreurs et validation du schéma de sortie. Hermes reste local, facultatif, borné à 60 secondes et son JSON est filtré ; le brouillon principal n'en dépend pas.
+- [x] Tester inventions factuelles, instructions malveillantes contenues dans les documents et indisponibilité du fournisseur. Le modèle déterministe ignore description et notes, les preuves Hermes doivent être littérales et la panne est testée.
+- [x] Conserver la lecture du dossier en cas de panne de génération. L'état du dossier et le brouillon local ne dépendent pas du service Ollama.
 
 ### C10 — Notifications produit
 
@@ -232,5 +232,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C10 | Codex | Préférence d’informations, historique effaçable et isolé par compte, rappels manuels persistés dans les offres et dédupliqués par offre/date | 57 tests frontend et build Vite réussis | Rappels évalués uniquement lorsque l’application est ouverte ; aucune notification système, aucun email et aucun envoi de candidature |
 | 2026-09-07 | C05 | Codex | Outbox PostgreSQL atomique entre jetons d'authentification et intentions d'email, worker de reprise vers la file Rust et même clé d'idempotence à chaque tentative | `go test ./... -count=1`, intégration Docker PostgreSQL/Redis avec détecteur de courses, `cargo fmt --check`, `cargo test` et Clippy strict réussis | Une acceptation SMTP suivie d'une coupure avant réponse peut encore provoquer un doublon ; cette limite est documentée et doit être supervisée chez le fournisseur |
 | 2026-09-07 | C08 | Codex | Comparaison déterministe à trois états, preuves visibles, références de version et filtrage des données personnelles pour Hermes | 62 tests frontend, dont 12 décisions du corpus annoté ; 70 tests NestJS, lint, typage et builds réussis | Le corpus protège le contrat fonctionnel mais ne mesure pas une performance représentative sur des CV et offres réels ; aucun score qualité n'est affiché |
+| 2026-09-07 | C09 | Codex | Brouillon texte déterministe construit avec les informations confirmées, inconnus visibles, correction et export explicites, sans envoi automatique | Tests frontend du contenu manquant et d'une instruction malveillante ; test NestJS d'indisponibilité Hermes ; suites et builds complets réussis | Le brouillon n'est pas persisté dans le dossier : l'utilisateur doit l'exporter avant de fermer ou changer d'offre |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

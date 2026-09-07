@@ -46,6 +46,7 @@ import {
 } from './auth-api';
 import CvImport from './CvImport';
 import { LocalAiComparison } from './LocalAiComparison';
+import { ApplicationDraft } from './ApplicationDraft';
 import {
   CONTRACTS,
   LABELS,
@@ -1915,6 +1916,7 @@ export default function App() {
               </small>
             </div>
             <LocalAiComparison profile={profile} job={selected} />
+            <ApplicationDraft profile={profile} job={selected} />
             <label className="detail-status">
               Avancement de ma candidature
               <select

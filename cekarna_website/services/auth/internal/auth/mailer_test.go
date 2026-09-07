@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,6 +30,10 @@ func TestNotificationMailerQueuesWithoutLeakingCredentials(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer "+token || r.URL.Path != "/v1/notifications/email" {
 			t.Fatal("unexpected internal notification request")
+		}
+		expectedDigest := sha256.Sum256([]byte("auth.email\x00person@example.test\x00subject\x00body"))
+		if r.Header.Get("Idempotency-Key") != fmt.Sprintf("%x", expectedDigest) {
+			t.Fatal("missing or unstable idempotency key")
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil || !strings.Contains(string(body), `"kind":"auth.email"`) {

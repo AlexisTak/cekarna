@@ -67,10 +67,10 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | --- | --- | --- | --- | --- | --- | --- |
 | C01 | P0 | Finaliser la provenance durable du profil | Terminé | Codex | `src/cv-import/`, `web/src/profile-sources*`, `ProfileEvidence.tsx`, `CvImport*`, `domain.ts`, `App.tsx`, tests HTTP | Aucune |
 | C02 | P0 | Profil professionnel structuré | Terminé | Codex | Modèle du profil, formulaire, extraction et migrations de données | C01 |
-| C03 | P0 | Autoriser et isoler les analyses de CV | En cours | Codex | API NestJS, identité, stockage temporaire | Contrat d’identité |
+| C03 | P0 | Autoriser et isoler les analyses de CV | Terminé | Codex | API NestJS, identité, stockage temporaire | Contrat d’identité validé |
 | C04 | P0 | Activer et vérifier les emails réels | À faire | Libre | `services/auth/`, `services/notifications/`, configuration | Fournisseur et configuration disponibles |
-| C05 | P0 | Fiabiliser les notifications et leur purge | À faire | Libre | File Rust, cycle de vie des comptes | Contrat interservices |
-| C06 | P0 | Valider sessions, conflits et reprise locale | À faire | Libre | `auth-api.ts`, `App.tsx`, service Go | Coordination avec C01/C02 |
+| C05 | P0 | Fiabiliser les notifications et leur purge | En cours | Codex | File Rust, cycle de vie des comptes | Contrat interservices |
+| C06 | P0 | Valider sessions, conflits et reprise locale | Terminé | Codex | `auth-api.ts`, `App.tsx`, service Go | C01/C02 validés |
 | C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
 | C08 | P1 | Comparaison expliquée profil–offre | En cours | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
 | C09 | P1 | Brouillons corrigibles et exportables | En cours | Codex (adaptateur Hermes local uniquement) | Domaine brouillons, adaptateur IA éventuel, interface | C02/C08 et validation du parcours principal |
@@ -104,12 +104,12 @@ P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validatio
 
 ### C03 — Isolation des CV
 
-- [ ] Authentifier les appels et rattacher chaque analyse au propriétaire côté serveur.
-- [ ] Refuser la consultation ou confirmation par un autre compte, même avec l’identifiant de l’analyse.
-- [ ] Définir explicitement le comportement du mode sans compte.
-- [ ] Vérifier limites de taille/pages, fichiers invalides, scannés ou chiffrés, expiration et consommation des analyses.
-- [ ] Tester absence d’accès croisé et de contenu sensible dans les journaux.
-- [ ] Documenter la limite du stockage en mémoire ; ajouter un stockage partagé uniquement si le déploiement le nécessite.
+- [x] Authentifier les appels et rattacher chaque analyse au propriétaire côté serveur.
+- [x] Refuser la consultation ou confirmation par un autre compte, même avec l’identifiant de l’analyse.
+- [x] Définir explicitement le comportement du mode sans compte : l’import exige une session active.
+- [x] Vérifier limites de taille/pages, fichiers invalides, scannés ou chiffrés, expiration et consommation des analyses.
+- [x] Tester absence d’accès croisé et de contenu sensible dans les journaux.
+- [x] Documenter la limite du stockage en mémoire ; ajouter un stockage partagé uniquement si le déploiement le nécessite.
 
 ### C04 — Emails réellement reçus
 
@@ -121,7 +121,7 @@ P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validatio
 
 ### C05 — Fiabilité et suppression interservices
 
-- [ ] Définir une clé d’idempotence et tester les demandes répétées.
+- [x] Définir une clé d’idempotence et tester les demandes répétées. Le service Go calcule l’empreinte SHA-256 stable du message et le service Rust renvoie l’enregistrement existant sur répétition.
 - [ ] Éviter les messages devenus inutiles ou contenant un lien expiré ; définir expiration et annulation.
 - [ ] Définir et appliquer la rétention des destinataires, corps et états de livraison.
 - [ ] Relier les notifications au cycle de vie du compte et purger les données concernées lors de sa suppression.
@@ -130,11 +130,11 @@ P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validatio
 
 ### C06 — Sessions et synchronisation
 
-- [ ] Tester plusieurs appareils et plusieurs onglets, notamment les renouvellements simultanés de session.
-- [ ] Vérifier lecture, édition, perte réseau, reconnexion et erreur de stockage navigateur.
-- [ ] Garantir que le choix de copie en conflit est explicite et que le travail local peut être exporté avant remplacement.
-- [ ] Vérifier le transfert volontaire d’un dossier local vers un nouveau compte et les anciens caches communs.
-- [ ] Tester changement de compte, déconnexion globale, récupération du mot de passe et suppression sans fuite de dossier entre comptes.
+- [x] Tester plusieurs appareils et plusieurs onglets, notamment les renouvellements simultanés de session.
+- [x] Vérifier lecture, édition, perte réseau, reconnexion et erreur de stockage navigateur.
+- [x] Garantir que le choix de copie en conflit est explicite et que le travail local peut être exporté avant remplacement.
+- [x] Vérifier le transfert volontaire d’un dossier local vers un nouveau compte et les anciens caches communs.
+- [x] Tester changement de compte, déconnexion globale, récupération du mot de passe et suppression sans fuite de dossier entre comptes.
 
 ### C07 — Recherche d’offres
 
@@ -219,5 +219,8 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C02 | Codex | Profil complété avec nom, email, téléphone et ville ; extraction améliorée pour coordonnées, villes et compétences ; expériences et diplômes sélectionnables avec extraits sources | `npm run check:all` : 59 tests Nest, 18 tests HTTP, 52 tests web et builds réussis ; `go test ./... -count=1` réussi | L’extraction reste déterministe : les lignes de parcours sont proposées telles quelles puis corrigées par la personne |
 | 2026-09-07 | C10 (première tranche) | Codex | Centre de notifications local dans l’en-tête : les messages d’information et erreurs déjà présentés deviennent consultables, avec compteur et état lu/non lu | `npm test -- --run` : 54 tests front réussis ; `npm run build` Vite réussi | Historique uniquement en mémoire et sans préférences persistantes ; aucune notification email ou candidature automatique n’est ajoutée |
 | 2026-09-07 | C13 (revue) | Codex | Références B2C, README, audit et variables d’environnement alignés avec l’import CV authentifié, Ollama local et les notifications internes ; consignes Claude retirées de la coordination | 66 tests NestJS, 21 tests HTTP, 54 tests front, builds Nest/Vite, `go test ./... -count=1`, `cargo fmt --check`, `cargo test` et `cargo clippy --all-targets -- -D warnings` réussis | Services de développement arrêtés ; le test Rust demandant une PostgreSQL temporaire reste ignoré |
+| 2026-09-07 | C06 | Codex | Conflit de dossier sans réécriture automatique et transfert confirmé du dossier local couverts côté frontend | 56 tests front et build Vite réussis ; `docker compose -f compose.yaml -f compose.test.yaml run --build --rm tests` réussi avec PostgreSQL, Redis et détecteur de courses | Le test ne remplace pas un essai ergonomique sur deux appareils physiques, mais couvre les contrats, conflits et sessions réelles |
+| 2026-09-07 | C03 | Codex | Contrôle direct de l’identité ajouté pour l’import ; extraction et confirmation restent liées au propriétaire côté serveur | 69 tests NestJS, 21 tests HTTP et build NestJS réussis | Stockage temporaire en mémoire par instance ; le déploiement multi-instance exigera un stockage partagé ou une affinité de session |
+| 2026-09-07 | C05 (idempotence) | Codex | Clé d’idempotence SHA-256 transmise par l’auth et contrainte unique ajoutée à la file Rust | `go test ./... -count=1`, `cargo test` et `cargo clippy --all-targets -- -D warnings` réussis | Rétention, annulation et purge lors de la suppression du compte restent à construire |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

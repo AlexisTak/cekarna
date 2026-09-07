@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -49,6 +50,8 @@ func (m NotificationMailer) Send(ctx context.Context, to, subject, text string) 
 	}
 	req.Header.Set("Authorization", "Bearer "+m.Token)
 	req.Header.Set("Content-Type", "application/json")
+	digest := sha256.Sum256([]byte("auth.email\x00" + to + "\x00" + subject + "\x00" + text))
+	req.Header.Set("Idempotency-Key", fmt.Sprintf("%x", digest))
 	client := m.Client
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}

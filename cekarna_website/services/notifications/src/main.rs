@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Duration};
 use axum::{
     Json, Router,
     extract::{Request, State},
-    http::{StatusCode, header},
+    http::{HeaderMap, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -42,7 +42,7 @@ struct EnqueueRequest {
 #[derive(Serialize)]
 struct EnqueueResponse {
     id: Uuid,
-    status: &'static str,
+    status: String,
 }
 
 #[derive(Serialize, FromRow)]
@@ -149,20 +149,26 @@ async fn require_internal_token(
 
 async fn enqueue(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(input): Json<EnqueueRequest>,
 ) -> Result<Json<EnqueueResponse>, ApiError> {
     validate_input(&input)?;
+    let idempotency_key = headers
+        .get("idempotency-key")
+        .and_then(|value| value.to_str().ok())
+        .ok_or(ApiError::bad_request("idempotency-key is required"))?;
+    validate_idempotency_key(idempotency_key)?;
     let recipient: Mailbox = input
         .recipient
         .parse()
         .map_err(|_| ApiError::bad_request("recipient must be a valid email address"))?;
     let id = Uuid::now_v7();
-    sqlx::query("INSERT INTO notifications (id, kind, recipient, subject, text_body) VALUES ($1, $2, $3, $4, $5)")
-        .bind(id).bind(input.kind).bind(recipient.to_string()).bind(input.subject).bind(input.text_body)
-        .execute(&state.database).await.map_err(ApiError::database)?;
+    let row: (Uuid, String) = sqlx::query_as("INSERT INTO notifications (id, kind, recipient, subject, text_body, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (idempotency_key) DO UPDATE SET id = notifications.id RETURNING id, status::text")
+        .bind(id).bind(input.kind).bind(recipient.to_string()).bind(input.subject).bind(input.text_body).bind(idempotency_key)
+        .fetch_one(&state.database).await.map_err(ApiError::database)?;
     Ok(Json(EnqueueResponse {
-        id,
-        status: "pending",
+        id: row.0,
+        status: row.1,
     }))
 }
 
@@ -196,6 +202,20 @@ fn validate_input(input: &EnqueueRequest) -> Result<(), ApiError> {
         ));
     }
     Ok(())
+}
+
+fn validate_idempotency_key(key: &str) -> Result<(), ApiError> {
+    if key.len() == 64
+        && key
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        Ok(())
+    } else {
+        Err(ApiError::bad_request(
+            "idempotency-key must be a lowercase SHA-256 digest",
+        ))
+    }
 }
 
 async fn dispatch_loop(
@@ -423,5 +443,10 @@ mod tests {
     #[test]
     fn sanitizes_delivery_errors() {
         assert_eq!(sanitize_error("bad\nerror"), "baderror");
+    }
+    #[test]
+    fn validates_idempotency_keys() {
+        assert!(validate_idempotency_key(&"a".repeat(64)).is_ok());
+        assert!(validate_idempotency_key("not-a-digest").is_err());
     }
 }

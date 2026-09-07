@@ -42,7 +42,10 @@ donner accès à plusieurs services.
 }
 ```
 
-Il répond `200` avec l'identifiant et `pending`. `GET
+Il répond `200` avec l'identifiant et l’état courant. L’appelateur doit fournir
+`Idempotency-Key`, une empreinte SHA-256 hexadécimale minuscule du message, pour
+qu’une répétition de la même demande retourne la notification existante sans en
+créer une seconde. `GET
 /v1/notifications/{id}` expose le statut, le nombre de tentatives, l'heure de
 livraison et le dernier message d'erreur. Cette route est prévue pour la
 supervision applicative; elle ne doit jamais être rendue publique.
@@ -56,7 +59,8 @@ cinq minutes ; la dernière tentative abandonnée devient `failed`. Le champ
 `last_error` contient un code générique, jamais la réponse brute du fournisseur.
 `delivered` signifie accepté par SMTP, pas réception confirmée en boîte email.
 Une reprise après interruption peut envoyer un doublon si SMTP avait accepté
-le message avant l'arrêt. L'API n'offre pas encore de clé d'idempotence.
+le message avant l'arrêt : l’idempotence évite les doublons de mise en file, pas
+ce cas SMTP ambigu.
 
 ## Limites et prochaine tranche
 

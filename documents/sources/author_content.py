@@ -135,7 +135,16 @@ sources={
 'JOBS':{'label':'BullMQ — tâches idempotentes','url':'https://docs.bullmq.io/patterns/idempotent-jobs'},
 'PAY':{'label':'Stripe — webhooks, signatures et événements','url':'https://docs.stripe.com/webhooks'}
 }
-payload={'version':'2.0','date':'06 septembre 2026','sources':sources,'documents':D}
+
+# Décision produit du 7 septembre 2026 : ces cinq dossiers décrivent un
+# ancien périmètre B2B / formation. Leur contenu reste disponible comme archive,
+# mais le PDF régénéré ne doit plus pouvoir être confondu avec la feuille de route
+# B2C active dans cekarna_website/docs/B2C.md.
+for document in D:
+    document['subtitle'] = f"Archive historique — {document['subtitle']}"
+    document['status'] = 'ARCHIVÉ · HORS PÉRIMÈTRE B2C'
+
+payload={'version':'2.0 — archive','date':'07 septembre 2026','sources':sources,'documents':D}
 if __name__=='__main__':
     target=Path(__file__).with_name('cekarna_v2.json')
     target.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')

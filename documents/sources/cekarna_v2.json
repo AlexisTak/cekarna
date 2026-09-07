@@ -1,6 +1,6 @@
 {
-  "version": "2.0",
-  "date": "06 septembre 2026",
+  "version": "2.0 — archive",
+  "date": "07 septembre 2026",
   "sources": {
     "CNIL": {
       "label": "CNIL — Le guide du recrutement",
@@ -32,8 +32,8 @@
       "file": "cahier_des_charges_cekarna.pdf",
       "code": "01 / PRODUIT",
       "title": "Cahier des charges",
-      "subtitle": "Un assistant de présélection pour les cabinets de recrutement",
-      "status": "CIBLE RETENUE · EXIGENCES À IMPLÉMENTER",
+      "subtitle": "Archive historique — Un assistant de présélection pour les cabinets de recrutement",
+      "status": "ARCHIVÉ · HORS PÉRIMÈTRE B2C",
       "pages": [
         {
           "title": "Un produit précis, une valeur démontrable",
@@ -266,8 +266,8 @@
       "file": "optimisation_cekarna_v1.pdf",
       "code": "02 / PERFORMANCE",
       "title": "Performance & coûts",
-      "subtitle": "Mesurer avant de dimensionner — préserver qualité et marge",
-      "status": "OBJECTIFS DE PILOTE · AUCUN BENCHMARK ACQUIS",
+      "subtitle": "Archive historique — Mesurer avant de dimensionner — préserver qualité et marge",
+      "status": "ARCHIVÉ · HORS PÉRIMÈTRE B2C",
       "pages": [
         {
           "title": "Définir la charge utile",
@@ -510,8 +510,8 @@
       "file": "plan_b2b_saas_v1.pdf",
       "code": "03 / COMMERCIAL",
       "title": "Offre SaaS B2B",
-      "subtitle": "Vendre un résultat vérifiable, avec un pilote accompagné",
-      "status": "CIBLE RETENUE · PRIX ET QUOTAS À TESTER",
+      "subtitle": "Archive historique — Vendre un résultat vérifiable, avec un pilote accompagné",
+      "status": "ARCHIVÉ · HORS PÉRIMÈTRE B2C",
       "pages": [
         {
           "title": "Positionnement et premier marché",
@@ -787,8 +787,8 @@
       "file": "plan_formation_ia_v1.pdf",
       "code": "04 / TRANSMISSION",
       "title": "Formation & kit technique",
-      "subtitle": "Une offre complémentaire après stabilisation du SaaS",
-      "status": "OPTION FUTURE · NON PRIORITAIRE AU LANCEMENT",
+      "subtitle": "Archive historique — Une offre complémentaire après stabilisation du SaaS",
+      "status": "ARCHIVÉ · HORS PÉRIMÈTRE B2C",
       "pages": [
         {
           "title": "Une seconde offre, un autre public",
@@ -956,8 +956,8 @@
       "file": "stack_microservices_rust_v1.pdf",
       "code": "05 / ARCHITECTURE",
       "title": "Architecture progressive",
-      "subtitle": "Un socle modulaire, des évolutions justifiées par les mesures",
-      "status": "NESTJS EXISTANT · SERVICES SPÉCIALISÉS CONDITIONNELS",
+      "subtitle": "Archive historique — Un socle modulaire, des évolutions justifiées par les mesures",
+      "status": "ARCHIVÉ · HORS PÉRIMÈTRE B2C",
       "pages": [
         {
           "title": "Partir du code réel",

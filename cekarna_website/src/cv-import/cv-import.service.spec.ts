@@ -3,17 +3,27 @@ import {
   PayloadTooLargeException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+
 import { Environment } from '../config/environment';
+
 import { CvImportService } from './cv-import.service';
+
 import { ExtractionStore } from './extraction-store';
+
 import { sampleCvPdf } from './pdf-text.spec';
 
 const CONFIG: Environment = {
   port: 3000,
+
   host: '127.0.0.1',
+
   corsOrigins: [],
+
   cvImportMaxBytes: 1_000_000,
+
   cvImportRetentionSeconds: 900,
+  cvImportMaxPages: 10,
+  authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
 };
 
 function build(config: Environment = CONFIG): CvImportService {
@@ -29,6 +39,7 @@ describe('import de CV', () => {
 
   it('refuse un fichier plus grand que la limite configurée', async () => {
     const service = build({ ...CONFIG, cvImportMaxBytes: 100 });
+
     await expect(
       service.extract({ buffer: sampleCvPdf(), mimetype: 'application/pdf' }),
     ).rejects.toBeInstanceOf(PayloadTooLargeException);
@@ -43,41 +54,63 @@ describe('import de CV', () => {
   it('renvoie des propositions accompagnées de leurs extraits', async () => {
     const extraction = await build().extract({
       buffer: sampleCvPdf(),
+
       mimetype: 'application/pdf',
     });
+
     expect(extraction.pageCount).toBe(1);
+
     expect(extraction.pages[0].lines[0]).toBe('Marie Dupont');
+
     const city = extraction.fields.find((field) => field.field === 'city');
+
     expect(city?.candidates[0]).toMatchObject({
       value: 'Paris',
+
       rule: 'ville-code-postal',
     });
+
     expect(city?.candidates[0].excerpts[0]).toMatchObject({
       page: 1,
+
       text: '75011 Paris',
     });
   });
 
   describe('confirmation du profil corrigé', () => {
     let service: CvImportService;
+
     let documentId: string;
 
     beforeEach(async () => {
       service = build();
+
       const extraction = await service.extract({
         buffer: sampleCvPdf(),
+
         mimetype: 'application/pdf',
       });
+
       documentId = extraction.documentId;
     });
 
     it('accepte une valeur présente dans le CV', () => {
       const result = service.confirmProfile({
         documentId,
+
         fields: { city: { value: 'Paris', source: 'extracted' } },
       });
+
       expect(result.profile.city).toBe('Paris');
+
       expect(result.provenance.city).toBe('extracted');
+
+      expect(result.excerpts.city?.[0].page).toBe(1);
+
+      const excerpt = result.excerpts.city?.[0];
+
+      expect(excerpt?.text.slice(excerpt.start, excerpt.end)).toBe('Paris');
+
       expect(result.provenance.about).toBe('empty');
     });
 
@@ -85,6 +118,7 @@ describe('import de CV', () => {
       expect(() =>
         service.confirmProfile({
           documentId,
+
           fields: { city: { value: 'Lyon', source: 'extracted' } },
         }),
       ).toThrow(BadRequestException);
@@ -94,6 +128,7 @@ describe('import de CV', () => {
       expect(() =>
         service.confirmProfile({
           documentId,
+
           fields: {
             skills: { value: 'JavaScript, Kubernetes', source: 'extracted' },
           },
@@ -104,18 +139,25 @@ describe('import de CV', () => {
     it('accepte une valeur assumée comme saisie manuelle', () => {
       const result = service.confirmProfile({
         documentId,
+
         fields: { city: { value: 'Lyon', source: 'manual' } },
       });
+
       expect(result.profile.city).toBe('Lyon');
+
       expect(result.provenance.city).toBe('manual');
+
+      expect(result.excerpts.city).toEqual([]);
     });
 
     it.each(['PARIS', 'Marie, Paris', ',,,'])(
       'refuse un extrait modifié ou recomposé : %s',
+
       (value) => {
         expect(() =>
           service.confirmProfile({
             documentId,
+
             fields: { about: { value, source: 'extracted' } },
           }),
         ).toThrow(BadRequestException);
@@ -126,6 +168,7 @@ describe('import de CV', () => {
       expect(() =>
         service.confirmProfile({
           documentId,
+
           fields: { contract: { value: 'Vacation', source: 'manual' } },
         }),
       ).toThrow(BadRequestException);
@@ -133,9 +176,23 @@ describe('import de CV', () => {
 
     it('oublie le document après confirmation', () => {
       service.confirmProfile({ documentId, fields: {} });
+
       expect(() => service.confirmProfile({ documentId, fields: {} })).toThrow(
         BadRequestException,
       );
+    });
+
+    it('refuse la confirmation par un autre compte', async () => {
+      const privateExtraction = await service.extract(
+        { buffer: sampleCvPdf(), mimetype: 'application/pdf' },
+        'candidate-a',
+      );
+      expect(() =>
+        service.confirmProfile(
+          { documentId: privateExtraction.documentId, fields: {} },
+          'candidate-b',
+        ),
+      ).toThrow(BadRequestException);
     });
   });
 });
@@ -143,19 +200,27 @@ describe('import de CV', () => {
 describe('conservation du texte analysé', () => {
   it('oublie un document expiré', () => {
     let now = 1_000;
+
     const store = new ExtractionStore(() => now);
+
     const document = store.save([{ page: 1, lines: ['Marie Dupont'] }], 60);
+
     expect(store.find(document.documentId)).toBeDefined();
+
     now += 61_000;
+
     expect(store.find(document.documentId)).toBeUndefined();
   });
 
   it('normalise le texte pour comparer accents et casse', () => {
     const store = new ExtractionStore(Date.now);
+
     const document = store.save(
       [{ page: 1, lines: ['Accessibilité web'] }],
+
       60,
     );
+
     expect(document.normalizedText).toBe('accessibilite web');
   });
 });

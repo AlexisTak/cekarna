@@ -130,9 +130,11 @@ func (s Store) Register(ctx context.Context, email, name, passwordHash, actor st
 			"demo":    false,
 			"profile": map[string]string{
 				"firstName": name,
-				"title":     "", "city": "", "contract": "", "skills": "", "about": "",
+				"lastName":  "", "email": "", "phone": "", "title": "", "city": "", "contract": "", "skills": "", "about": "",
 			},
-			"jobs": []any{},
+			"jobs":        []any{},
+			"experiences": []any{},
+			"education":   []any{},
 		})
 		if workspaceErr != nil {
 			return "", workspaceErr

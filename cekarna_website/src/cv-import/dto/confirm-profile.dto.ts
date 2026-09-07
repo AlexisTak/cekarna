@@ -1,11 +1,15 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsIn,
+  IsInt,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import type { FieldSource } from '../cv-import.types';
@@ -31,6 +35,21 @@ export class ProfileFieldsDto {
   @ValidateNested()
   @Type(() => ConfirmedFieldDto)
   firstName?: ConfirmedFieldDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConfirmedFieldDto)
+  lastName?: ConfirmedFieldDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConfirmedFieldDto)
+  email?: ConfirmedFieldDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConfirmedFieldDto)
+  phone?: ConfirmedFieldDto;
 
   @IsOptional()
   @ValidateNested()
@@ -66,4 +85,18 @@ export class ConfirmProfileDto {
   @ValidateNested()
   @Type(() => ProfileFieldsDto)
   fields!: ProfileFieldsDto;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  experiences?: number[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  education?: number[];
 }

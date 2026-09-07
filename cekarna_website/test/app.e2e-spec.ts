@@ -1,4 +1,10 @@
-import { Body, Controller, INestApplication, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  INestApplication,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { IsString, MinLength } from 'class-validator';
 import request from 'supertest';
@@ -8,6 +14,7 @@ import { configureApp } from '../src/configure-app';
 import { readEnvironment } from '../src/config/environment';
 import { sampleCvPdf } from '../src/cv-import/pdf-text.spec';
 import type { CvExtraction } from '../src/cv-import/cv-import.types';
+import { IdentityService } from '../src/cv-import/identity.service';
 
 class ProbeDto {
   @IsString()
@@ -31,7 +38,16 @@ describe('API HTTP configuration', () => {
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
       controllers: [ProbeController],
-    }).compile();
+    })
+      .overrideProvider(IdentityService)
+      .useValue({
+        userId: (authorization?: string) => {
+          if (!authorization?.startsWith('Bearer candidate-'))
+            throw new UnauthorizedException();
+          return Promise.resolve(authorization.slice('Bearer '.length));
+        },
+      })
+      .compile();
     app = moduleFixture.createNestApplication();
     configureApp(
       app,
@@ -95,9 +111,19 @@ describe('API HTTP configuration', () => {
   });
 
   describe('import de CV', () => {
+    it('refuse un import sans session', () => {
+      return request(app.getHttpServer())
+        .post('/v1/cv-import/extraction')
+        .attach('file', sampleCvPdf(), {
+          filename: 'cv.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(401);
+    });
     it('refuse un fichier qui n’est pas un PDF', () => {
       return request(app.getHttpServer())
         .post('/v1/cv-import/extraction')
+        .set('Authorization', 'Bearer candidate-test')
         .attach('file', Buffer.from('texte brut'), {
           filename: 'cv.pdf',
           contentType: 'application/pdf',
@@ -108,6 +134,7 @@ describe('API HTTP configuration', () => {
     it('propose un profil justifié puis valide la correction manuelle', async () => {
       const response = await request(app.getHttpServer())
         .post('/v1/cv-import/extraction')
+        .set('Authorization', 'Bearer candidate-a')
         .attach('file', sampleCvPdf(), {
           filename: 'cv.pdf',
           contentType: 'application/pdf',
@@ -124,6 +151,7 @@ describe('API HTTP configuration', () => {
 
       await request(app.getHttpServer())
         .post('/v1/cv-import/profile')
+        .set('Authorization', 'Bearer candidate-a')
         .send({
           documentId: extraction.documentId,
           fields: {
@@ -135,14 +163,23 @@ describe('API HTTP configuration', () => {
         .expect({
           profile: {
             firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
             title: '',
             city: 'Paris',
             contract: '',
             skills: '',
             about: 'Disponible en octobre.',
           },
+          excerpts: { city: city?.candidates[0].excerpts, about: [] },
+          experiences: [],
+          education: [],
           provenance: {
             firstName: 'empty',
+            lastName: 'empty',
+            email: 'empty',
+            phone: 'empty',
             title: 'empty',
             city: 'extracted',
             contract: 'empty',
@@ -155,6 +192,7 @@ describe('API HTTP configuration', () => {
     it('refuse une valeur présentée comme extraite mais absente du CV', async () => {
       const response = await request(app.getHttpServer())
         .post('/v1/cv-import/extraction')
+        .set('Authorization', 'Bearer candidate-a')
         .attach('file', sampleCvPdf(), {
           filename: 'cv.pdf',
           contentType: 'application/pdf',
@@ -164,10 +202,28 @@ describe('API HTTP configuration', () => {
 
       await request(app.getHttpServer())
         .post('/v1/cv-import/profile')
+        .set('Authorization', 'Bearer candidate-a')
         .send({
           documentId: extraction.documentId,
           fields: { city: { value: 'Bordeaux', source: 'extracted' } },
         })
+        .expect(400);
+    });
+
+    it('refuse à un autre compte de confirmer une analyse', async () => {
+      const extraction = await request(app.getHttpServer())
+        .post('/v1/cv-import/extraction')
+        .set('Authorization', 'Bearer candidate-a')
+        .attach('file', sampleCvPdf(), {
+          filename: 'cv.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(200);
+      const documentId = (extraction.body as CvExtraction).documentId;
+      await request(app.getHttpServer())
+        .post('/v1/cv-import/profile')
+        .set('Authorization', 'Bearer candidate-b')
+        .send({ documentId, fields: {} })
         .expect(400);
     });
   });

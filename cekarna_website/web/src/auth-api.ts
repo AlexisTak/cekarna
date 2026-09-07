@@ -191,6 +191,12 @@ export function hasSession(): boolean {
   return accessToken !== '';
 }
 
+export async function accessTokenForService(): Promise<string> {
+  if (!accessToken) await bootstrapAuth();
+  if (!accessToken) throw new AuthError(401, 'session_required');
+  return accessToken;
+}
+
 export async function logout(): Promise<void> {
   const response = await mutate('/v1/auth/logout', {}, false);
   if (response.status !== 204) throw await toError(response);

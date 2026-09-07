@@ -29,7 +29,10 @@ export class PdfTextError extends Error {
 interface TextItem {
   str: string;
   transform: number[];
+  width?: number;
 }
+
+const COLUMN_GAP = 48;
 
 export function isPdfBuffer(data: Buffer): boolean {
   return data.subarray(0, PDF_MAGIC.length).toString('latin1') === PDF_MAGIC;
@@ -37,7 +40,10 @@ export function isPdfBuffer(data: Buffer): boolean {
 
 /** Regroupe les fragments par ordonnée puis par abscisse pour reconstituer les lignes. */
 export function groupIntoLines(items: TextItem[]): string[] {
-  const rows: { y: number; parts: { x: number; str: string }[] }[] = [];
+  const rows: {
+    y: number;
+    parts: { x: number; str: string; width?: number }[];
+  }[] = [];
   for (const item of items) {
     if (!item.str) continue;
     const x = item.transform[4];
@@ -45,19 +51,61 @@ export function groupIntoLines(items: TextItem[]): string[] {
     const row = rows.find(
       (candidate) => Math.abs(candidate.y - y) <= LINE_TOLERANCE,
     );
-    if (row) row.parts.push({ x, str: item.str });
-    else rows.push({ y, parts: [{ x, str: item.str }] });
+    if (row) row.parts.push({ x, str: item.str, width: item.width });
+    else rows.push({ y, parts: [{ x, str: item.str, width: item.width }] });
   }
-  return rows
+  const columnBoundaries: number[] = [];
+  const rendered = rows
     .sort((left, right) => right.y - left.y)
-    .map((row) =>
-      row.parts
-        .sort((left, right) => left.x - right.x)
-        .map((part) => part.str)
-        .join('')
-        .replace(/\s+/g, ' ')
-        .trim(),
-    );
+    .flatMap((row) => {
+      const segments: (typeof row.parts)[] = [];
+      for (const part of row.parts.sort((left, right) => left.x - right.x)) {
+        const segment = segments.at(-1);
+        const previous = segment?.at(-1);
+        const previousEnd =
+          previous?.width === undefined
+            ? undefined
+            : previous.x + previous.width;
+        if (
+          segment &&
+          previousEnd !== undefined &&
+          part.x - previousEnd > COLUMN_GAP
+        )
+          segments.push([part]);
+        else if (segment) segment.push(part);
+        else segments.push([part]);
+      }
+      for (let index = 1; index < segments.length; index += 1)
+        columnBoundaries.push(
+          (segments[index - 1][0].x + segments[index][0].x) / 2,
+        );
+      return segments.map((segment) => ({
+        y: row.y,
+        x: segment[0].x,
+        text: segment
+          .map((part) => part.str)
+          .join('')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      }));
+    })
+    .filter((line) => line.text);
+
+  if (columnBoundaries.length < 2) return rendered.map((line) => line.text);
+  columnBoundaries.sort((left, right) => left - right);
+  const boundary = columnBoundaries[Math.floor(columnBoundaries.length / 2)];
+
+  const byReadingOrder = (
+    left: (typeof rendered)[number],
+    right: (typeof rendered)[number],
+  ) => right.y - left.y || left.x - right.x;
+  const leftColumn = rendered
+    .filter((line) => line.x < boundary)
+    .sort(byReadingOrder);
+  const rightColumn = rendered
+    .filter((line) => line.x >= boundary)
+    .sort(byReadingOrder);
+  return [...leftColumn, ...rightColumn].map((line) => line.text);
 }
 
 export function countCharacters(pages: PageText[]): number {
@@ -110,7 +158,11 @@ export async function readPdfText(data: Buffer): Promise<PageText[]> {
           (item): item is Extract<typeof item, { str: string }> =>
             'str' in item,
         )
-        .map((item) => ({ str: item.str, transform: item.transform }));
+        .map((item) => ({
+          str: item.str,
+          transform: item.transform,
+          width: item.width,
+        }));
       pages.push({ page: number, lines: groupIntoLines(items) });
       page.cleanup();
     }

@@ -52,7 +52,9 @@ L’API écoute par défaut sur http://127.0.0.1:3000. Aucun service Docker n’
 | `CV_IMPORT_MAX_BYTES` | `5000000` | Taille maximale d’un CV importé, de 1024 à 10000000 octets |
 | `CV_IMPORT_RETENTION_SECONDS` | `900` | Durée de conservation en mémoire du texte extrait, de 60 à 3600 secondes |
 
-L'écran d'import du frontend appelle cette API depuis le navigateur : renseigner `CORS_ORIGINS=http://127.0.0.1:5173` en développement, sinon les requêtes sont refusées. Côté frontend, `VITE_API_BASE_URL` pointe l'API NestJS (défaut `http://127.0.0.1:3000`).
+L'écran d'import du frontend appelle cette API depuis le navigateur : en développement, renseigner `CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173` pour couvrir les deux adresses locales. En production, n’autoriser que l’origine HTTPS réelle. Côté frontend, `VITE_API_BASE_URL` pointe l'API NestJS (défaut `http://127.0.0.1:3000`).
+
+La comparaison assistée peut appeler un modèle Ollama local avec `LOCAL_LLM_BASE_URL` et `LOCAL_LLM_MODEL` (par défaut `hermes3:3b`). Elle exige une session, ne contacte aucun fournisseur externe et écarte les preuves qui ne sont pas des extraits littéraux du profil ou de l’offre.
 
 CORS contrôle les autorisations des navigateurs ; il ne remplace pas une authentification. Pour les futures routes recevant des données, déclarer des classes DTO avec des décorateurs de validation ; une interface TypeScript seule ne valide pas les entrées HTTP.
 

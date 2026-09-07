@@ -1,5 +1,5 @@
 import { FieldExtraction, PageText, ProfileField } from './cv-import.types';
-import { extractProfileFields } from './profile-extractor';
+import { extractCareerFields, extractProfileFields } from './profile-extractor';
 
 const CV: PageText[] = [
   {
@@ -8,6 +8,7 @@ const CV: PageText[] = [
       'Marie Dupont',
       'Développeuse web',
       'marie.dupont@example.test',
+      '+33 6 12 34 56 78',
       '12 rue des Lilas, 75011 Paris',
       'Recherche un CDI',
       'Compétences',
@@ -37,6 +38,16 @@ describe('extraction du profil', () => {
     });
   });
 
+  it('propose le nom et les coordonnées trouvés dans le document', () => {
+    expect(fieldOf(fields, 'lastName').candidates[0].value).toBe('Dupont');
+    expect(fieldOf(fields, 'email').candidates[0].value).toBe(
+      'marie.dupont@example.test',
+    );
+    expect(fieldOf(fields, 'phone').candidates[0].value).toBe(
+      '+33 6 12 34 56 78',
+    );
+  });
+
   it('propose le titre situé sous le nom', () => {
     expect(fieldOf(fields, 'title').candidates[0].value).toBe(
       'Développeuse web',
@@ -61,6 +72,42 @@ describe('extraction du profil', () => {
     expect(fieldOf(fields, 'skills').candidates[0].value).toBe(
       'JavaScript, TypeScript, Accessibilité web',
     );
+  });
+
+  it('lit aussi une liste de compétences placée sur la ligne du titre', () => {
+    const inline = extractProfileFields([
+      {
+        page: 1,
+        lines: ['Compétences techniques : Rust; PostgreSQL | Docker'],
+      },
+    ]);
+    expect(fieldOf(inline, 'skills').candidates[0]).toMatchObject({
+      value: 'Rust, PostgreSQL, Docker',
+      rule: 'competences-libelle',
+    });
+  });
+
+  it('reconnaît les variantes courantes des titres de compétences', () => {
+    for (const heading of [
+      'MES COMPÉTENCES',
+      '— COMPÉTENCES CLÉS —',
+      'DOMAINES DE COMPÉTENCES',
+    ]) {
+      const fields = extractProfileFields([
+        { page: 1, lines: [heading, 'Rust • PostgreSQL • Docker', 'Langues'] },
+      ]);
+      expect(fieldOf(fields, 'skills').candidates[0]).toMatchObject({
+        value: 'Rust, PostgreSQL, Docker',
+        rule: 'section-competences',
+      });
+    }
+  });
+
+  it('reconnaît une ville en capitales après un code postal', () => {
+    const uppercase = extractProfileFields([
+      { page: 1, lines: ['31000 TOULOUSE'] },
+    ]);
+    expect(fieldOf(uppercase, 'city').candidates[0].value).toBe('TOULOUSE');
   });
 
   it('reprend la présentation sans la reformuler', () => {
@@ -95,5 +142,46 @@ describe('extraction du profil', () => {
       { page: 1, lines: ['Marie Dupont', 'Développeuse web'] },
     ]);
     expect(fieldOf(empty, 'contract').candidates).toEqual([]);
+  });
+
+  it('propose les lignes des sections expériences et formations sans les réécrire', () => {
+    const career = extractCareerFields([
+      {
+        page: 1,
+        lines: [
+          'Expériences',
+          'Développeuse web — Studio Exemple — 2022 à 2025',
+          'Formations',
+          'Master informatique — Université Exemple — 2022',
+        ],
+      },
+    ]);
+    expect(career.experienceCandidates[0].value).toBe(
+      'Développeuse web — Studio Exemple — 2022 à 2025',
+    );
+    expect(career.educationCandidates[0]).toMatchObject({
+      value: 'Master informatique — Université Exemple — 2022',
+      excerpts: [expect.objectContaining({ page: 1, line: 4 })],
+    });
+  });
+
+  it('reconnaît un parcours professionnel comme section d’expérience', () => {
+    const career = extractCareerFields([
+      {
+        page: 1,
+        lines: [
+          'PARCOURS PROFESSIONNEL',
+          'Développeuse — Atelier Exemple — 2023 à 2026',
+          'FORMATIONS ET DIPLÔMES',
+          'Licence informatique — Université Exemple — 2023',
+        ],
+      },
+    ]);
+    expect(career.experienceCandidates[0].value).toBe(
+      'Développeuse — Atelier Exemple — 2023 à 2026',
+    );
+    expect(career.educationCandidates[0].value).toBe(
+      'Licence informatique — Université Exemple — 2023',
+    );
   });
 });

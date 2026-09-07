@@ -9,6 +9,8 @@ export interface Environment {
   cvImportMaxBytes: number;
   /** Durée de conservation en mémoire du texte extrait, en secondes. */
   cvImportRetentionSeconds: number;
+  cvImportMaxPages: number;
+  authIdentityUrl: string;
 }
 
 /** Plafond technique de l'interception multipart : la configuration ne peut pas le dépasser. */
@@ -39,6 +41,13 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
   }
   const host = env.HOST?.trim() ?? '127.0.0.1';
   if (!host) throw new Error('HOST must not be empty');
+  const authIdentityUrl =
+    env.AUTH_IDENTITY_URL?.trim() ?? 'http://127.0.0.1:8081/v1/auth/me';
+  try {
+    new URL(authIdentityUrl);
+  } catch {
+    throw new Error('AUTH_IDENTITY_URL must be a valid HTTP(S) URL');
+  }
   const corsOrigins = (env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
@@ -74,5 +83,13 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
       3_600,
       'CV_IMPORT_RETENTION_SECONDS',
     ),
+    cvImportMaxPages: readInteger(
+      env.CV_IMPORT_MAX_PAGES,
+      10,
+      1,
+      50,
+      'CV_IMPORT_MAX_PAGES',
+    ),
+    authIdentityUrl,
   };
 }

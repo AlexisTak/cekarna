@@ -8,6 +8,8 @@ describe('environment', () => {
       corsOrigins: [],
       cvImportMaxBytes: 5_000_000,
       cvImportRetentionSeconds: 900,
+      cvImportMaxPages: 10,
+      authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
     });
   });
   it.each(['', '0', '-1', '65536', '3.5', '3000abc'])(
@@ -42,6 +44,8 @@ describe('environment', () => {
       corsOrigins: ['http://localhost:3001'],
       cvImportMaxBytes: 2_000_000,
       cvImportRetentionSeconds: 120,
+      cvImportMaxPages: 10,
+      authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
     });
   });
   it.each(['0', '10000001', 'beaucoup'])(

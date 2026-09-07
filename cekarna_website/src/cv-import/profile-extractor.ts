@@ -13,55 +13,72 @@ interface LocatedLine {
   text: string;
 }
 
-const HEADING_WORDS = [
-  'competence',
-  'competences',
-  'skill',
-  'skills',
-  'savoir-faire',
-  'experience',
-  'experiences',
-  'parcours',
-  'formation',
-  'formations',
-  'education',
-  'diplome',
-  'diplomes',
-  'langue',
-  'langues',
-  'projet',
-  'projets',
-  'certification',
-  'certifications',
-  'interet',
-  'interets',
-  'loisir',
-  'loisirs',
-  'reference',
-  'references',
-  'contact',
-  'profil',
-  'a propos',
-  'resume',
-  'objectif',
-  'presentation',
-];
+type HeadingKind = 'about' | 'skills' | 'experience' | 'education' | 'other';
 
-const ABOUT_HEADINGS = [
-  'profil',
-  'a propos',
-  'resume',
-  'objectif',
-  'presentation',
-];
+/** Titres courants de CV, ramenés à une catégorie sans interpréter leur contenu. */
+const HEADING_ALIASES: Record<string, HeadingKind> = {
+  profil: 'about',
+  'profil professionnel': 'about',
+  'a propos': 'about',
+  'a propos de moi': 'about',
+  resume: 'about',
+  'resume professionnel': 'about',
+  objectif: 'about',
+  'objectif professionnel': 'about',
+  presentation: 'about',
+  competence: 'skills',
+  competences: 'skills',
+  'mes competences': 'skills',
+  'competences cles': 'skills',
+  'competences techniques': 'skills',
+  'competences professionnelles': 'skills',
+  'competences et outils': 'skills',
+  'domaines de competences': 'skills',
+  expertise: 'skills',
+  expertises: 'skills',
+  outils: 'skills',
+  technologies: 'skills',
+  skill: 'skills',
+  skills: 'skills',
+  'hard skills': 'skills',
+  'soft skills': 'skills',
+  'savoir faire': 'skills',
+  experience: 'experience',
+  experiences: 'experience',
+  'experience professionnelle': 'experience',
+  'experiences professionnelles': 'experience',
+  parcours: 'experience',
+  'mon parcours': 'experience',
+  'parcours professionnel': 'experience',
+  carriere: 'experience',
+  formation: 'education',
+  formations: 'education',
+  education: 'education',
+  diplome: 'education',
+  diplomes: 'education',
+  'formation et diplomes': 'education',
+  'formations et diplomes': 'education',
+  'parcours academique': 'education',
+  langue: 'other',
+  langues: 'other',
+  projet: 'other',
+  projets: 'other',
+  certification: 'other',
+  certifications: 'other',
+  interet: 'other',
+  interets: 'other',
+  'centres d interet': 'other',
+  loisir: 'other',
+  loisirs: 'other',
+  reference: 'other',
+  references: 'other',
+  contact: 'other',
+};
 
-const SKILL_HEADINGS = [
-  'competence',
-  'competences',
-  'skill',
-  'skills',
-  'savoir-faire',
-];
+const ABOUT_HEADINGS: HeadingKind[] = ['about'];
+const SKILL_HEADINGS: HeadingKind[] = ['skills'];
+const EXPERIENCE_HEADINGS: HeadingKind[] = ['experience'];
+const EDUCATION_HEADINGS: HeadingKind[] = ['education'];
 
 const BULLET = /^[\s•·*\-–—>+]+/;
 const MAX_HEADER_LINES = 8;
@@ -104,12 +121,13 @@ function excerptOf(
   };
 }
 
-function headingLabel(text: string): string | undefined {
-  const folded = fold(text).replace(/:\s*$/, '');
-  if (!folded || folded.length > 40) return undefined;
-  return HEADING_WORDS.find(
-    (word) => folded === word || folded.startsWith(`${word} `),
-  );
+function headingLabel(text: string): HeadingKind | undefined {
+  const folded = fold(text)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!folded || folded.length > 60) return undefined;
+  return HEADING_ALIASES[folded];
 }
 
 function isHeading(text: string): boolean {
@@ -121,7 +139,7 @@ function looksLikeContact(text: string): boolean {
 }
 
 /** Ligne de nom : uniquement des mots commencant par une majuscule, sans chiffre. */
-function nameCandidate(text: string): string | undefined {
+function nameParts(text: string): string[] | undefined {
   const trimmed = text.trim();
   if (!trimmed || trimmed.length > 60) return undefined;
   if (looksLikeContact(trimmed) || /\d/.test(trimmed)) return undefined;
@@ -130,7 +148,11 @@ function nameCandidate(text: string): string | undefined {
   if (words.length < 1 || words.length > 4) return undefined;
   const shape = /^\p{Lu}[\p{L}’'-]*$/u;
   if (!words.every((word) => shape.test(word))) return undefined;
-  return words[0];
+  return words;
+}
+
+function nameCandidate(text: string): string | undefined {
+  return nameParts(text)?.[0];
 }
 
 function labelledValue(
@@ -169,6 +191,59 @@ function extractFirstName(lines: LocatedLine[]): FieldCandidate[] {
   return candidates;
 }
 
+function extractLastName(lines: LocatedLine[]): FieldCandidate[] {
+  const candidates = labelledValue(
+    lines,
+    /^\s*(nom)\s*:\s*(.+)$/iu,
+    'nom-libelle',
+  );
+  for (const line of lines.slice(0, MAX_HEADER_LINES)) {
+    if (line.page !== 1) break;
+    const words = nameParts(line.text);
+    if (!words || words.length < 2) continue;
+    const value = words.slice(1).join(' ');
+    candidates.push({
+      value,
+      excerpts: [excerptOf(line, value)],
+      rule: 'nom-en-tete',
+    });
+    break;
+  }
+  return candidates;
+}
+
+function extractEmail(lines: LocatedLine[]): FieldCandidate[] {
+  const candidates: FieldCandidate[] = [];
+  const pattern =
+    /[\p{L}\d.!#$%&'*+/=?^_`{|}~-]+@[\p{L}\d-]+(?:\.[\p{L}\d-]+)+/iu;
+  for (const line of lines) {
+    const match = pattern.exec(line.text);
+    if (!match) continue;
+    candidates.push({
+      value: match[0],
+      excerpts: [excerptOf(line, match[0], match.index)],
+      rule: 'email',
+    });
+  }
+  return candidates;
+}
+
+function extractPhone(lines: LocatedLine[]): FieldCandidate[] {
+  const candidates: FieldCandidate[] = [];
+  const pattern = /(?:\+\d{1,3}[ .-]?)?(?:\(?\d{1,3}\)?[ .-]?){3,6}\d{2,4}/u;
+  for (const line of lines) {
+    const match = pattern.exec(line.text);
+    if (!match || match[0].replace(/\D/g, '').length < 10) continue;
+    const value = match[0].trim();
+    candidates.push({
+      value,
+      excerpts: [excerptOf(line, value, match.index)],
+      rule: 'telephone',
+    });
+  }
+  return candidates;
+}
+
 function extractTitle(lines: LocatedLine[]): FieldCandidate[] {
   const candidates = labelledValue(
     lines,
@@ -203,12 +278,12 @@ function extractTitle(lines: LocatedLine[]): FieldCandidate[] {
 function extractCity(lines: LocatedLine[]): FieldCandidate[] {
   const candidates = labelledValue(
     lines,
-    /^\s*(ville|localisation|adresse)\s*:\s*(.+)$/iu,
+    /^\s*(ville|localisation)\s*:\s*(.+)$/iu,
     'ville-libelle',
   );
 
   const postal =
-    /\b\d{5}\b[\s,-]*(\p{Lu}[\p{L}’'-]*(?:[\s-]\p{L}[\p{L}’'-]*)*)/u;
+    /\b\d{5}\b[\s,;-]*(\p{L}[\p{L}’'-]*(?:[ -]\p{L}[\p{L}’'-]*){0,3})/iu;
   for (const line of lines) {
     const match = postal.exec(line.text);
     if (!match) continue;
@@ -245,7 +320,7 @@ function extractContract(lines: LocatedLine[]): FieldCandidate[] {
 /** Lignes d'une section, jusqu'au titre suivant ou a la fin du bloc. */
 function sectionBody(
   lines: LocatedLine[],
-  headings: string[],
+  headings: HeadingKind[],
 ): LocatedLine[] | undefined {
   for (let index = 0; index < lines.length; index += 1) {
     const label = headingLabel(lines[index].text);
@@ -262,8 +337,25 @@ function sectionBody(
 }
 
 function extractSkills(lines: LocatedLine[]): FieldCandidate[] {
+  const labelled: FieldCandidate[] = [];
+  const labelledPattern =
+    /^\s*(comp[ée]tences?(?:\s+techniques?)?|skills?|technologies?|outils)\s*[:|-]\s*(.+)$/iu;
+  for (const line of lines) {
+    const match = labelledPattern.exec(line.text);
+    if (!match) continue;
+    const items = match[2]
+      .split(/\s*[,;•·|]\s*/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!items.length) continue;
+    labelled.push({
+      value: items.join(', '),
+      excerpts: items.map((item) => excerptOf(line, item)),
+      rule: 'competences-libelle',
+    });
+  }
   const body = sectionBody(lines, SKILL_HEADINGS);
-  if (!body) return [];
+  if (!body) return labelled;
   const items: string[] = [];
   const excerpts: SourceExcerpt[] = [];
   for (const line of body) {
@@ -277,7 +369,10 @@ function extractSkills(lines: LocatedLine[]): FieldCandidate[] {
     }
   }
   if (!items.length) return [];
-  return [{ value: items.join(', '), excerpts, rule: 'section-competences' }];
+  return [
+    ...labelled,
+    { value: items.join(', '), excerpts, rule: 'section-competences' },
+  ];
 }
 
 function extractAbout(lines: LocatedLine[]): FieldCandidate[] {
@@ -294,6 +389,9 @@ const EXTRACTORS: Record<
   (lines: LocatedLine[]) => FieldCandidate[]
 > = {
   firstName: extractFirstName,
+  lastName: extractLastName,
+  email: extractEmail,
+  phone: extractPhone,
   title: extractTitle,
   city: extractCity,
   contract: extractContract,
@@ -303,6 +401,9 @@ const EXTRACTORS: Record<
 
 const EMPTY_REASONS: Record<ProfileField, string> = {
   firstName: 'Aucun nom identifiable en tête de document.',
+  lastName: 'Aucun nom de famille identifiable en tête de document.',
+  email: 'Aucune adresse email repérée dans le document.',
+  phone: 'Aucun numéro de téléphone repéré dans le document.',
   title: 'Aucun intitulé de poste repéré sous le nom ni après un libellé.',
   city: 'Aucune ville repérée après un code postal ni après un libellé.',
   contract: 'Aucun type de contrat connu cité dans le document.',
@@ -322,4 +423,44 @@ export function extractProfileFields(pages: PageText[]): FieldExtraction[] {
       ? { field, candidates }
       : { field, candidates, reason: EMPTY_REASONS[field] };
   });
+}
+
+function careerCandidates(
+  lines: LocatedLine[],
+  headings: HeadingKind[],
+  rule: string,
+): FieldCandidate[] {
+  const body = sectionBody(lines, headings);
+  if (!body) return [];
+  const candidates: FieldCandidate[] = [];
+  for (const line of body) {
+    const value = line.text.replace(BULLET, '').trim();
+    if (!value || value.length > 300 || looksLikeContact(value)) continue;
+    if (candidates.some((candidate) => candidate.value === value)) continue;
+    candidates.push({
+      value,
+      excerpts: [excerptOf(line, value)],
+      rule,
+    });
+  }
+  return candidates.slice(0, 20);
+}
+
+export function extractCareerFields(pages: PageText[]): {
+  experienceCandidates: FieldCandidate[];
+  educationCandidates: FieldCandidate[];
+} {
+  const lines = flatten(pages);
+  return {
+    experienceCandidates: careerCandidates(
+      lines,
+      EXPERIENCE_HEADINGS,
+      'section-experiences',
+    ),
+    educationCandidates: careerCandidates(
+      lines,
+      EDUCATION_HEADINGS,
+      'section-formations',
+    ),
+  };
 }

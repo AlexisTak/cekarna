@@ -6,13 +6,18 @@ SELECT
     'demo', false,
     'profile', jsonb_build_object(
       'firstName', first_name,
+      'lastName', '',
+      'email', '',
+      'phone', '',
       'title', '',
       'city', '',
       'contract', '',
       'skills', '',
       'about', ''
     ),
-    'jobs', jsonb_build_array()
+    'jobs', jsonb_build_array(),
+    'experiences', jsonb_build_array(),
+    'education', jsonb_build_array()
   ),
   0
 FROM users

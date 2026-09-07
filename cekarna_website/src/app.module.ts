@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CvImportModule } from './cv-import/cv-import.module';
+import { LocalAiModule } from './local-ai/local-ai.module';
 
 @Module({
-  imports: [CvImportModule],
+  imports: [CvImportModule, LocalAiModule],
   controllers: [AppController],
   providers: [AppService],
 })

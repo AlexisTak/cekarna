@@ -1,12 +1,12 @@
 # Cekarna B2C — périmètre actif
 
-Le 6 septembre 2026, après le cadrage B2B, l’utilisateur a décidé de commencer par une **application web pour les particuliers en recherche d’emploi**. Cette décision devient prioritaire. Les PDF V2 B2B sont conservés sans réécriture.
+Le 7 septembre 2026, l’utilisateur a décidé que Cekarna serait une **application web exclusivement destinée aux particuliers en recherche d’emploi**. Les fonctionnalités pour cabinets, organisations et recruteurs ne font pas partie du projet. Les PDF V2 B2B sont conservés sans réécriture comme archives de principes utiles.
 
 ## Première tranche livrée
 
 - Tableau de bord avec compteurs calculés depuis les offres enregistrées.
 - Mode découverte identifié, avec profil et entreprises fictifs ; création d’un espace vide sur demande.
-- Profil manuel : prénom, poste, ville, contrat, compétences et parcours.
+- Profil manuel : prénom, nom, coordonnées, poste, ville, contrat, compétences, parcours, expériences et formations structurées.
 - Ajout/modification/suppression manuelle d’offres et liens HTTP(S).
 - Recherche dans les offres, filtres par statut et détail.
 - Suivi : à préparer, envoyée, entretien et terminée ; notes modifiables.

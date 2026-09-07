@@ -1,8 +1,8 @@
 # Cekarna — dossier stratégique V2.0
 
-**Historique B2B : priorité désormais différée.** Décision ultérieure de l’utilisateur : commencer par l’application B2C pour chercheurs d’emploi. Référence active : `../cekarna_website/docs/B2C.md`. Les PDF restent inchangés pour conserver le cadrage B2B.
+**Historique B2B : périmètre abandonné.** Décision ultérieure de l’utilisateur : Cekarna est exclusivement destiné aux personnes en recherche d’emploi. Référence active : `../cekarna_website/docs/B2C.md`. Les PDF restent inchangés comme archives, sans être une feuille de route à implémenter.
 
-Révision du 6 septembre 2026. Cible retenue par le porteur du projet : **SaaS B2B pour cabinets de recrutement**. Le segment tech, les prix, quotas et objectifs chiffrés restent des propositions à valider.
+Révision historique du 6 septembre 2026 : elle décrivait un **SaaS B2B pour cabinets de recrutement**, désormais hors périmètre. Le segment tech, les prix, quotas et objectifs chiffrés restent des hypothèses archivées.
 
 ## Documents remplacés à la racine
 
@@ -12,7 +12,7 @@ Révision du 6 septembre 2026. Cible retenue par le porteur du projet : **SaaS B
 4. `plan_formation_ia_v1.pdf` : offre future et programme reproductible — 3 pages.
 5. `stack_microservices_rust_v1.pdf` : architecture NestJS progressive et conditions de migration — 4 pages.
 
-Les noms historiques contenant `v1` sont conservés pour ne pas casser les références existantes. Le contenu et les métadonnées indiquent **V2.0**. Le dossier assemblé est `dossier_cekarna_v2.pdf`, avec signets par document.
+Les noms historiques contenant `v1` sont conservés pour ne pas casser les références existantes. Les PDF régénérés portent une mention visible **« Archivé · hors périmètre B2C »** ; ils ne sont pas la spécification active. Le dossier assemblé est `dossier_cekarna_v2.pdf`, avec signets par document.
 
 ## Ce qui a changé
 
@@ -29,7 +29,7 @@ Les prix sont des hypothèses internes, pas des tarifs publiés. Ces documents p
 
 `archives/originaux_20260906_013919/` contient les cinq fichiers initiaux et un manifeste SHA-256. Ne pas écraser cette archive lors d’une révision.
 
-`sources/author_content.py` est la source éditoriale des cinq textes. `sources/cekarna_v2.json` en est la représentation générée ; `sources/build_pdfs.py` construit les PDF dans `generated/`. Ne pas modifier les deux sources indépendamment : modifier le Python puis régénérer le JSON.
+`sources/author_content.py` est la source éditoriale des cinq textes. `sources/cekarna_v2.json` en est la représentation générée ; `sources/build_pdfs.py` construit les PDF dans `generated/`. Ne pas modifier les deux sources indépendamment : modifier le Python puis régénérer le JSON. Les originaux non marqués restent préservés dans `archives/originaux_20260906_013919/`.
 
 Depuis la racine du projet, avec Python et les bibliothèques reportlab/pypdf :
 

@@ -268,6 +268,50 @@ a svg {
   align-items: center;
   gap: 24px;
 }
+.notification-menu {
+  position: relative;
+}
+.notification-badge {
+  background: var(--accent);
+  border: 2px solid white;
+  border-radius: 50%;
+  height: 9px;
+  position: absolute;
+  right: 4px;
+  top: 3px;
+  width: 9px;
+}
+.notification-panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px #263f4d1c;
+  min-width: 280px;
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  top: 42px;
+  z-index: 30;
+}
+.notification-panel strong {
+  font-size: 14px;
+}
+.notification-panel ul {
+  list-style: none;
+  margin: 10px 0 0;
+  max-height: 280px;
+  overflow: auto;
+  padding: 0;
+}
+.notification-panel li,
+.notification-panel p {
+  border-top: 1px solid #eff1f3;
+  color: #5f6d75;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+  padding-top: 8px;
+}
 .local-indicator {
   display: flex;
   gap: 7px;
@@ -735,14 +779,14 @@ h1 {
   color: #927eb0;
 }
 .company-name {
-  font-size: 10px;
+  font-size: 13px;
   color: #9198a0;
   margin-bottom: 5px;
 }
 .job-title {
   padding: 0;
   text-align: left;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.4;
   letter-spacing: -0.15px;
   font-weight: 650;
@@ -758,7 +802,7 @@ h1 {
   gap: 6px 12px;
   margin-top: 10px;
   color: #929ba2;
-  font-size: 9px;
+  font-size: 13px;
 }
 .job-meta span {
   display: inline-flex;
@@ -774,7 +818,7 @@ h1 {
   margin-top: 18px;
 }
 .status {
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 550;
   border-radius: 5px;
   padding: 5px 7px;
@@ -796,7 +840,7 @@ h1 {
   color: #939298;
 }
 .salary {
-  font-size: 10px;
+  font-size: 13px;
   color: #6d7980;
   font-weight: 550;
 }
@@ -808,7 +852,7 @@ h1 {
   align-items: center;
   justify-content: space-between;
   color: #8a9c84;
-  font-size: 9px;
+  font-size: 13px;
   gap: 8px;
 }
 .job-match > span {
@@ -928,6 +972,18 @@ h1 {
   align-items: center;
   margin: 8px 0 20px;
 }
+.test-data-actions {
+  align-items: center;
+  background: #f7f9fa;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: #68757c;
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+}
 .search-field {
   display: flex;
   align-items: center;
@@ -939,6 +995,67 @@ h1 {
   max-width: 510px;
   width: 100%;
   color: #9ca5ac;
+}
+.job-facts,
+.job-skills {
+  color: #6f7b83;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 9px 0 0;
+}
+.job-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.job-facts span {
+  background: #f2f5f6;
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.job-skills {
+  color: #53736e;
+}
+.job-date,
+.job-source {
+  color: #8c969c;
+  font-size: 12px;
+}
+.offer-information {
+  display: grid;
+  gap: 7px 20px;
+  grid-template-columns: max-content 1fr;
+  margin: 18px 0;
+  font-size: 13px;
+}
+.offer-information dt {
+  color: #7c878e;
+}
+.offer-information dd {
+  margin: 0;
+  color: #33434b;
+}
+.offer-skills {
+  margin: 18px 0;
+}
+.offer-skills h3 {
+  font-size: 15px;
+  margin-bottom: 9px;
+}
+.offer-skills ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.offer-skills li {
+  background: #edf4f2;
+  border-radius: 5px;
+  color: #426c65;
+  font-size: 13px;
+  padding: 5px 8px;
 }
 .search-field input {
   border: 0;
@@ -1117,6 +1234,27 @@ h1 {
   flex-direction: column;
   gap: 18px;
 }
+.profile-form-section {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 20px;
+}
+.profile-form-section:first-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+.profile-form-section h3 {
+  color: #30434d;
+  font-size: 15px;
+  margin: 0 0 5px;
+}
+.profile-form-section p {
+  color: #7b878e;
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 0;
+}
 .form-stack label,
 .detail-status {
   display: flex;
@@ -1171,6 +1309,67 @@ h1 {
   align-items: center;
   font-weight: 400;
   gap: 9px;
+}
+.career-history {
+  border-top: 1px solid var(--border);
+  margin-top: 28px;
+  padding-top: 28px;
+}
+.career-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 24px 0 12px;
+}
+.career-heading h3 {
+  align-items: center;
+  color: #4b5963;
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+}
+.career-heading .button {
+  padding: 8px 11px;
+}
+.career-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 14px 0;
+  padding: 20px;
+  position: relative;
+}
+.career-item legend {
+  color: #68757d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.career-item label {
+  color: #65727a;
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  gap: 6px;
+  margin: 12px 0;
+}
+.career-item input:not([type='checkbox']),
+.career-item textarea {
+  background: #fff;
+  border: 1px solid #dde2e6;
+  border-radius: 7px;
+  color: #394750;
+  font: inherit;
+  padding: 10px 11px;
+}
+.career-item .checkbox {
+  align-items: center;
+  flex-direction: row;
+}
+.career-remove {
+  position: absolute;
+  right: 12px;
+  top: 8px;
 }
 .checkbox input {
   accent-color: var(--accent);
@@ -1326,6 +1525,28 @@ dialog::backdrop {
   line-height: 1.9;
   color: #7d8c75;
   margin: 9px 0;
+}
+.comparison-list li {
+  align-items: baseline;
+  display: grid;
+  gap: 4px 9px;
+  grid-template-columns: max-content 1fr;
+}
+.comparison-list li > strong {
+  font-size: 12px;
+}
+.comparison-list li.satisfied > strong {
+  color: #517e5c;
+}
+.comparison-list li.missing > strong {
+  color: #af6e48;
+}
+.comparison-list li.unknown > strong {
+  color: #7f8a91;
+}
+.comparison-list li small {
+  color: #879198;
+  grid-column: 2;
 }
 .criteria-box p {
   font-size: 11px;
@@ -2905,8 +3126,7 @@ dialog::backdrop {
 .auth-page {
   min-height: 100dvh;
   background:
-    radial-gradient(circle at 8% 92%, #e9f1f1 0, transparent 27%),
-    #f8f5f1;
+    radial-gradient(circle at 8% 92%, #e9f1f1 0, transparent 27%), #f8f5f1;
   color: #143344;
 }
 
@@ -2951,9 +3171,16 @@ dialog::backdrop {
   width: min(760px, calc(100% - 48px));
   margin: 64px auto;
 }
-.account-heading { margin-bottom: 28px; }
-.account-heading h1 { font-size: clamp(2rem, 4vw, 3.2rem); margin: 12px 0; }
-.account-heading > p:last-child { color: var(--muted); }
+.account-heading {
+  margin-bottom: 28px;
+}
+.account-heading h1 {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  margin: 12px 0;
+}
+.account-heading > p:last-child {
+  color: var(--muted);
+}
 .account-card {
   padding: 24px;
   margin-top: 16px;
@@ -2961,19 +3188,71 @@ dialog::backdrop {
   border-radius: 16px;
   background: var(--surface);
 }
-.account-card > div { display: flex; gap: 14px; align-items: flex-start; }
-.account-card h2 { margin: 0 0 5px; font-size: 1.05rem; }
-.account-card p { margin: 0; color: var(--muted); }
-.account-card > .button { margin-top: 20px; }
-.account-feedback { padding: 13px 16px; border-radius: 10px; background: #fff2f0; color: #9c3027; }
-.danger-card { border-color: #e6b8b3; }
-.account-delete { display: grid; gap: 14px; margin-top: 22px; }
-.account-delete label { display: grid; gap: 7px; color: var(--text); font-weight: 600; }
-.account-delete input { padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
-.button.danger { background: #b42318; color: #fff; }
-.account-actions { display: grid; gap: 8px; margin: 16px 0; }
-.account-actions a, .account-actions button { color: var(--muted); font: inherit; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
-.account-actions a:hover, .account-actions button:hover { color: var(--text); }
+.account-card > div {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.account-card h2 {
+  margin: 0 0 5px;
+  font-size: 1.05rem;
+}
+.account-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.account-card > .button {
+  margin-top: 20px;
+}
+.account-feedback {
+  padding: 13px 16px;
+  border-radius: 10px;
+  background: #fff2f0;
+  color: #9c3027;
+}
+.danger-card {
+  border-color: #e6b8b3;
+}
+.account-delete {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+.account-delete label {
+  display: grid;
+  gap: 7px;
+  color: var(--text);
+  font-weight: 600;
+}
+.account-delete input {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.button.danger {
+  background: #b42318;
+  color: #fff;
+}
+.account-actions {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.account-actions a,
+.account-actions button {
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.account-actions a:hover,
+.account-actions button:hover {
+  color: var(--text);
+}
 
 .auth-context h1 {
   max-width: 590px;
@@ -3182,7 +3461,9 @@ dialog::backdrop {
   font-size: 0.92rem;
   font-weight: 700;
   box-shadow: 0 7px 18px #ca4c2b24;
-  transition: background 160ms ease, transform 160ms ease;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .auth-submit:hover {

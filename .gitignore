@@ -1,6 +1,7 @@
 # Dependencies and generated output
 **/node_modules/
 **/dist/
+**/.validation-dist/
 **/build/
 **/coverage/
 **/test-results/

@@ -1,3 +1,6 @@
+import { ProfileEvidence } from './ProfileEvidence';
+import { CareerHistory } from './CareerHistory';
+import { editedSources } from './profile-sources';
 import {
   useEffect,
   useRef,
@@ -9,6 +12,7 @@ import {
   ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
+  Bell,
   BriefcaseBusiness,
   Check,
   CheckCheck,
@@ -41,15 +45,18 @@ import {
   type Account,
 } from './auth-api';
 import CvImport from './CvImport';
+import { LocalAiComparison } from './LocalAiComparison';
 import {
   CONTRACTS,
   LABELS,
   STATUSES,
   STORAGE_KEY,
   demoWorkspace,
+  createTestJobs,
   emptyWorkspace,
   exportWorkspace,
   matches,
+  compareJob,
   normalize,
   parseWorkspace,
   profileProgress,
@@ -277,6 +284,9 @@ function JobCard({
   compact?: boolean;
 }) {
   const criteria = matches(job, profile);
+  const facts = [job.workDuration, job.experience, job.qualification].filter(
+    Boolean,
+  );
   return (
     <article className={`job-card ${compact ? 'compact' : ''}`}>
       <div
@@ -297,12 +307,37 @@ function JobCard({
           </span>
           <span>{job.contract}</span>
           {job.remote && <span>Télétravail</span>}
+          {job.accessibleToDisabledPeople && <span>Accessible TH</span>}
         </div>
+        {!compact && facts.length > 0 && (
+          <div className="job-facts">
+            {facts.map((fact) => (
+              <span key={fact}>{fact}</span>
+            ))}
+          </div>
+        )}
+        {!compact && job.skills?.length ? (
+          <p className="job-skills">
+            {job.skills.slice(0, 4).join(' · ')}
+            {job.skills.length > 4 ? ' · …' : ''}
+          </p>
+        ) : null}
       </div>
       {!compact && (
         <div className="job-bottom">
           <span className={`status ${job.status}`}>{LABELS[job.status]}</span>
           {job.salary && <span className="salary">{job.salary}</span>}
+          {job.publishedAt && (
+            <span className="job-date">
+              Publiée le{' '}
+              {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(
+                new Date(job.publishedAt),
+              )}
+            </span>
+          )}
+          {job.source && (
+            <span className="job-source">Source : {job.source}</span>
+          )}
         </div>
       )}
       {!compact && (
@@ -346,8 +381,14 @@ export default function App() {
   const [cvImport, setCvImport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
+  const [notifications, setNotifications] = useState<
+    { id: string; message: string; read: boolean }[]
+  >([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
-  const [remoteStatus, setRemoteStatus] = useState<'local' | 'saved' | 'saving' | 'error' | 'conflict'>('local');
+  const [remoteStatus, setRemoteStatus] = useState<
+    'local' | 'saved' | 'saving' | 'error' | 'conflict'
+  >('local');
   const importRef = useRef<HTMLInputElement>(null);
   const saveQueue = useRef(Promise.resolve());
   const remoteRevision = useRef(0);
@@ -393,16 +434,29 @@ export default function App() {
           setWorkspace(parsed);
           remoteReady.current = true;
           try {
-            localStorage.setItem(accountStorageKey.current, JSON.stringify(parsed));
+            localStorage.setItem(
+              accountStorageKey.current,
+              JSON.stringify(parsed),
+            );
             setStorageError('');
           } catch {
-            setStorageError('Votre dossier est chargé. La copie locale ne peut pas être enregistrée sur cet appareil.');
+            setStorageError(
+              'Votre dossier est chargé. La copie locale ne peut pas être enregistrée sur cet appareil.',
+            );
           }
           setRemoteStatus('saved');
           return;
         }
-        if (!initial.workspace.demo && window.confirm('Enregistrer sur votre compte l’espace déjà présent sur cet appareil ?')) {
-          remoteRevision.current = await saveCandidateWorkspace(initial.workspace, 0);
+        if (
+          !initial.workspace.demo &&
+          window.confirm(
+            'Enregistrer sur votre compte l’espace déjà présent sur cet appareil ?',
+          )
+        ) {
+          remoteRevision.current = await saveCandidateWorkspace(
+            initial.workspace,
+            0,
+          );
           if (!cancelled) {
             setWorkspace(initial.workspace);
             setRemoteStatus('saved');
@@ -417,7 +471,9 @@ export default function App() {
           return;
         }
         setRemoteStatus('error');
-        setStorageError('Impossible de joindre votre compte. Votre copie locale reste disponible : exportez-la avant de fermer la page.');
+        setStorageError(
+          'Impossible de joindre votre compte. Votre copie locale reste disponible : exportez-la avant de fermer la page.',
+        );
       });
     return () => {
       cancelled = true;
@@ -430,6 +486,12 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!toast) return;
+    setNotifications((current) =>
+      [
+        { id: crypto.randomUUID(), message: toast, read: false },
+        ...current,
+      ].slice(0, 20),
+    );
     const timeout = window.setTimeout(() => setToast(''), 4500);
     return () => window.clearTimeout(timeout);
   }, [toast]);
@@ -449,7 +511,9 @@ export default function App() {
     setToast(message);
     if (account) {
       if (!remoteReady.current || remoteStatus === 'conflict') {
-        setStorageError('Rechargez votre dossier serveur avant de synchroniser ces modifications. Votre copie sur cet appareil est conservée.');
+        setStorageError(
+          'Rechargez votre dossier serveur avant de synchroniser ces modifications. Votre copie sur cet appareil est conservée.',
+        );
         return;
       }
       setRemoteStatus('saving');
@@ -461,13 +525,20 @@ export default function App() {
         })
         .then(() => setRemoteStatus('saved'))
         .catch((error: unknown) => {
-          if (error instanceof AuthError && error.code === 'workspace_conflict') {
+          if (
+            error instanceof AuthError &&
+            error.code === 'workspace_conflict'
+          ) {
             setRemoteStatus('conflict');
-            setStorageError('Une version plus récente existe sur un autre appareil. Choisissez quelle copie conserver.');
+            setStorageError(
+              'Une version plus récente existe sur un autre appareil. Choisissez quelle copie conserver.',
+            );
             return;
           }
           setRemoteStatus('error');
-          setStorageError('La sauvegarde sur votre compte a échoué. Une copie reste conservée sur cet appareil.');
+          setStorageError(
+            'La sauvegarde sur votre compte a échoué. Une copie reste conservée sur cet appareil.',
+          );
         });
     }
   }
@@ -477,7 +548,12 @@ export default function App() {
       if (!remote) return;
       const parsed = parseWorkspace(JSON.stringify(remote.workspace));
       if (!parsed) throw new Error('invalid remote workspace');
-      if (!window.confirm('Remplacer la copie ouverte par la version enregistrée sur votre compte ?')) return;
+      if (
+        !window.confirm(
+          'Remplacer la copie ouverte par la version enregistrée sur votre compte ?',
+        )
+      )
+        return;
       remoteRevision.current = remote.revision;
       localStorage.setItem(accountStorageKey.current, JSON.stringify(parsed));
       remoteReady.current = true;
@@ -490,14 +566,48 @@ export default function App() {
     }
   }
   async function overwriteServerWorkspace() {
-    if (!window.confirm('Remplacer la version enregistrée sur votre compte par cette copie ? Les modifications de l’autre appareil seront perdues.')) return;
+    if (
+      !window.confirm(
+        'Remplacer la version enregistrée sur votre compte par cette copie ? Les modifications de l’autre appareil seront perdues.',
+      )
+    )
+      return;
     try {
-      remoteRevision.current = await saveCandidateWorkspace(workspace, remoteRevision.current, true);
+      remoteRevision.current = await saveCandidateWorkspace(
+        workspace,
+        remoteRevision.current,
+        true,
+      );
       setStorageError('');
       setRemoteStatus('saved');
       setToast('Votre copie a remplacé la version enregistrée.');
     } catch (error) {
       setToast(describeAuthError(error));
+    }
+  }
+  async function retryRemoteSave() {
+    if (!account || !remoteReady.current || remoteStatus === 'conflict') return;
+    setRemoteStatus('saving');
+    try {
+      remoteRevision.current = await saveCandidateWorkspace(
+        workspace,
+        remoteRevision.current,
+      );
+      setStorageError('');
+      setRemoteStatus('saved');
+      setToast('Votre copie est de nouveau synchronisée.');
+    } catch (error) {
+      if (error instanceof AuthError && error.code === 'workspace_conflict') {
+        setRemoteStatus('conflict');
+        setStorageError(
+          'Une version plus récente existe sur un autre appareil. Choisissez quelle copie conserver.',
+        );
+        return;
+      }
+      setRemoteStatus('error');
+      setStorageError(
+        'La sauvegarde sur votre compte reste indisponible. Votre copie locale est conservée.',
+      );
     }
   }
   async function signOut() {
@@ -578,7 +688,9 @@ export default function App() {
   }
   function resendVerification() {
     requestVerificationEmail()
-      .then(() => setToast('Si nécessaire, un email de confirmation a été envoyé.'))
+      .then(() =>
+        setToast('Si nécessaire, un email de confirmation a été envoyé.'),
+      )
       .catch((err: unknown) => setToast(describeAuthError(err)));
   }
   const openJob = (job: Job) => {
@@ -662,6 +774,38 @@ export default function App() {
             <span>{nav.find((n) => n.id === view)?.label}</span>
           </div>
           <div className="topbar-right">
+            <div className="notification-menu">
+              <button
+                className="icon-button"
+                aria-label="Ouvrir les notifications"
+                aria-expanded={notificationsOpen}
+                onClick={() => {
+                  setNotificationsOpen((open) => !open);
+                  setNotifications((current) =>
+                    current.map((item) => ({ ...item, read: true })),
+                  );
+                }}
+              >
+                <Bell size={18} />
+                {notifications.some((item) => !item.read) && (
+                  <span className="notification-badge" />
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="notification-panel" role="status">
+                  <strong>Notifications</strong>
+                  {notifications.length ? (
+                    <ul>
+                      {notifications.map((item) => (
+                        <li key={item.id}>{item.message}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Aucune notification pour le moment.</p>
+                  )}
+                </div>
+              )}
+            </div>
             <span
               className={`local-indicator ${storageError ? 'warning' : ''}`}
             >
@@ -693,11 +837,24 @@ export default function App() {
               {storageError}
               {remoteStatus === 'conflict' ? (
                 <>
-                  <button onClick={reloadServerWorkspace}>Voir la copie du compte</button>
-                  <button onClick={overwriteServerWorkspace}>Conserver cette copie</button>
+                  <button onClick={reloadServerWorkspace}>
+                    Voir la copie du compte
+                  </button>
+                  <button onClick={overwriteServerWorkspace}>
+                    Conserver cette copie
+                  </button>
                 </>
               ) : (
-                <button onClick={() => exportWorkspace(workspace)}>Exporter mon espace</button>
+                <>
+                  {account && remoteStatus === 'error' && (
+                    <button onClick={retryRemoteSave}>
+                      Réessayer la synchronisation
+                    </button>
+                  )}
+                  <button onClick={() => exportWorkspace(workspace)}>
+                    Exporter mon espace
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -962,6 +1119,25 @@ export default function App() {
 
           {view === 'jobs' && (
             <section>
+              <div className="test-data-actions">
+                <span>Besoin de données pour essayer la comparaison ?</span>
+                <button
+                  className="button secondary"
+                  onClick={() => {
+                    const samples = createTestJobs();
+                    commit(
+                      {
+                        ...workspace,
+                        demo: false,
+                        jobs: [...jobs, ...samples],
+                      },
+                      `${samples.length} offres fictives ajoutées.`,
+                    );
+                  }}
+                >
+                  Ajouter 5 offres de test
+                </button>
+              </div>
               <div className="list-toolbar">
                 <div className="search-field">
                   <Search size={18} />
@@ -1126,10 +1302,59 @@ export default function App() {
             <CvImport
               current={profile}
               onCancel={() => setCvImport(false)}
-              onApply={(imported) => {
+              onApply={(imported, profileSources, experiences, education) => {
                 setCvImport(false);
+                const importedExperiences = experiences
+                  .filter(
+                    (candidate) =>
+                      !workspace.experiences.some(
+                        (item) => item.role === candidate.value,
+                      ),
+                  )
+                  .map((candidate) => ({
+                    id: `cv-experience-${crypto.randomUUID()}`,
+                    role: candidate.value,
+                    employer: '',
+                    location: '',
+                    startDate: '',
+                    endDate: '',
+                    current: false,
+                    description: '',
+                    evidence: {
+                      value: candidate.value,
+                      excerpts: candidate.excerpts,
+                    },
+                  }));
+                const importedEducation = education
+                  .filter(
+                    (candidate) =>
+                      !workspace.education.some(
+                        (item) => item.degree === candidate.value,
+                      ),
+                  )
+                  .map((candidate) => ({
+                    id: `cv-education-${crypto.randomUUID()}`,
+                    degree: candidate.value,
+                    institution: '',
+                    startDate: '',
+                    endDate: '',
+                    description: '',
+                    evidence: {
+                      value: candidate.value,
+                      excerpts: candidate.excerpts,
+                    },
+                  }));
                 commit(
-                  { ...workspace, profile: imported },
+                  {
+                    ...workspace,
+                    profile: imported,
+                    profileSources,
+                    experiences: [
+                      ...workspace.experiences,
+                      ...importedExperiences,
+                    ],
+                    education: [...workspace.education, ...importedEducation],
+                  },
                   'Profil mis à jour depuis votre CV.',
                 );
               }}
@@ -1157,11 +1382,23 @@ export default function App() {
                     for (const key of Object.keys(updated) as (keyof Profile)[])
                       updated[key] = String(form.get(key) ?? '').trim();
                     commit(
-                      { ...workspace, profile: updated },
+                      {
+                        ...workspace,
+                        profile: updated,
+                        profileSources: editedSources(
+                          profile,
+                          updated,
+                          workspace.profileSources,
+                        ),
+                      },
                       'Profil enregistré.',
                     );
                   }}
                 >
+                  <div className="profile-form-section">
+                    <h3>Identité et coordonnées</h3>
+                    <p>Les informations utiles pour vous présenter.</p>
+                  </div>
                   <div className="form-row">
                     <label>
                       Prénom
@@ -1174,6 +1411,50 @@ export default function App() {
                       />
                     </label>
                     <label>
+                      Nom
+                      <input
+                        name="lastName"
+                        autoComplete="family-name"
+                        defaultValue={profile.lastName}
+                        maxLength={80}
+                        placeholder="Votre nom"
+                      />
+                    </label>
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      Email de contact
+                      <input
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        defaultValue={profile.email}
+                        maxLength={254}
+                        placeholder="vous@exemple.fr"
+                      />
+                    </label>
+                    <label>
+                      Téléphone
+                      <input
+                        name="phone"
+                        type="tel"
+                        autoComplete="tel"
+                        defaultValue={profile.phone}
+                        maxLength={40}
+                        placeholder="Ex. +33 6 00 00 00 00"
+                      />
+                    </label>
+                  </div>
+                  <div className="profile-form-section">
+                    <h3>Ma recherche d’emploi</h3>
+                    <p>
+                      Indiquez votre ville, le contrat souhaité et vos
+                      compétences pour retrouver les offres qui vous
+                      correspondent.
+                    </p>
+                  </div>
+                  <div className="form-row">
+                    <label>
                       Poste recherché
                       <input
                         name="title"
@@ -1185,7 +1466,7 @@ export default function App() {
                   </div>
                   <div className="form-row">
                     <label>
-                      Ville souhaitée
+                      Ville de résidence ou de recherche
                       <input
                         name="city"
                         autoComplete="address-level2"
@@ -1217,7 +1498,7 @@ export default function App() {
                     </span>
                   </label>
                   <label>
-                    Votre parcours en quelques mots
+                    Mon parcours en quelques mots
                     <textarea
                       name="about"
                       defaultValue={profile.about}
@@ -1225,6 +1506,10 @@ export default function App() {
                       maxLength={5000}
                       placeholder="Vos expériences, vos points forts et ce que vous avez envie de faire ensuite…"
                     />
+                    <span className="field-hint">
+                      Complétez ensuite vos expériences et vos diplômes dans la
+                      section « Mon parcours » ci-dessous.
+                    </span>
                   </label>
                   <div className="form-actions">
                     <button className="button primary" type="submit">
@@ -1233,6 +1518,24 @@ export default function App() {
                     </button>
                   </div>
                 </form>
+                <ProfileEvidence
+                  profile={profile}
+                  sources={workspace.profileSources}
+                />
+                <CareerHistory
+                  key={JSON.stringify([
+                    workspace.experiences,
+                    workspace.education,
+                  ])}
+                  experiences={workspace.experiences}
+                  education={workspace.education}
+                  onSave={(experiences, education) =>
+                    commit(
+                      { ...workspace, experiences, education },
+                      'Parcours enregistré.',
+                    )
+                  }
+                />
               </section>
               <aside className="profile-aside">
                 <section className="panel">
@@ -1341,14 +1644,15 @@ export default function App() {
               renseigner votre profil et suivre vos démarches.
             </p>
             <p>
-              Sans compte, les données restent dans ce navigateur. Avec un compte,
-              votre dossier est synchronisé lorsque le service est disponible.
-              Vous pouvez aussi exporter une sauvegarde.
+              Sans compte, les données restent dans ce navigateur. Avec un
+              compte, votre dossier est synchronisé lorsque le service est
+              disponible. Vous pouvez aussi exporter une sauvegarde.
             </p>
             <p>
-              L’import de CV PDF textuel est disponible dans « Mon profil », avec
-              relecture avant enregistrement. La recherche automatique et la rédaction
-              par IA ne sont pas encore disponibles. Aucune candidature n’est envoyée.
+              L’import de CV PDF textuel est disponible dans « Mon profil »,
+              avec relecture avant enregistrement. La recherche automatique et
+              la rédaction par IA ne sont pas encore disponibles. Aucune
+              candidature n’est envoyée.
             </p>
             <button className="button primary" onClick={() => setDialog(null)}>
               C’est compris
@@ -1394,6 +1698,58 @@ export default function App() {
               </div>
             </div>
             {selected.salary && <p className="salary">{selected.salary}</p>}
+            {(selected.workDuration ||
+              selected.experience ||
+              selected.qualification ||
+              selected.publishedAt ||
+              selected.source) && (
+              <dl className="offer-information">
+                {selected.workDuration && (
+                  <>
+                    <dt>Temps de travail</dt>
+                    <dd>{selected.workDuration}</dd>
+                  </>
+                )}
+                {selected.experience && (
+                  <>
+                    <dt>Expérience</dt>
+                    <dd>{selected.experience}</dd>
+                  </>
+                )}
+                {selected.qualification && (
+                  <>
+                    <dt>Qualification</dt>
+                    <dd>{selected.qualification}</dd>
+                  </>
+                )}
+                {selected.publishedAt && (
+                  <>
+                    <dt>Publication</dt>
+                    <dd>
+                      {new Intl.DateTimeFormat('fr-FR', {
+                        dateStyle: 'long',
+                      }).format(new Date(selected.publishedAt))}
+                    </dd>
+                  </>
+                )}
+                {selected.source && (
+                  <>
+                    <dt>Source</dt>
+                    <dd>{selected.source}</dd>
+                  </>
+                )}
+              </dl>
+            )}
+            {selected.skills?.length ? (
+              <section className="offer-skills">
+                <h3>Compétences attendues</h3>
+                <ul>
+                  {selected.skills.map((skill) => (
+                    <li key={skill}>{skill}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <h3>À propos du poste</h3>
             <p className="preserve-lines">
               {selected.description ||
@@ -1404,22 +1760,28 @@ export default function App() {
                 <CheckCheck size={17} />
                 Vos repères en commun
               </h3>
-              {matches(selected, profile).length ? (
-                <ul>
-                  {matches(selected, profile).map((m) => (
-                    <li key={m}>{m}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>
-                  Aucun repère commun identifié. Consultez la description et
-                  complétez votre profil.
-                </p>
-              )}
+              <ul className="comparison-list">
+                {compareJob(selected, profile).map((criterion) => (
+                  <li key={criterion.id} className={criterion.status}>
+                    <strong>
+                      {criterion.status === 'satisfied'
+                        ? 'Correspond'
+                        : criterion.status === 'missing'
+                          ? 'À vérifier'
+                          : 'Inconnu'}
+                    </strong>
+                    <span>{criterion.label}</span>
+                    {criterion.evidence.length ? (
+                      <small>{criterion.evidence.join(' · ')}</small>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
               <small>
                 Comparaison de texte uniquement, sans score ni évaluation IA.
               </small>
             </div>
+            <LocalAiComparison profile={profile} job={selected} />
             <label className="detail-status">
               Avancement de ma candidature
               <select

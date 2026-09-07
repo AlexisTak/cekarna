@@ -1,3 +1,5 @@
+import { parseProfileSources, type ProfileSources } from './profile-sources';
+import type { SourceExcerpt } from './cv-import-api';
 export const STATUSES = ['saved', 'applied', 'interview', 'closed'] as const;
 export type Status = (typeof STATUSES)[number];
 export const LABELS: Record<Status, string> = {
@@ -16,6 +18,9 @@ export const CONTRACTS = [
 export type Contract = (typeof CONTRACTS)[number];
 export interface Profile {
   firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
   title: string;
   city: string;
   contract: string;
@@ -35,12 +40,46 @@ export interface Job {
   status: Status;
   notes: string;
   updatedAt: string;
+  source?: string;
+  publishedAt?: string;
+  workDuration?: string;
+  experience?: string;
+  qualification?: string;
+  skills?: string[];
+  accessibleToDisabledPeople?: boolean;
+}
+export interface Experience {
+  id: string;
+  role: string;
+  employer: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+  evidence?: CareerEvidence;
+}
+export interface Education {
+  id: string;
+  degree: string;
+  institution: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  evidence?: CareerEvidence;
+}
+export interface CareerEvidence {
+  value: string;
+  excerpts: SourceExcerpt[];
 }
 export interface Workspace {
   version: 1;
   demo: boolean;
   profile: Profile;
   jobs: Job[];
+  experiences: Experience[];
+  education: Education[];
+  profileSources?: ProfileSources;
 }
 export const STORAGE_KEY = 'cekarna.candidats.v1';
 export const emptyWorkspace = (): Workspace => ({
@@ -48,6 +87,9 @@ export const emptyWorkspace = (): Workspace => ({
   demo: false,
   profile: {
     firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
     title: '',
     city: '',
     contract: '',
@@ -55,12 +97,17 @@ export const emptyWorkspace = (): Workspace => ({
     about: '',
   },
   jobs: [],
+  experiences: [],
+  education: [],
 });
 export function demoWorkspace(): Workspace {
   const state = emptyWorkspace();
   state.demo = true;
   state.profile = {
     firstName: 'Camille',
+    lastName: 'Martin',
+    email: '',
+    phone: '',
     title: 'Product designer',
     city: 'Paris',
     contract: 'CDI',
@@ -145,6 +192,67 @@ export function demoWorkspace(): Workspace {
   );
   return state;
 }
+export function createTestJobs(): Job[] {
+  const now = new Date().toISOString();
+  const rows: Array<[string, string, string, Contract, boolean, string]> = [
+    [
+      'Développeur React TypeScript',
+      'Test — Nova Web',
+      'Paris',
+      'CDI',
+      true,
+      'Développer des interfaces React et TypeScript accessibles. Travail avec Git, tests automatisés et API REST.',
+    ],
+    [
+      'Développeur backend Rust',
+      'Test — Ferris Labs',
+      'Lyon',
+      'CDI',
+      true,
+      'Concevoir des microservices Rust, PostgreSQL et Docker. Une expérience des API HTTP est recherchée.',
+    ],
+    [
+      'Chef de projet numérique',
+      'Test — Horizon',
+      'Bordeaux',
+      'CDD',
+      false,
+      'Coordonner les équipes, suivre le planning et communiquer avec les parties prenantes. Maîtrise d’Excel appréciée.',
+    ],
+    [
+      'Assistant support informatique',
+      'Test — Atlas Services',
+      'Paris',
+      'Alternance',
+      false,
+      'Accompagner les utilisateurs, diagnostiquer les incidents Windows et documenter les solutions.',
+    ],
+    [
+      'Product Designer',
+      'Test — Studio Pixel',
+      'Paris',
+      'CDI',
+      true,
+      'Concevoir des parcours UX, des prototypes Figma et maintenir un design system accessible.',
+    ],
+  ];
+  return rows.map(
+    ([title, company, location, contract, remote, description]) => ({
+      id: crypto.randomUUID(),
+      title,
+      company,
+      location,
+      contract,
+      remote,
+      salary: '',
+      url: '',
+      description,
+      status: 'saved',
+      notes: 'Offre fictive créée pour tester la comparaison profil–offre.',
+      updatedAt: now,
+    }),
+  );
+}
 export function normalize(value: string): string {
   return value
     .normalize('NFD')
@@ -166,32 +274,152 @@ export function safeUrl(value: string): string | null {
   }
 }
 export function profileProgress(profile: Profile): number {
+  const values = Object.values(profile);
   return Math.round(
-    (Object.values(profile).filter((value) => value.trim()).length / 6) * 100,
+    (values.filter((value) => value.trim()).length / values.length) * 100,
   );
 }
 export function matches(job: Job, profile: Profile): string[] {
-  const result: string[] = [];
+  return compareJob(job, profile)
+    .filter((criterion) => criterion.status === 'satisfied')
+    .map((criterion) => criterion.label);
+}
+export type CriterionStatus = 'satisfied' | 'missing' | 'unknown';
+export interface ComparisonCriterion {
+  id: string;
+  label: string;
+  status: CriterionStatus;
+  evidence: string[];
+}
+/** Version 1 : règles déterministes, jamais un score ou une prédiction d’embauche. */
+export function compareJob(job: Job, profile: Profile): ComparisonCriterion[] {
+  const result: ComparisonCriterion[] = [];
   if (
     profile.city.trim() &&
     normalize(job.location) === normalize(profile.city)
   )
-    result.push('Localisation souhaitée');
+    result.push({
+      id: 'location',
+      label: 'Localisation souhaitée',
+      status: 'satisfied',
+      evidence: [profile.city, job.location],
+    });
+  else if (profile.city.trim() && job.location.trim())
+    result.push({
+      id: 'location',
+      label: 'Localisation souhaitée',
+      status: 'missing',
+      evidence: [profile.city, job.location],
+    });
+  else
+    result.push({
+      id: 'location',
+      label: 'Localisation souhaitée',
+      status: 'unknown',
+      evidence: [],
+    });
   if (profile.contract && profile.contract === job.contract)
-    result.push('Contrat souhaité');
+    result.push({
+      id: 'contract',
+      label: 'Contrat souhaité',
+      status: 'satisfied',
+      evidence: [profile.contract, job.contract],
+    });
+  else if (profile.contract && job.contract)
+    result.push({
+      id: 'contract',
+      label: 'Contrat souhaité',
+      status: 'missing',
+      evidence: [profile.contract, job.contract],
+    });
+  else
+    result.push({
+      id: 'contract',
+      label: 'Contrat souhaité',
+      status: 'unknown',
+      evidence: [],
+    });
   const text = normalize(`${job.title} ${job.description}`);
   const skills = [
     ...new Set(profile.skills.split(',').map(normalize).filter(Boolean)),
   ];
   const found = skills.filter((skill) => text.includes(skill));
   if (found.length)
-    result.push(
-      `${found.length} compétence${found.length > 1 ? 's' : ''} mentionnée${found.length > 1 ? 's' : ''} : ${found.join(', ')}`,
-    );
+    result.push({
+      id: 'skills',
+      label: `${found.length} compétence${found.length > 1 ? 's' : ''} mentionnée${found.length > 1 ? 's' : ''} : ${found.join(', ')}`,
+      status: 'satisfied',
+      evidence: found,
+    });
+  else
+    result.push({
+      id: 'skills',
+      label: 'Compétences',
+      status: 'unknown',
+      evidence: [],
+    });
   return result;
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+function validMonth(value: unknown): boolean {
+  return value === '' || (typeof value === 'string' && MONTH.test(value));
+}
+function validCareerItems(
+  value: unknown,
+  fields: readonly string[],
+  hasCurrent: boolean,
+  evidenceField: string,
+): boolean {
+  if (!Array.isArray(value) || value.length > 100) return false;
+  const ids = new Set<string>();
+  for (const item of value) {
+    if (!isRecord(item)) return false;
+    for (const field of fields)
+      if (typeof item[field] !== 'string' || item[field].length > 5000)
+        return false;
+    if (
+      !item.id ||
+      ids.has(item.id as string) ||
+      !validMonth(item.startDate) ||
+      !validMonth(item.endDate) ||
+      (hasCurrent && typeof item.current !== 'boolean')
+    )
+      return false;
+    if (hasCurrent && item.current && item.endDate !== '') return false;
+    if (item.evidence !== undefined) {
+      if (
+        !isRecord(item.evidence) ||
+        item.evidence.value !== item[evidenceField] ||
+        !Array.isArray(item.evidence.excerpts) ||
+        !item.evidence.excerpts.length ||
+        item.evidence.excerpts.length > 50
+      )
+        return false;
+      for (const excerpt of item.evidence.excerpts) {
+        if (!isRecord(excerpt) || typeof excerpt.text !== 'string')
+          return false;
+        const { page, line, start, end, text } = excerpt;
+        if (
+          !Number.isSafeInteger(page) ||
+          (page as number) < 1 ||
+          !Number.isSafeInteger(line) ||
+          (line as number) < 1 ||
+          !Number.isSafeInteger(start) ||
+          (start as number) < 0 ||
+          !Number.isSafeInteger(end) ||
+          (end as number) <= (start as number) ||
+          (end as number) > text.length ||
+          text.length > 10000
+        )
+          return false;
+      }
+    }
+    ids.add(item.id as string);
+  }
+  return true;
 }
 export function parseWorkspace(raw: string): Workspace | null {
   try {
@@ -205,7 +433,15 @@ export function parseWorkspace(raw: string): Workspace | null {
       value.jobs.length > 1000
     )
       return null;
-    for (const key of Object.keys(emptyWorkspace().profile))
+    const legacyProfileFields = [
+      'firstName',
+      'title',
+      'city',
+      'contract',
+      'skills',
+      'about',
+    ];
+    for (const key of legacyProfileFields)
       if (
         typeof value.profile[key] !== 'string' ||
         value.profile[key].length > 10000
@@ -237,20 +473,91 @@ export function parseWorkspace(raw: string): Workspace | null {
         Number.isNaN(Date.parse(job.updatedAt as string))
       )
         return null;
+      for (const key of [
+        'source',
+        'publishedAt',
+        'workDuration',
+        'experience',
+        'qualification',
+      ])
+        if (
+          job[key] !== undefined &&
+          (typeof job[key] !== 'string' || job[key].length > 1000)
+        )
+          return null;
+      if (
+        job.publishedAt !== undefined &&
+        Number.isNaN(Date.parse(job.publishedAt as string))
+      )
+        return null;
+      if (
+        job.accessibleToDisabledPeople !== undefined &&
+        typeof job.accessibleToDisabledPeople !== 'boolean'
+      )
+        return null;
+      if (
+        job.skills !== undefined &&
+        (!Array.isArray(job.skills) ||
+          job.skills.length > 100 ||
+          job.skills.some(
+            (skill) => typeof skill !== 'string' || skill.length > 300,
+          ))
+      )
+        return null;
     }
     if (
       value.profile.contract !== '' &&
       !CONTRACTS.includes(value.profile.contract as Contract)
     )
       return null;
+    const experiences =
+      value.experiences === undefined ? [] : value.experiences;
+    const education = value.education === undefined ? [] : value.education;
+    if (
+      !validCareerItems(
+        experiences,
+        [
+          'id',
+          'role',
+          'employer',
+          'location',
+          'startDate',
+          'endDate',
+          'description',
+        ],
+        true,
+        'role',
+      ) ||
+      !validCareerItems(
+        education,
+        ['id', 'degree', 'institution', 'startDate', 'endDate', 'description'],
+        false,
+        'degree',
+      )
+    )
+      return null;
     const cleanProfile = emptyWorkspace().profile;
-    for (const key of Object.keys(cleanProfile) as (keyof Profile)[])
-      cleanProfile[key] = value.profile[key] as string;
+    for (const key of Object.keys(cleanProfile) as (keyof Profile)[]) {
+      const fieldValue = value.profile[key];
+      if (fieldValue !== undefined && typeof fieldValue !== 'string')
+        return null;
+      if (typeof fieldValue === 'string' && fieldValue.length > 10000)
+        return null;
+      cleanProfile[key] = typeof fieldValue === 'string' ? fieldValue : '';
+    }
+    const profileSources = parseProfileSources(
+      value.profileSources,
+      cleanProfile,
+    );
+    if (profileSources === null) return null;
     return {
+      ...(profileSources ? { profileSources } : {}),
       version: 1,
       demo: value.demo,
       profile: cleanProfile,
       jobs: value.jobs as Job[],
+      experiences: experiences as Experience[],
+      education: education as Education[],
     };
   } catch {
     return null;

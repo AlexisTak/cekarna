@@ -1,5 +1,8 @@
 export const PROFILE_FIELDS = [
   'firstName',
+  'lastName',
+  'email',
+  'phone',
   'title',
   'city',
   'contract',
@@ -61,6 +64,8 @@ export interface CvExtraction {
   pageCount: number;
   pages: PageText[];
   fields: FieldExtraction[];
+  experienceCandidates: FieldCandidate[];
+  educationCandidates: FieldCandidate[];
 }
 
 export type FieldSource = 'extracted' | 'manual';
@@ -73,4 +78,7 @@ export interface ConfirmedField {
 export interface ConfirmedProfile {
   profile: Record<ProfileField, string>;
   provenance: Record<ProfileField, FieldSource | 'empty'>;
+  excerpts: Partial<Record<ProfileField, SourceExcerpt[]>>;
+  experiences: FieldCandidate[];
+  education: FieldCandidate[];
 }

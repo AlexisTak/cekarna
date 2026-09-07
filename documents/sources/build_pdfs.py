@@ -47,8 +47,8 @@ def draw_frame(docdata):
     def draw(c,doc):
         c.saveState()
         c.setFillColor(NAVY); c.rect(0,H-115,W,115,fill=1,stroke=0)
-        c.setFillColor(colors.HexColor('#79D6CA')); c.setFont('Bold',10)
-        c.drawString(50,H-28,'CEKARNA  /  DOSSIER STRATÉGIQUE')
+        c.setFillColor(colors.HexColor('#F9CF67')); c.setFont('Bold',10)
+        c.drawString(50,H-28,'CEKARNA  /  ARCHIVE — HORS PÉRIMÈTRE B2C')
         c.setFillColor(colors.white); c.setFont('Bold',25)
         c.drawString(50,H-62,docdata['title'])
         c.setFont('Body',10); c.drawString(50,H-83,docdata['subtitle'])

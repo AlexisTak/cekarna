@@ -1,9 +1,13 @@
 import type { Profile } from './domain';
+import { accessTokenForService } from './auth-api';
 
 export type ProfileField = keyof Profile;
 
 export const PROFILE_FIELDS: ProfileField[] = [
   'firstName',
+  'lastName',
+  'email',
+  'phone',
   'title',
   'city',
   'contract',
@@ -43,6 +47,8 @@ export interface CvExtraction {
   pageCount: number;
   pages: PageText[];
   fields: FieldExtraction[];
+  experienceCandidates: FieldCandidate[];
+  educationCandidates: FieldCandidate[];
 }
 
 export type FieldSource = 'extracted' | 'manual';
@@ -55,6 +61,9 @@ export interface ConfirmedField {
 export interface ConfirmedProfile {
   profile: Profile;
   provenance: Record<ProfileField, FieldSource | 'empty'>;
+  excerpts?: Partial<Record<ProfileField, SourceExcerpt[]>>;
+  experiences?: FieldCandidate[];
+  education?: FieldCandidate[];
 }
 
 export class CvImportError extends Error {
@@ -80,7 +89,8 @@ async function toError(response: Response): Promise<CvImportError> {
   let message = 'L’import a échoué. Réessayez dans un instant.';
   try {
     const body = (await response.json()) as { message?: unknown };
-    if (typeof body.message === 'string' && body.message) message = body.message;
+    if (typeof body.message === 'string' && body.message)
+      message = body.message;
     else if (Array.isArray(body.message) && typeof body.message[0] === 'string')
       message = body.message[0];
   } catch {
@@ -109,6 +119,7 @@ export async function extractCv(
   const response = await fetch(`${BASE}/v1/cv-import/extraction`, {
     method: 'POST',
     body,
+    headers: { Authorization: `Bearer ${await accessTokenForService()}` },
     signal,
   });
   if (!response.ok) throw await toError(response);
@@ -118,12 +129,13 @@ export async function extractCv(
 export async function confirmProfile(
   documentId: string,
   fields: Partial<Record<ProfileField, ConfirmedField>>,
+  selected: { experiences: number[]; education: number[] },
   signal?: AbortSignal,
 ): Promise<ConfirmedProfile> {
   const response = await fetch(`${BASE}/v1/cv-import/profile`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ documentId, fields }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessTokenForService()}` },
+    body: JSON.stringify({ documentId, fields, ...selected }),
     signal,
   });
   if (!response.ok) throw await toError(response);

@@ -1,3 +1,4 @@
+import { confirmedSources, type ProfileSources } from './profile-sources';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { CONTRACTS, type Profile } from './domain';
 import {
@@ -16,8 +17,11 @@ import {
 
 const LABELS: Record<ProfileField, string> = {
   firstName: 'Prénom',
+  lastName: 'Nom',
+  email: 'Email de contact',
+  phone: 'Téléphone',
   title: 'Poste recherché',
-  city: 'Ville souhaitée',
+  city: 'Ville',
   contract: 'Contrat souhaité',
   skills: 'Compétences',
   about: 'Votre parcours',
@@ -66,7 +70,9 @@ function valueOf(
   }
   if (choice.mode !== 'candidate') return undefined;
   const candidate = extraction?.candidates[choice.candidate];
-  return candidate ? { value: candidate.value, source: 'extracted' } : undefined;
+  return candidate
+    ? { value: candidate.value, source: 'extracted' }
+    : undefined;
 }
 
 /** Affiche la ligne source en mettant en évidence le fragment retenu. */
@@ -149,7 +155,9 @@ function FieldReview({
               field={field}
               index={index}
               candidate={candidate}
-              checked={choice.mode === 'candidate' && choice.candidate === index}
+              checked={
+                choice.mode === 'candidate' && choice.candidate === index
+              }
               onSelect={() =>
                 onChange({ ...choice, mode: 'candidate', candidate: index })
               }
@@ -223,18 +231,73 @@ function FieldReview({
   );
 }
 
+function CareerCandidates({
+  title,
+  candidates,
+  selected,
+  onChange,
+}: {
+  title: string;
+  candidates: FieldCandidate[];
+  selected: number[];
+  onChange: (indexes: number[]) => void;
+}) {
+  if (!candidates.length) return null;
+  return (
+    <fieldset className="cv-field">
+      <legend>{title}</legend>
+      <p className="cv-nothing">
+        Sélectionnez uniquement les lignes que vous souhaitez ajouter à votre
+        parcours. Vous pourrez ensuite les corriger dans « Mon profil ».
+      </p>
+      <ul className="cv-options">
+        {candidates.map((candidate, index) => (
+          <li className="cv-option" key={`${candidate.rule}-${index}`}>
+            <label>
+              <input
+                type="checkbox"
+                checked={selected.includes(index)}
+                onChange={(event) =>
+                  onChange(
+                    event.target.checked
+                      ? [...selected, index]
+                      : selected.filter((entry) => entry !== index),
+                  )
+                }
+              />
+              <span className="cv-option-value">{candidate.value}</span>
+            </label>
+            <ul className="excerpt-list">
+              {candidate.excerpts.map((excerpt, position) => (
+                <Excerpt key={position} excerpt={excerpt} />
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </fieldset>
+  );
+}
+
 export default function CvImport({
   current,
   onApply,
   onCancel,
 }: {
   current: Profile;
-  onApply: (profile: Profile) => void;
+  onApply: (
+    profile: Profile,
+    sources: ProfileSources,
+    experiences: FieldCandidate[],
+    education: FieldCandidate[],
+  ) => void;
   onCancel: () => void;
 }) {
   const [extraction, setExtraction] = useState<CvExtraction | null>(null);
   const [choices, setChoices] = useState<Choices | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selectedExperiences, setSelectedExperiences] = useState<number[]>([]);
+  const [selectedEducation, setSelectedEducation] = useState<number[]>([]);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -261,6 +324,12 @@ export default function CvImport({
       const result = await extractCv(file);
       setExtraction(result);
       setChoices(initialChoices(result.fields, current));
+      setSelectedExperiences(
+        (result.experienceCandidates ?? []).map((_, index) => index),
+      );
+      setSelectedEducation(
+        (result.educationCandidates ?? []).map((_, index) => index),
+      );
     } catch (failure) {
       setError(
         failure instanceof CvImportError
@@ -285,8 +354,16 @@ export default function CvImport({
     setBusy(true);
     setError('');
     try {
-      const confirmed = await confirmProfile(extraction.documentId, fields);
-      onApply(confirmed.profile);
+      const confirmed = await confirmProfile(extraction.documentId, fields, {
+        experiences: selectedExperiences,
+        education: selectedEducation,
+      });
+      onApply(
+        confirmed.profile,
+        confirmedSources(confirmed),
+        confirmed.experiences ?? [],
+        confirmed.education ?? [],
+      );
     } catch (failure) {
       setError(
         failure instanceof CvImportError
@@ -367,6 +444,18 @@ export default function CvImport({
               />
             ))}
           </div>
+          <CareerCandidates
+            title="Expériences repérées"
+            candidates={extraction.experienceCandidates ?? []}
+            selected={selectedExperiences}
+            onChange={setSelectedExperiences}
+          />
+          <CareerCandidates
+            title="Diplômes et formations repérés"
+            candidates={extraction.educationCandidates ?? []}
+            selected={selectedEducation}
+            onChange={setSelectedEducation}
+          />
           <details className="cv-source">
             <summary>Voir le texte lu dans le PDF</summary>
             {extraction.pages.map((page) => (

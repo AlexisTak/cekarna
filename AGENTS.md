@@ -1,26 +1,27 @@
 # Mémoire du projet Cekarna
 
+## Coordination du travail restant
+
+Lire `cekarna_website/docs/ROADMAP.md` avant de choisir une tâche. Cette feuille partagée Codex / Claude recense les priorités, réservations, critères de livraison et validations restantes. Mettre à jour la tâche concernée et son journal après intervention ; vérifier l’état Git et les modifications concurrentes avant d’éditer.
+
 À la demande de l’utilisateur, conserver les cinq PDF comme références durables du projet. Ce fichier sert de repère aux prochaines sessions ; consulter les documents ou leurs sources avant de prendre une décision détaillée.
 
 ## Priorité actuelle — décision ultérieure du 6 septembre 2026
 
-L’utilisateur a décidé de **commencer par l’application web pour les particuliers en recherche d’emploi (B2C)**. Cette décision remplace la priorité B2B ci-dessous. Le B2B est différé.
+L’utilisateur a décidé que Cekarna est **exclusivement une application web pour les particuliers en recherche d’emploi (B2C)**. Le produit B2B pour cabinets de recrutement ne fait plus partie du projet.
 
 - Référence actuelle : `cekarna_website/docs/B2C.md`.
 - Interface : `cekarna_website/web/`, React + Vite + TypeScript, npm. La racine est la page d’accueil publique ; `?workspace=candidate` ouvre l’espace candidat sans exiger de règle de réécriture serveur.
 - Socle B2C : profil manuel, offres ajoutées manuellement, filtres, suivi de candidature, notes, export/restauration JSON. État local conservé dans le navigateur ; mode découverte explicitement fictif. L’import de CV PDF textuel, avec extraits visibles et correction, est également livré ; aucune valeur ne doit être inventée.
 - Le compte connecté, la vérification d’adresse, la récupération et la synchronisation du dossier candidat sont livrés. La recherche automatique, l’envoi de candidatures et la génération IA ne sont pas livrés. Ne pas présenter les repères textuels comme un score IA.
 - Backend NestJS conservé. Le microservice Go/Chi est dans `cekarna_website/services/auth/` : PostgreSQL, Redis, Argon2id, JWT Ed25519 de 5 min, JWKS, refresh opaques avec rotation et audit. Lire son README avant modification. Le microservice Rust `cekarna_website/services/notifications/` gère la file SMTP transactionnelle durable. MFA/passkeys restent à construire. Ces demandes explicites autorisent ces services malgré le report historique ci-dessous.
-- Les PDF V2 restent conservés comme cadrage B2B historique, **pas comme cahier des charges prioritaire du B2C**. Ne pas les réécrire sans demande ou besoin explicite.
+- Les PDF V2 restent conservés comme références historiques de principes utiles (preuves, correction humaine, fiabilité), **pas comme un cahier des charges à implémenter**. Ne pas les réécrire sans demande ou besoin explicite.
 
-## Décisions B2B antérieures — historique du 6 septembre 2026
+## Décisions B2B antérieures — historique non retenu
 
-- Cible explicitement choisie : **SaaS B2B pour cabinets de recrutement**.
-- MVP spécifié : organisation, mission, import de CV PDF textuels autorisés, correction du profil, sélection expliquée, synthèse ou brouillon éditable et export.
-- Décision humaine ; pas de rejet ni d’envoi automatique. Viviers privés et isolés par cabinet.
-- Conserver le socle NestJS/Express et une architecture progressive. Le frontend, la base, les workers et les fonctions IA restent à construire selon l’état constaté à cette date ; vérifier le code pour connaître l’état actuel.
-- Formation, assistant candidat et application locale différés. Rust/Go et infrastructure distribuée conditionnés à des mesures.
-- Segment tech, tarifs, quotas, coûts et performances : hypothèses ou objectifs à valider, pas résultats acquis ni engagements clients.
+- Cible envisagée : SaaS B2B pour cabinets de recrutement.
+- Ce périmètre (organisations, missions, viviers, facturation cabinet et formation associée) est abandonné. Ne pas le développer ni le proposer à nouveau sans instruction explicite de l’utilisateur.
+- Les principes non spécifiques au B2B restent utiles : décision humaine, aucune information inventée, sécurité des données et validation par des mesures.
 
 ## Références V2.0
 

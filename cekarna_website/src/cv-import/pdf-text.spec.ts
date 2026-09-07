@@ -30,6 +30,29 @@ describe('lecture de la couche texte PDF', () => {
     expect(lines).toEqual(['Titre', 'Bonjour monde']);
   });
 
+  it('lit entièrement la colonne gauche avant la colonne droite', () => {
+    const lines = groupIntoLines([
+      { str: 'COMPÉTENCES', width: 85, transform: [1, 0, 0, 1, 20, 700] },
+      { str: 'Rust', width: 30, transform: [1, 0, 0, 1, 20, 680] },
+      {
+        str: 'PARCOURS PROFESSIONNEL',
+        width: 150,
+        transform: [1, 0, 0, 1, 260, 700],
+      },
+      {
+        str: 'Développeuse — 2024',
+        width: 130,
+        transform: [1, 0, 0, 1, 260, 680],
+      },
+    ]);
+    expect(lines).toEqual([
+      'COMPÉTENCES',
+      'Rust',
+      'PARCOURS PROFESSIONNEL',
+      'Développeuse — 2024',
+    ]);
+  });
+
   it('refuse un fichier qui n’est pas un PDF', async () => {
     await expect(readPdfText(Buffer.from('texte brut'))).rejects.toMatchObject({
       reason: 'not-a-pdf',

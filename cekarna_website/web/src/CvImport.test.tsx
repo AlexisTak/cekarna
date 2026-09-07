@@ -18,14 +18,17 @@ const extractMock = vi.mocked(extractCv);
 const confirmMock = vi.mocked(confirmProfile);
 const roots: Root[] = [];
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 const EXTRACTION: CvExtraction = {
   documentId: 'b3f1c0de-0000-4000-8000-000000000000',
   expiresAt: '2026-09-06T12:15:00.000Z',
   pageCount: 1,
   pages: [{ page: 1, lines: ['Marie Dupont', '75011 Paris'] }],
+  experienceCandidates: [],
+  educationCandidates: [],
   fields: [
     {
       field: 'firstName',
@@ -143,8 +146,12 @@ describe('CvImport', () => {
   it('envoie les propositions retenues avec leur origine', async () => {
     confirmMock.mockResolvedValue({
       profile: { ...profile, firstName: 'Marie', city: 'Paris' },
+      excerpts: { city: EXTRACTION.fields[2].candidates[0].excerpts },
       provenance: {
         firstName: 'extracted',
+        lastName: 'empty',
+        email: 'empty',
+        phone: 'empty',
         title: 'empty',
         city: 'extracted',
         contract: 'empty',
@@ -159,12 +166,25 @@ describe('CvImport', () => {
     await choosePdf(container);
     await click(container, 'Enregistrer ce profil');
 
-    expect(confirmMock).toHaveBeenCalledWith(EXTRACTION.documentId, {
-      firstName: { value: 'Marie', source: 'extracted' },
-      city: { value: 'Paris', source: 'extracted' },
-    });
+    expect(confirmMock).toHaveBeenCalledWith(
+      EXTRACTION.documentId,
+      {
+        firstName: { value: 'Marie', source: 'extracted' },
+        city: { value: 'Paris', source: 'extracted' },
+      },
+      { experiences: [], education: [] },
+    );
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ firstName: 'Marie', city: 'Paris' }),
+      expect.objectContaining({
+        city: {
+          value: 'Paris',
+          source: 'extracted',
+          excerpts: EXTRACTION.fields[2].candidates[0].excerpts,
+        },
+      }),
+      [],
+      [],
     );
   });
 
@@ -173,6 +193,9 @@ describe('CvImport', () => {
       profile,
       provenance: {
         firstName: 'empty',
+        lastName: 'empty',
+        email: 'empty',
+        phone: 'empty',
         title: 'empty',
         city: 'empty',
         contract: 'empty',
@@ -192,12 +215,19 @@ describe('CvImport', () => {
         });
     await click(container, 'Enregistrer ce profil');
 
-    expect(confirmMock).toHaveBeenCalledWith(EXTRACTION.documentId, {});
+    expect(confirmMock).toHaveBeenCalledWith(
+      EXTRACTION.documentId,
+      {},
+      { experiences: [], education: [] },
+    );
   });
 
   it('affiche le refus du serveur sans appliquer le profil', async () => {
     confirmMock.mockRejectedValue(
-      new CvImportError(400, 'Le champ « city » contient du texte absent du CV'),
+      new CvImportError(
+        400,
+        'Le champ « city » contient du texte absent du CV',
+      ),
     );
     const onApply = vi.fn();
     const container = await render(

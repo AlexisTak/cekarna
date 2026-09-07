@@ -9,6 +9,7 @@ export type Clock = () => number;
 
 export interface StoredDocument {
   documentId: string;
+  ownerId: string;
   pages: PageText[];
   /** Texte normalisé, utilisé pour vérifier qu'une valeur retenue vient bien du document. */
   normalizedText: string;
@@ -40,7 +41,11 @@ export class ExtractionStore {
 
   constructor(@Inject(CLOCK) private readonly now: Clock) {}
 
-  save(pages: PageText[], retentionSeconds: number): StoredDocument {
+  save(
+    pages: PageText[],
+    retentionSeconds: number,
+    ownerId = 'test-owner',
+  ): StoredDocument {
     this.purge();
     if (this.documents.size >= MAX_DOCUMENTS) {
       const oldest = this.documents.keys().next();
@@ -48,6 +53,7 @@ export class ExtractionStore {
     }
     const document: StoredDocument = {
       documentId: randomUUID(),
+      ownerId,
       pages,
       normalizedText: normalizeForComparison(
         pages.flatMap((page) => page.lines).join(' '),
@@ -58,9 +64,10 @@ export class ExtractionStore {
     return document;
   }
 
-  find(documentId: string): StoredDocument | undefined {
+  find(documentId: string, ownerId = 'test-owner'): StoredDocument | undefined {
     this.purge();
-    return this.documents.get(documentId);
+    const document = this.documents.get(documentId);
+    return document?.ownerId === ownerId ? document : undefined;
   }
 
   forget(documentId: string): void {

@@ -27,14 +27,15 @@ Le build produit `dist/`. Le site statique est configuré pour un déploiement S
 - Export JSON et restauration depuis « Mon profil ». Le fichier contient vos informations : conservez-le dans un emplacement approprié.
 - 1 000 offres maximum et import de sauvegarde limité à 5 Mo ; le quota réel dépend aussi du navigateur. Une sauvegarde impossible affiche une alerte.
 - Les liens externes n’acceptent que HTTP(S), sans identifiants intégrés.
-- Les repères de correspondance sont des comparaisons de texte, pas un classement IA.
+- Les repères de correspondance ont trois états, affichent leurs preuves et la version de la méthode ; ils ne constituent ni un classement IA ni une probabilité d’embauche.
 - L’import de CV PDF textuel nécessite une session active et l’API NestJS. La comparaison Ollama locale est proposée à la demande depuis une offre, sans score d’embauche.
-- Aucun scraping, brouillon généré ni envoi automatique.
+- Un brouillon texte local peut être préparé avec les informations confirmées, corrigé et exporté. Aucun scraping ni envoi automatique.
 
 ## Sources
 
 - `src/domain.ts` : schéma, validation, exemples, correspondances et export.
-- `src/domain.test.ts` : validation des sauvegardes et règles de comparaison.
+- `src/domain.test.ts` et `src/comparison-evaluation.test.ts` : validation des sauvegardes et corpus annoté des règles de comparaison.
+- `src/ApplicationDraft.tsx` : brouillon local corrigible et exportable, sans action d’envoi.
 - `src/App.tsx` : vues, formulaires et interactions.
 - `src/Auth.tsx` : formulaires d’inscription et de connexion raccordés au service d’identité.
 - `src/style.css` : thème, composants et adaptation mobile.

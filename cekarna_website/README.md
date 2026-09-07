@@ -1,6 +1,6 @@
 # Cekarna — application candidats et API
 
-Priorité actuelle : application web pour les particuliers en recherche d’emploi. Le B2B est différé ; les PDF V2 du dossier parent sont conservés comme cadrage historique.
+Priorité actuelle : application web pour les particuliers en recherche d’emploi. Le B2B est abandonné ; les PDF V2 du dossier parent sont conservés comme archives historiques.
 
 ## Application web B2C
 
@@ -19,7 +19,7 @@ Ouvrir http://localhost:5173 pour la page d’accueil, puis utiliser http://loca
 
 ## État réel
 
-Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. La comparaison optionnelle peut appeler un modèle Ollama local ; elle ne génère pas de candidature. Les PDF V2 du dossier parent décrivent le B2B différé. Le cadrage prioritaire actuel est `docs/B2C.md`.
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. La comparaison optionnelle peut appeler un modèle Ollama local. Le brouillon de candidature est construit localement avec les informations confirmées, reste modifiable et n’est jamais envoyé par Cekarna. Les PDF V2 du dossier parent décrivent l’ancien projet B2B abandonné. Le cadrage prioritaire actuel est `docs/B2C.md`.
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.
@@ -86,4 +86,4 @@ La configuration commune est appliquée en production et dans les tests HTTP. Le
 - `test/` : tests HTTP, dont un contrôleur de validation présent uniquement dans les tests.
 - `docs/PROJECT.md` : périmètre, décisions techniques et prochaines étapes.
 
-Les traitements métier seront ajoutés par domaine au fur et à mesure. Ne pas stocker de vrais CV, de données personnelles ou de secrets dans le dépôt.
+Les fonctions livrées et les tâches restantes sont suivies dans `docs/ROADMAP.md`. Ne pas stocker de vrais CV, de données personnelles ou de secrets dans le dépôt.

@@ -76,8 +76,8 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C09 | P1 | Brouillons corrigibles et exportables | Terminé | Codex | Domaine brouillons, adaptateur Hermes local, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | Terminé | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
 | C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
-| C12 | P0 avant lancement | Préparer exploitation et recette | En cours | Codex | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | À mener progressivement |
-| C13 | P1 | Réconcilier la documentation avec le code | En cours | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | Après chaque tranche |
+| C12 | P0 avant lancement | Préparer exploitation et recette | Bloqué | Libre | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | Hébergeur, domaines, fournisseur SMTP et responsables d’exploitation à choisir |
+| C13 | P1 | Réconcilier la documentation avec le code | Terminé | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | À revalider après chaque nouvelle tranche |
 | C14 | P2 | Abonnement éventuel | Différé | Non attribué | Paiement, quotas, droits | Parcours validé et décision commerciale |
 
 P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validation de la valeur. L’ordre ne signifie pas qu’il faut lancer de nouveaux microservices : documenter le besoin et le coût de toute infrastructure ajoutée.
@@ -183,6 +183,10 @@ Lire [la spécification existante](superpowers/specs/2026-09-06-auth-passkeys-tr
 
 ### C12 — Recette et exploitation avant lancement
 
+**Blocage actuel :** les contrôles locaux sont disponibles, mais la recette de
+préproduction ne peut pas être exécutée sans environnement cible, domaine HTTPS,
+gestionnaire de secrets, fournisseur SMTP et responsables des incidents choisis.
+
 - [x] Créer un tableau de supervision local séparé du site candidat. L’application Tauri contrôle les adresses de bouclage depuis Rust et peut démarrer ou arrêter les services Cekarna explicitement autorisés : les services Compose `auth` et `notifications`, sans supprimer leurs volumes, et les processus API/Ollama qu’elle a elle-même lancés.
 
 - [ ] Séparer développement, préproduction et production ; configurer HTTPS, secrets et services privés.
@@ -198,10 +202,10 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 
 ### C13 — Documentation cohérente
 
-- [ ] Corriger les passages historiques qui décrivent encore le produit comme uniquement local ou comme un simple socle HTTP.
-- [ ] Distinguer systématiquement code disponible, configuration requise, fonctionnalité testée et production déployée.
-- [ ] Mettre à jour les README des services et leurs limites réelles après chaque livraison.
-- [ ] Garder les PDF historiques et leurs archives ; ne pas les réécrire pour masquer un écart d’implémentation.
+- [x] Corriger les passages historiques qui décrivent encore le produit comme uniquement local ou comme un simple socle HTTP.
+- [x] Distinguer systématiquement code disponible, configuration requise, fonctionnalité testée et production déployée.
+- [x] Mettre à jour les README des services et leurs limites réelles après chaque livraison.
+- [x] Garder les PDF historiques et leurs archives ; ne pas les réécrire pour masquer un écart d’implémentation.
 
 ### C14 — Abonnement éventuel
 
@@ -233,5 +237,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C05 | Codex | Outbox PostgreSQL atomique entre jetons d'authentification et intentions d'email, worker de reprise vers la file Rust et même clé d'idempotence à chaque tentative | `go test ./... -count=1`, intégration Docker PostgreSQL/Redis avec détecteur de courses, `cargo fmt --check`, `cargo test` et Clippy strict réussis | Une acceptation SMTP suivie d'une coupure avant réponse peut encore provoquer un doublon ; cette limite est documentée et doit être supervisée chez le fournisseur |
 | 2026-09-07 | C08 | Codex | Comparaison déterministe à trois états, preuves visibles, références de version et filtrage des données personnelles pour Hermes | 62 tests frontend, dont 12 décisions du corpus annoté ; 70 tests NestJS, lint, typage et builds réussis | Le corpus protège le contrat fonctionnel mais ne mesure pas une performance représentative sur des CV et offres réels ; aucun score qualité n'est affiché |
 | 2026-09-07 | C09 | Codex | Brouillon texte déterministe construit avec les informations confirmées, inconnus visibles, correction et export explicites, sans envoi automatique | Tests frontend du contenu manquant et d'une instruction malveillante ; test NestJS d'indisponibilité Hermes ; suites et builds complets réussis | Le brouillon n'est pas persisté dans le dossier : l'utilisateur doit l'exporter avant de fermer ou changer d'offre |
+| 2026-09-07 | C13 | Codex | README racine, frontend, cadrage projet et feuille de route alignés avec le produit B2C réellement livré ; ancien B2B identifié comme archive abandonnée | Recherche des formulations historiques et concordance avec C05, C08 et C09 vérifiées | C12 reste bloqué avant lancement tant que l'environnement cible et les prestataires ne sont pas choisis |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

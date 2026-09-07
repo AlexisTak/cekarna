@@ -383,7 +383,13 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [notifications, setNotifications] = useState<
     { id: string; message: string; read: boolean }[]
-  >([]);
+  >(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}.notifications`);
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((item): item is { id: string; message: string; read: boolean } => typeof item?.id === 'string' && typeof item?.message === 'string' && typeof item?.read === 'boolean').slice(0, 20) : [];
+    } catch { return []; }
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [remoteStatus, setRemoteStatus] = useState<
@@ -489,12 +495,15 @@ export default function App() {
     setNotifications((current) =>
       [
         { id: crypto.randomUUID(), message: toast, read: false },
-        ...current,
+        ...current.filter((item) => item.message !== toast),
       ].slice(0, 20),
     );
     const timeout = window.setTimeout(() => setToast(''), 4500);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+  useEffect(() => {
+    try { localStorage.setItem(`${STORAGE_KEY}.notifications`, JSON.stringify(notifications)); } catch { /* notification history is optional */ }
+  }, [notifications]);
   useEffect(() => {
     document.title = `${nav.find((n) => n.id === view)?.label} — Cekarna`;
   }, [view]);

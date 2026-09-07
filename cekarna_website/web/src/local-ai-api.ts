@@ -2,7 +2,7 @@ import { accessTokenForService } from './auth-api';
 import type { Job, Profile } from './domain';
 export interface AiFinding {
   criterion: string;
-  status: 'satisfied' | 'missing' | 'unknown';
+  status: 'satisfied' | 'not_satisfied' | 'unknown';
   evidence: string[];
 }
 export async function compareWithLocalAi(
@@ -20,7 +20,24 @@ export async function compareWithLocalAi(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${await accessTokenForService()}`,
     },
-    body: JSON.stringify({ profile, job }),
+    body: JSON.stringify({
+      profile: {
+        title: profile.title,
+        city: profile.city,
+        contract: profile.contract,
+        skills: profile.skills,
+      },
+      job: {
+        title: job.title,
+        location: job.location,
+        contract: job.contract,
+        remote: job.remote,
+        description: job.description,
+        skills: job.skills ?? [],
+        experience: job.experience ?? '',
+        qualification: job.qualification ?? '',
+      },
+    }),
   });
   if (!response.ok) throw new Error('local_ai_unavailable');
   return response.json() as Promise<{ model: string; findings: AiFinding[] }>;

@@ -285,14 +285,53 @@ export function matches(job: Job, profile: Profile): string[] {
     .filter((criterion) => criterion.status === 'satisfied')
     .map((criterion) => criterion.label);
 }
-export type CriterionStatus = 'satisfied' | 'missing' | 'unknown';
+export type CriterionStatus = 'satisfied' | 'not_satisfied' | 'unknown';
 export interface ComparisonCriterion {
   id: string;
   label: string;
   status: CriterionStatus;
   evidence: string[];
 }
-/** Version 1 : règles déterministes, jamais un score ou une prédiction d’embauche. */
+export interface ComparisonReport {
+  methodVersion: 'text-rules-v2';
+  profileReference: string;
+  jobReference: string;
+  criteria: ComparisonCriterion[];
+}
+function comparisonFingerprint(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+export function compareJobReport(job: Job, profile: Profile): ComparisonReport {
+  const relevantProfile = [
+    profile.title,
+    profile.city,
+    profile.contract,
+    profile.skills,
+  ]
+    .map(normalize)
+    .join('\u0000');
+  const relevantJob = [
+    job.title,
+    job.location,
+    job.contract,
+    job.description,
+    ...(job.skills ?? []),
+  ]
+    .map(normalize)
+    .join('\u0000');
+  return {
+    methodVersion: 'text-rules-v2',
+    profileReference: comparisonFingerprint(relevantProfile),
+    jobReference: `${job.id}:${comparisonFingerprint(`${job.updatedAt}\u0000${relevantJob}`)}`,
+    criteria: compareJob(job, profile),
+  };
+}
+/** Version 2 : règles déterministes, jamais un score ou une prédiction d’embauche. */
 export function compareJob(job: Job, profile: Profile): ComparisonCriterion[] {
   const result: ComparisonCriterion[] = [];
   if (
@@ -309,7 +348,7 @@ export function compareJob(job: Job, profile: Profile): ComparisonCriterion[] {
     result.push({
       id: 'location',
       label: 'Localisation souhaitée',
-      status: 'missing',
+      status: 'not_satisfied',
       evidence: [profile.city, job.location],
     });
   else
@@ -330,7 +369,7 @@ export function compareJob(job: Job, profile: Profile): ComparisonCriterion[] {
     result.push({
       id: 'contract',
       label: 'Contrat souhaité',
-      status: 'missing',
+      status: 'not_satisfied',
       evidence: [profile.contract, job.contract],
     });
   else
@@ -340,9 +379,16 @@ export function compareJob(job: Job, profile: Profile): ComparisonCriterion[] {
       status: 'unknown',
       evidence: [],
     });
-  const text = normalize(`${job.title} ${job.description}`);
+  const text = normalize(
+    `${job.title} ${job.description} ${(job.skills ?? []).join(' ')}`,
+  );
   const skills = [
-    ...new Set(profile.skills.split(',').map(normalize).filter(Boolean)),
+    ...new Set(
+      profile.skills
+        .split(/[,;\n]/)
+        .map(normalize)
+        .filter(Boolean),
+    ),
   ];
   const found = skills.filter((skill) => text.includes(skill));
   if (found.length)

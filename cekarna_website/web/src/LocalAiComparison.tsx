@@ -45,7 +45,7 @@ export function LocalAiComparison({
                 <strong>{finding.criterion}</strong> —{' '}
                 {finding.status === 'satisfied'
                   ? 'satisfait'
-                  : finding.status === 'missing'
+                  : finding.status === 'not_satisfied'
                     ? 'non satisfait'
                     : 'inconnu'}
                 {finding.evidence.length

@@ -31,10 +31,10 @@ describe('IdentityService', () => {
     await expect(
       new IdentityService(config).userId('Bearer access-token'),
     ).resolves.toBe('candidate-42');
-    expect(fetchMock).toHaveBeenCalledWith(config.authIdentityUrl, {
-      headers: { Authorization: 'Bearer access-token' },
-      signal: expect.any(AbortSignal),
-    });
+    const [url, request] = fetchMock.mock.calls[0];
+    expect(url).toBe(config.authIdentityUrl);
+    expect(request?.headers).toEqual({ Authorization: 'Bearer access-token' });
+    expect(request?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it('does not accept an unavailable or refused identity service', async () => {

@@ -1538,7 +1538,7 @@ dialog::backdrop {
 .comparison-list li.satisfied > strong {
   color: #517e5c;
 }
-.comparison-list li.missing > strong {
+.comparison-list li.not_satisfied > strong {
   color: #af6e48;
 }
 .comparison-list li.unknown > strong {

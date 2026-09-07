@@ -72,7 +72,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C05 | P0 | Fiabiliser les notifications et leur purge | Terminé | Codex | File Rust, cycle de vie des comptes | Contrat interservices |
 | C06 | P0 | Valider sessions, conflits et reprise locale | Terminé | Codex | `auth-api.ts`, `App.tsx`, service Go | C01/C02 validés |
 | C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
-| C08 | P1 | Comparaison expliquée profil–offre | En cours | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
+| C08 | P1 | Comparaison expliquée profil–offre | Terminé | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
 | C09 | P1 | Brouillons corrigibles et exportables | En cours | Codex (adaptateur Hermes local uniquement) | Domaine brouillons, adaptateur IA éventuel, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | Terminé | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
 | C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
@@ -149,12 +149,12 @@ Lire d’abord [la spécification](superpowers/specs/2026-09-06-offers-collecte-
 
 ### C08 — Comparaison expliquée
 
-- [ ] Définir les critères professionnels et leurs états : satisfait, non satisfait, inconnu.
-- [ ] Relier les constats aux preuves ; une absence de preuve ne vaut pas absence de compétence.
-- [ ] Écarter les informations personnelles sans rapport avec l’offre.
-- [ ] Référencer les versions du profil, de l’offre et de la méthode ; invalider les résultats devenus obsolètes.
-- [ ] Évaluer sur un corpus annoté distinct des exemples de réglage et comparer aux règles textuelles actuelles.
-- [ ] Ne pas présenter un score comme une probabilité d’embauche ou une évaluation IA sans fondement mesuré.
+- [x] Définir les critères professionnels et leurs états : satisfait, non satisfait, inconnu. La méthode déterministe couvre ville souhaitée, contrat et compétences confirmées.
+- [x] Relier les constats aux preuves ; une absence de preuve ne vaut pas absence de compétence. Une contradiction explicite est requise pour `not_satisfied` ; sinon le critère reste `unknown`.
+- [x] Écarter les informations personnelles sans rapport avec l’offre. Les règles n'utilisent que les champs professionnels et l'adaptateur Hermes filtre coordonnées, notes et critères personnels côté navigateur et serveur.
+- [x] Référencer les versions du profil, de l’offre et de la méthode ; invalider les résultats devenus obsolètes. Le rapport porte `text-rules-v2` et des références déterministes recalculées à chaque modification.
+- [x] Évaluer sur un corpus annoté distinct des exemples de réglage et comparer aux règles textuelles actuelles. Quatre scénarios, douze décisions attendues, sont exécutés comme tests de régression séparés.
+- [x] Ne pas présenter un score comme une probabilité d’embauche ou une évaluation IA sans fondement mesuré. L'interface affiche uniquement les trois états, les preuves et la version de méthode.
 
 ### C09 — Brouillons et IA
 
@@ -231,5 +231,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C05 (expiration) | Codex | Ajout de `expires_at`, statut `cancelled` et transmission des délais réels des liens d’authentification | `go test ./...`, `cargo test` et Clippy strict réussis | Les opérations auth et mise en file ne sont pas encore coordonnées par une outbox durable |
 | 2026-09-07 | C10 | Codex | Préférence d’informations, historique effaçable et isolé par compte, rappels manuels persistés dans les offres et dédupliqués par offre/date | 57 tests frontend et build Vite réussis | Rappels évalués uniquement lorsque l’application est ouverte ; aucune notification système, aucun email et aucun envoi de candidature |
 | 2026-09-07 | C05 | Codex | Outbox PostgreSQL atomique entre jetons d'authentification et intentions d'email, worker de reprise vers la file Rust et même clé d'idempotence à chaque tentative | `go test ./... -count=1`, intégration Docker PostgreSQL/Redis avec détecteur de courses, `cargo fmt --check`, `cargo test` et Clippy strict réussis | Une acceptation SMTP suivie d'une coupure avant réponse peut encore provoquer un doublon ; cette limite est documentée et doit être supervisée chez le fournisseur |
+| 2026-09-07 | C08 | Codex | Comparaison déterministe à trois états, preuves visibles, références de version et filtrage des données personnelles pour Hermes | 62 tests frontend, dont 12 décisions du corpus annoté ; 70 tests NestJS, lint, typage et builds réussis | Le corpus protège le contrat fonctionnel mais ne mesure pas une performance représentative sur des CV et offres réels ; aucun score qualité n'est affiché |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

@@ -57,6 +57,7 @@ import {
   exportWorkspace,
   matches,
   compareJob,
+  compareJobReport,
   normalize,
   parseWorkspace,
   profileProgress,
@@ -907,7 +908,16 @@ export default function App() {
               {notificationsOpen && (
                 <div className="notification-panel" role="status">
                   <strong>Notifications</strong>
-                  <label><input type="checkbox" checked={informationalNotifications} onChange={(event) => setInformationalNotifications(event.target.checked)} /> Informations</label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={informationalNotifications}
+                      onChange={(event) =>
+                        setInformationalNotifications(event.target.checked)
+                      }
+                    />{' '}
+                    Informations
+                  </label>
                   {notifications.length ? (
                     <ul>
                       {notifications.map((item) => (
@@ -917,7 +927,11 @@ export default function App() {
                   ) : (
                     <p>Aucune notification pour le moment.</p>
                   )}
-                  {notifications.length > 0 && <button type="button" onClick={() => setNotifications([])}>Effacer l’historique</button>}
+                  {notifications.length > 0 && (
+                    <button type="button" onClick={() => setNotifications([])}>
+                      Effacer l’historique
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1881,8 +1895,8 @@ export default function App() {
                     <strong>
                       {criterion.status === 'satisfied'
                         ? 'Correspond'
-                        : criterion.status === 'missing'
-                          ? 'À vérifier'
+                        : criterion.status === 'not_satisfied'
+                          ? 'Ne correspond pas'
                           : 'Inconnu'}
                     </strong>
                     <span>{criterion.label}</span>
@@ -1894,6 +1908,10 @@ export default function App() {
               </ul>
               <small>
                 Comparaison de texte uniquement, sans score ni évaluation IA.
+                Méthode {compareJobReport(selected, profile).methodVersion} ·
+                profil {compareJobReport(selected, profile).profileReference} ·
+                offre {compareJobReport(selected, profile).jobReference}. Le
+                résultat est recalculé dès que le profil ou l’offre change.
               </small>
             </div>
             <LocalAiComparison profile={profile} job={selected} />

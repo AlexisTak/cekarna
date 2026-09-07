@@ -451,6 +451,14 @@ func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		problem(w, 401, "invalid_credentials")
 		return
 	}
+	if purge, ok := s.Mailer.(interface {
+		PurgeOwner(context.Context, string) error
+	}); ok {
+		if err = purge.PurgeOwner(r.Context(), u.ID); err != nil {
+			problem(w, 503, "unavailable")
+			return
+		}
+	}
 	if err = s.Store.DeleteUser(r.Context(), u.ID); err != nil {
 		if errors.Is(err, ErrDenied) {
 			problem(w, 401, "invalid_session")

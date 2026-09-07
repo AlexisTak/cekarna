@@ -35,12 +35,16 @@ type NotificationMailer struct {
 }
 
 func (m NotificationMailer) Send(ctx context.Context, to, subject, text string) error {
+	return m.SendForOwner(ctx, "legacy", to, subject, text)
+}
+func (m NotificationMailer) SendForOwner(ctx context.Context, ownerID, to, subject, text string) error {
 	body, err := json.Marshal(struct {
 		Kind      string `json:"kind"`
+		OwnerID   string `json:"owner_id"`
 		Recipient string `json:"recipient"`
 		Subject   string `json:"subject"`
 		TextBody  string `json:"text_body"`
-	}{Kind: "auth.email", Recipient: to, Subject: subject, TextBody: text})
+	}{Kind: "auth.email", OwnerID: ownerID, Recipient: to, Subject: subject, TextBody: text})
 	if err != nil {
 		return fmt.Errorf("encode notification: %w", err)
 	}
@@ -63,6 +67,22 @@ func (m NotificationMailer) Send(ctx context.Context, to, subject, text string) 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("notification service returned status %d", resp.StatusCode)
+	}
+	return nil
+}
+func (m NotificationMailer) PurgeOwner(ctx context.Context, ownerID string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, m.URL+"/v1/notifications/owner/"+url.PathEscape(ownerID), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+m.Token)
+	resp, err := m.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("notification purge returned status %d", resp.StatusCode)
 	}
 	return nil
 }

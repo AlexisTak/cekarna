@@ -11,7 +11,7 @@ use axum::{
     http::{HeaderMap, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use config::{Config, SmtpConfig, SmtpSecurity};
 use lettre::{
@@ -36,6 +36,7 @@ struct AppState {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EnqueueRequest {
+    owner_id: String,
     kind: String,
     recipient: String,
     subject: String,
@@ -101,6 +102,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/health/ready", get(ready))
         .route("/v1/notifications/email", post(enqueue))
         .route("/v1/notifications/{id}", get(notification))
+        .route("/v1/notifications/owner/{owner_id}", delete(purge_owner))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             require_internal_token,
@@ -113,6 +115,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())
+}
+
+async fn purge_owner(
+    State(state): State<AppState>,
+    axum::extract::Path(owner_id): axum::extract::Path<String>,
+) -> Result<StatusCode, ApiError> {
+    if owner_id.is_empty() || owner_id.len() > 128 {
+        return Err(ApiError::bad_request("invalid owner_id"));
+    }
+    sqlx::query("DELETE FROM notifications WHERE owner_id = $1")
+        .bind(owner_id)
+        .execute(&state.database)
+        .await
+        .map_err(ApiError::database)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn live() -> Json<Health> {
@@ -167,8 +184,11 @@ async fn enqueue(
         .parse()
         .map_err(|_| ApiError::bad_request("recipient must be a valid email address"))?;
     let id = Uuid::now_v7();
-    let row: (Uuid, String) = sqlx::query_as("INSERT INTO notifications (id, kind, recipient, subject, text_body, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (idempotency_key) DO UPDATE SET id = notifications.id RETURNING id, status::text")
-        .bind(id).bind(input.kind).bind(recipient.to_string()).bind(input.subject).bind(input.text_body).bind(idempotency_key)
+    if input.owner_id.is_empty() || input.owner_id.len() > 128 {
+        return Err(ApiError::bad_request("owner_id is required"));
+    }
+    let row: (Uuid, String) = sqlx::query_as("INSERT INTO notifications (id, owner_id, kind, recipient, subject, text_body, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (idempotency_key) DO UPDATE SET id = notifications.id RETURNING id, status::text")
+        .bind(id).bind(input.owner_id).bind(input.kind).bind(recipient.to_string()).bind(input.subject).bind(input.text_body).bind(idempotency_key)
         .fetch_one(&state.database).await.map_err(ApiError::database)?;
     Ok(Json(EnqueueResponse {
         id: row.0,

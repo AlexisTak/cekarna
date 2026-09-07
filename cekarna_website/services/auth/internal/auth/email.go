@@ -1,11 +1,23 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 )
+
+type ownerMailer interface {
+	SendForOwner(context.Context, string, string, string, string) error
+}
+
+func sendOwnedMail(ctx context.Context, mailer Mailer, ownerID, to, subject, text string) error {
+	if owned, ok := mailer.(ownerMailer); ok {
+		return owned.SendForOwner(ctx, ownerID, to, subject, text)
+	}
+	return mailer.Send(ctx, to, subject, text)
+}
 
 type tokenInput struct {
 	Token string `json:"token"`
@@ -25,7 +37,7 @@ func (s *Server) deliverVerification(r *http.Request, uid, email string) {
 		return
 	}
 	subject, text := verificationMessage(s.Config.Origin, token)
-	if err := s.Mailer.Send(r.Context(), email, subject, text); err != nil {
+	if err := sendOwnedMail(r.Context(), s.Mailer, uid, email, subject, text); err != nil {
 		slog.Error("verification email delivery failed")
 		s.auditEmailDelivery(r, "email_delivery_failed", uid)
 		return
@@ -98,7 +110,7 @@ func (s *Server) resetRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		subject, text := resetMessage(s.Config.Origin, token)
-		if serr := s.Mailer.Send(r.Context(), user.Email, subject, text); serr != nil {
+		if serr := sendOwnedMail(r.Context(), s.Mailer, user.ID, user.Email, subject, text); serr != nil {
 			slog.Error("reset email delivery failed")
 			s.auditEmailDelivery(r, "email_delivery_failed", user.ID)
 		} else {

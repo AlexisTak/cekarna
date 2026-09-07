@@ -1,6 +1,6 @@
 # Contexte de développement Cekarna
 
-Coordination Codex / Claude : lire `docs/ROADMAP.md` avant de commencer, réserver la tâche et les fichiers concernés, puis renseigner les validations et limites à la livraison. Vérifier les modifications concurrentes ; ne pas considérer une ancienne réservation comme la preuve d’une session encore active.
+Coordination : lire `docs/ROADMAP.md` avant de commencer, réserver la tâche et les fichiers concernés, puis renseigner les validations et limites à la livraison. Codex assure désormais seul le suivi du projet ; ne pas considérer une ancienne réservation comme la preuve d’une session encore active.
 
 Priorité actuelle : application B2C pour chercheurs d’emploi ; lire `docs/B2C.md`. Frontend React/Vite dans `web/`, API NestJS conservée. Les PDF V2 portent sur le B2B désormais différé.
 
@@ -8,7 +8,7 @@ Lire `README.md` et `docs/PROJECT.md` comme références de l’état réel du p
 
 ## Stack actuelle
 
-NestJS 11, adaptateur Express, TypeScript strict, npm. Frontend React/Vite dans `web/` avec stockage navigateur. Le service Go `services/auth/` ajoute PostgreSQL, Redis et l’identité ; le service Rust `services/notifications/` ajoute une file PostgreSQL et un worker SMTP transactionnel. Il n’existe pas de moteur IA. Ne pas utiliser les anciennes commandes de workspaces Next.js/Fastify.
+NestJS 11, adaptateur Express, TypeScript strict, npm. Frontend React/Vite dans `web/` avec stockage navigateur. Le service Go `services/auth/` ajoute PostgreSQL, Redis et l’identité ; le service Rust `services/notifications/` ajoute une file PostgreSQL et un worker SMTP transactionnel. Un adaptateur optionnel appelle Ollama local pour comparer un profil et une offre ; il ne génère ni candidature ni contenu inventé. Ne pas utiliser les anciennes commandes de workspaces Next.js/Fastify.
 
 ## Commandes
 

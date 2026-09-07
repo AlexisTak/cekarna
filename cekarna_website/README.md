@@ -19,12 +19,13 @@ Ouvrir http://localhost:5173 pour la page d’accueil, puis utiliser http://loca
 
 ## État réel
 
-Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. Il ne contient pas encore de moteur IA. Les PDF V2 du dossier parent décrivent le B2B différé. Le cadrage prioritaire actuel est `docs/B2C.md`.
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. La comparaison optionnelle peut appeler un modèle Ollama local ; elle ne génère pas de candidature. Les PDF V2 du dossier parent décrivent le B2B différé. Le cadrage prioritaire actuel est `docs/B2C.md`.
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.
-- `POST /v1/cv-import/extraction` : import d’un CV PDF **textuel** (multipart, champ `file`). Renvoie le texte page par page, des propositions de profil et, pour chacune, les extraits sources (page, ligne, bornes). Rien n’est enregistré. Un PDF scanné est refusé en 422 : aucune reconnaissance d’image, aucune valeur devinée.
-- `POST /v1/cv-import/profile` : validation du profil après correction manuelle. Chaque champ porte `source` : `extracted` (vérifié caractère pour caractère contre le CV importé) ou `manual` (saisie assumée). Une valeur annoncée comme extraite mais absente du document est refusée en 400.
+- `POST /v1/cv-import/extraction` : import authentifié d’un CV PDF **textuel** (multipart, champ `file`). Renvoie le texte page par page, des propositions de profil et, pour chacune, les extraits sources (page, ligne, bornes). Rien n’est enregistré. Un PDF scanné est refusé en 422 : aucune reconnaissance d’image, aucune valeur devinée.
+- `POST /v1/cv-import/profile` : validation authentifiée du profil après correction manuelle. Chaque champ porte `source` : `extracted` (vérifié caractère pour caractère contre le CV importé) ou `manual` (saisie assumée). Une valeur annoncée comme extraite mais absente du document est refusée en 400.
+- `POST /v1/local-ai/compare` : comparaison sur demande, réservée à une session active, via Ollama local. Les preuves sans extrait littéral sont écartées et le résultat n’est pas un score d’embauche.
 - Validation globale des futurs DTO avec `class-validator` : champs inconnus refusés, sans conversion implicite des valeurs.
 - En-têtes HTTP Helmet, CORS limité aux origines configurées, arrêt sur signaux système.
 
@@ -51,6 +52,8 @@ L’API écoute par défaut sur http://127.0.0.1:3000. Aucun service Docker n’
 | `CORS_ORIGINS` | vide | Origines HTTP(S) exactes, séparées par des virgules, sans chemin ni slash final |
 | `CV_IMPORT_MAX_BYTES` | `5000000` | Taille maximale d’un CV importé, de 1024 à 10000000 octets |
 | `CV_IMPORT_RETENTION_SECONDS` | `900` | Durée de conservation en mémoire du texte extrait, de 60 à 3600 secondes |
+| `CV_IMPORT_MAX_PAGES` | `10` | Nombre maximal de pages d’un PDF, de 1 à 50 |
+| `AUTH_IDENTITY_URL` | `http://127.0.0.1:8081/v1/auth/me` | Endpoint HTTP(S) interne utilisé pour vérifier la session des routes privées |
 
 L'écran d'import du frontend appelle cette API depuis le navigateur : en développement, renseigner `CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173` pour couvrir les deux adresses locales. En production, n’autoriser que l’origine HTTPS réelle. Côté frontend, `VITE_API_BASE_URL` pointe l'API NestJS (défaut `http://127.0.0.1:3000`).
 
@@ -64,7 +67,7 @@ CORS contrôle les autorisations des navigateurs ; il ne remplace pas une authen
 npm run check
 ```
 
-Cette commande enchaîne lint sans modification, vérification TypeScript, tests unitaires, tests HTTP et compilation. La CI GitHub exécute `npm run check:all` sur Node.js 24, après installation des dépendances des deux dossiers.
+Cette commande enchaîne lint sans modification, vérification TypeScript, tests unitaires, tests HTTP, tests du frontend et compilation. Elle peut servir de contrôle CI après installation des dépendances des deux dossiers.
 
 - `npm run lint:fix` : corrections automatiques explicites.
 - `npm run format` : formatage des sources et tests.

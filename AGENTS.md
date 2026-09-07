@@ -2,7 +2,7 @@
 
 ## Coordination du travail restant
 
-Lire `cekarna_website/docs/ROADMAP.md` avant de choisir une tâche. Cette feuille partagée Codex / Claude recense les priorités, réservations, critères de livraison et validations restantes. Mettre à jour la tâche concernée et son journal après intervention ; vérifier l’état Git et les modifications concurrentes avant d’éditer.
+Lire `cekarna_website/docs/ROADMAP.md` avant de choisir une tâche. Cette feuille tenue par Codex recense les priorités, critères de livraison et validations restantes. Mettre à jour la tâche concernée et son journal après intervention ; vérifier l’état Git avant d’éditer.
 
 À la demande de l’utilisateur, conserver les cinq PDF comme références durables du projet. Ce fichier sert de repère aux prochaines sessions ; consulter les documents ou leurs sources avant de prendre une décision détaillée.
 

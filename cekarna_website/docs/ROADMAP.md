@@ -1,4 +1,4 @@
-# Cekarna — travail restant et coordination Codex / Claude
+# Cekarna — travail restant et coordination
 
 État de référence : 6 septembre 2026. Document de travail partagé, à actualiser après chaque livraison.
 
@@ -16,21 +16,19 @@ Le périmètre décidé par l’utilisateur est le **B2C exclusivement : applica
 
 Ne pas considérer un plan, un écran ou une documentation comme une fonctionnalité livrée. Les chiffres des PDF sont des objectifs ou hypothèses, pas des performances constatées. Cette feuille de route ne constitue pas une validation de lancement.
 
-## Comment travailler à deux
+## Suivi du travail
 
 1. Lire les `AGENTS.md`, cette feuille et l’état Git avant de modifier le code.
-2. Réserver une tâche dans le tableau : responsable, état et fichiers concernés. Une proposition d’attribution ne vaut pas réservation.
-3. Relire les fichiers juste avant de les modifier. Ne pas écraser, restaurer ou inclure dans un commit le travail de l’autre sans l’avoir examiné.
-4. Pour un contrat partagé (profil, API, authentification), consigner le contrat et les dépendances avant de modifier les deux côtés. Éviter les modifications simultanées de `App.tsx` et `domain.ts`.
-5. Si deux tâches touchent les mêmes fichiers, noter le blocage et séquencer les modifications. Le tableau est une coordination humaine, pas un verrou automatique.
-6. À la livraison, mettre à jour l’état, les preuves de validation et les limites. Ne marquer **Terminé** que lorsque code, erreurs, tests pertinents et documentation concordent.
-7. Ne jamais inscrire de secret, de jeton ou de contenu de CV réel dans ce document. Ne pas pousser ou déployer simplement parce qu’une case est cochée.
+2. Réserver une tâche dans le tableau avec son état et les fichiers concernés.
+3. Pour un contrat partagé (profil, API, authentification), consigner le contrat et les dépendances avant de modifier les deux côtés.
+4. À la livraison, mettre à jour l’état, les preuves de validation et les limites. Ne marquer **Terminé** que lorsque code, erreurs, tests pertinents et documentation concordent.
+5. Ne jamais inscrire de secret, de jeton ou de contenu de CV réel dans ce document. Ne pas pousser ou déployer simplement parce qu’une case est cochée.
 
 États : **À faire**, **En cours**, **À valider**, **Bloqué**, **Terminé**, **Différé**.
 
 ## Checklist obligatoire avant de terminer une tâche
 
-Copier cette checklist dans le journal de livraison ou dans la section de la tâche, puis cocher uniquement ce qui a été réellement fait. Une tâche reste **À valider** tant que les points applicables ne sont pas cochés. Claude et Codex suivent la même règle.
+Copier cette checklist dans le journal de livraison ou dans la section de la tâche, puis cocher uniquement ce qui a été réellement fait. Une tâche reste **À valider** tant que les points applicables ne sont pas cochés.
 
 - [ ] La tâche, le périmètre et les fichiers modifiés sont indiqués dans le tableau de coordination.
 - [ ] Les modifications concurrentes ont été relues juste avant l’édition ; aucun changement d’un autre agent n’a été écrasé.
@@ -49,7 +47,7 @@ Copier cette checklist dans le journal de livraison ou dans la section de la tâ
 
 | Tâche | Agent | Fichiers | Validation exécutée | Limites / suite | État |
 | --- | --- | --- | --- | --- | --- |
-| Exemple : C02 | Claude ou Codex | chemins précis | commande et résultat, ou scénario manuel | ce qui n’est pas validé | À valider / Terminé |
+| Exemple : C02 | Codex | chemins précis | commande et résultat, ou scénario manuel | ce qui n’est pas validé | À valider / Terminé |
 
 ## Socle déjà présent à préserver
 
@@ -73,13 +71,13 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C04 | P0 | Activer et vérifier les emails réels | À faire | Libre | `services/auth/`, `services/notifications/`, configuration | Fournisseur et configuration disponibles |
 | C05 | P0 | Fiabiliser les notifications et leur purge | À faire | Libre | File Rust, cycle de vie des comptes | Contrat interservices |
 | C06 | P0 | Valider sessions, conflits et reprise locale | À faire | Libre | `auth-api.ts`, `App.tsx`, service Go | Coordination avec C01/C02 |
-| C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre ; vérifier le travail de Claude avant réservation | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
+| C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
 | C08 | P1 | Comparaison expliquée profil–offre | En cours | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
 | C09 | P1 | Brouillons corrigibles et exportables | En cours | Codex (adaptateur Hermes local uniquement) | Domaine brouillons, adaptateur IA éventuel, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | En cours | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
 | C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
 | C12 | P0 avant lancement | Préparer exploitation et recette | À faire | Libre | Déploiement, CI, supervision, sauvegardes, tests | À mener progressivement |
-| C13 | P1 | Réconcilier la documentation avec le code | À faire | Libre | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | Après chaque tranche |
+| C13 | P1 | Réconcilier la documentation avec le code | En cours | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | Après chaque tranche |
 | C14 | P2 | Abonnement éventuel | Différé | Non attribué | Paiement, quotas, droits | Parcours validé et décision commerciale |
 
 P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validation de la valeur. L’ordre ne signifie pas qu’il faut lancer de nouveaux microservices : documenter le besoin et le coût de toute infrastructure ajoutée.
@@ -220,5 +218,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C02 (partie manuelle) | Codex | Ajout d’expériences et formations structurées, saisie, suppression et restauration compatible des anciens exports | `npm --prefix web test` : 52 tests ; `npm --prefix web run build` réussi | L’extraction et les preuves CV par expérience ou formation restent à construire ; C02 demeure en cours |
 | 2026-09-07 | C02 | Codex | Profil complété avec nom, email, téléphone et ville ; extraction améliorée pour coordonnées, villes et compétences ; expériences et diplômes sélectionnables avec extraits sources | `npm run check:all` : 59 tests Nest, 18 tests HTTP, 52 tests web et builds réussis ; `go test ./... -count=1` réussi | L’extraction reste déterministe : les lignes de parcours sont proposées telles quelles puis corrigées par la personne |
 | 2026-09-07 | C10 (première tranche) | Codex | Centre de notifications local dans l’en-tête : les messages d’information et erreurs déjà présentés deviennent consultables, avec compteur et état lu/non lu | `npm test -- --run` : 54 tests front réussis ; `npm run build` Vite réussi | Historique uniquement en mémoire et sans préférences persistantes ; aucune notification email ou candidature automatique n’est ajoutée |
+| 2026-09-07 | C13 (revue) | Codex | Références B2C, README, audit et variables d’environnement alignés avec l’import CV authentifié, Ollama local et les notifications internes ; consignes Claude retirées de la coordination | 66 tests NestJS, 21 tests HTTP, 54 tests front, builds Nest/Vite, `go test ./... -count=1`, `cargo fmt --check`, `cargo test` et `cargo clippy --all-targets -- -D warnings` réussis | Services de développement arrêtés ; le test Rust demandant une PostgreSQL temporaire reste ignoré |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

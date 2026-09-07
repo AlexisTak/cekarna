@@ -20,7 +20,7 @@ Le 7 septembre 2026, l’utilisateur a décidé que Cekarna serait une **applica
 
 ## Architecture actuelle
 
-Le frontend React/TypeScript est dans `web/`, construit par Vite. Il utilise son propre package npm et lockfile, sans transformer le backend en monorepo. L’API NestJS existante reste intacte. Aucun profil ou offre ne transite par cette API pour l’instant.
+Le frontend React/TypeScript est dans `web/`, construit par Vite. Il utilise son propre package npm et lockfile, sans transformer le backend en monorepo. L’API NestJS reçoit les imports CV authentifiés et la comparaison locale optionnelle ; les profils, offres et notes confirmés sont enregistrés dans le dossier privé du service Go.
 
 La racine de l’application web est la page d’accueil publique. L’espace candidat est ouvert avec `?workspace=candidate` afin de rester utilisable sur un hébergement statique sans configuration serveur. L’ancienne URL locale `/app` reste reconnue à des fins de compatibilité.
 
@@ -41,7 +41,7 @@ demande une confirmation explicite.
 4. Ajouter collecte d’offres depuis des sources autorisées et une comparaison évaluée sur corpus.
 5. Préparer des brouillons personnalisés, sans inventer d’expériences ; validation et export avant tout envoi.
 
-L’import de CV PDF textuel est livré dans la tranche suivante documentée ci-dessus. La recherche automatique, les notifications visibles dans l’interface et les modèles IA ne sont pas livrés. Aucun abonnement ni envoi de candidature n’est activé.
+L’import de CV PDF textuel est livré. Un centre de notifications local consulte les messages importants de l’onglet ; il ne déclenche aucun e-mail. La comparaison optionnelle par Ollama local est disponible après connexion, sans génération de candidature. La recherche automatique, les brouillons IA, l’abonnement et l’envoi de candidature ne sont pas activés.
 
 ## Vérification
 

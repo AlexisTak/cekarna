@@ -74,9 +74,13 @@ s'appliquent comme principes au parcours B2C. Aucun PDF historique n'est modifi�
 
   constituent pas un chiffrement du stockage sur un appareil partagé.
 
-- Les analyses PDF sont en mémoire, accessibles par identifiant opaque ; pas
+- Les analyses PDF sont en mémoire, rattachées à l’identifiant du compte contrôlé
 
-  encore d'autorisation liée au compte ni de stockage partagé entre instances.
+  auprès du service d’identité ; elles ne sont pas partageables entre instances.
+
+  Un déploiement multi-instance nécessitera un stockage temporaire partagé ou une
+
+  affinité de session.
 
 
 

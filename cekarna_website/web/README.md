@@ -18,7 +18,7 @@ npm test
 npm run build
 ```
 
-Le build produit `dist/`. Le site statique est configuré pour un déploiement Sites avec reprise des routes côté client. L’API NestJS du dossier parent n’est pas nécessaire à cette tranche.
+Le build produit `dist/`. Le site statique est configuré pour un déploiement Sites avec reprise des routes côté client. L’API NestJS du dossier parent est nécessaire pour l’import de CV et la comparaison Ollama locale ; le reste de l’espace candidat reste utilisable sans elle.
 
 ## Données et limites
 
@@ -28,14 +28,15 @@ Le build produit `dist/`. Le site statique est configuré pour un déploiement S
 - 1 000 offres maximum et import de sauvegarde limité à 5 Mo ; le quota réel dépend aussi du navigateur. Une sauvegarde impossible affiche une alerte.
 - Les liens externes n’acceptent que HTTP(S), sans identifiants intégrés.
 - Les repères de correspondance sont des comparaisons de texte, pas un classement IA.
-- Aucun import de CV, scraping, génération IA ou envoi automatique.
+- L’import de CV PDF textuel nécessite une session active et l’API NestJS. La comparaison Ollama locale est proposée à la demande depuis une offre, sans score d’embauche.
+- Aucun scraping, brouillon généré ni envoi automatique.
 
 ## Sources
 
 - `src/domain.ts` : schéma, validation, exemples, correspondances et export.
 - `src/domain.test.ts` : validation des sauvegardes et règles de comparaison.
 - `src/App.tsx` : vues, formulaires et interactions.
-- `src/Auth.tsx` : formulaires d’inscription et de connexion en attente du service d’identité.
+- `src/Auth.tsx` : formulaires d’inscription et de connexion raccordés au service d’identité.
 - `src/style.css` : thème, composants et adaptation mobile.
 
 Police DM Sans livrée localement par npm ; aucune requête Google Fonts. Les exemples ne renvoient pas vers de vraies offres.

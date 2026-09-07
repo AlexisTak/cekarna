@@ -29,6 +29,14 @@ describe('environment', () => {
       'CORS_ORIGINS',
     );
   });
+  it.each(['file:///tmp/auth', 'ftp://example.com/auth'])(
+    'rejects a non-HTTP identity endpoint %s',
+    (endpoint) => {
+      expect(() => readEnvironment({ AUTH_IDENTITY_URL: endpoint })).toThrow(
+        'AUTH_IDENTITY_URL',
+      );
+    },
+  );
   it('parses explicit configuration and removes duplicate origins', () => {
     expect(
       readEnvironment({

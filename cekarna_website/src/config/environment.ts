@@ -44,7 +44,8 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
   const authIdentityUrl =
     env.AUTH_IDENTITY_URL?.trim() ?? 'http://127.0.0.1:8081/v1/auth/me';
   try {
-    new URL(authIdentityUrl);
+    const url = new URL(authIdentityUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
   } catch {
     throw new Error('AUTH_IDENTITY_URL must be a valid HTTP(S) URL');
   }

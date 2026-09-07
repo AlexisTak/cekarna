@@ -37,6 +37,7 @@ struct AppState {
 #[serde(deny_unknown_fields)]
 struct EnqueueRequest {
     owner_id: String,
+    expires_at: Option<OffsetDateTime>,
     kind: String,
     recipient: String,
     subject: String,
@@ -187,8 +188,8 @@ async fn enqueue(
     if input.owner_id.is_empty() || input.owner_id.len() > 128 {
         return Err(ApiError::bad_request("owner_id is required"));
     }
-    let row: (Uuid, String) = sqlx::query_as("INSERT INTO notifications (id, owner_id, kind, recipient, subject, text_body, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (idempotency_key) DO UPDATE SET id = notifications.id RETURNING id, status::text")
-        .bind(id).bind(input.owner_id).bind(input.kind).bind(recipient.to_string()).bind(input.subject).bind(input.text_body).bind(idempotency_key)
+    let row: (Uuid, String) = sqlx::query_as("INSERT INTO notifications (id, owner_id, kind, recipient, subject, text_body, expires_at, idempotency_key) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (idempotency_key) DO UPDATE SET id = notifications.id RETURNING id, status::text")
+        .bind(id).bind(input.owner_id).bind(input.kind).bind(recipient.to_string()).bind(input.subject).bind(input.text_body).bind(input.expires_at).bind(idempotency_key)
         .fetch_one(&state.database).await.map_err(ApiError::database)?;
     Ok(Json(EnqueueResponse {
         id: row.0,
@@ -319,7 +320,8 @@ async fn claim_pending(
 ) -> Result<Option<PendingNotification>, sqlx::Error> {
     sqlx::query("UPDATE notifications SET status = 'failed', locked_at = NULL, last_error = 'attempts_exhausted' WHERE attempts >= $1 AND (status = 'pending' OR (status = 'sending' AND locked_at < now() - interval '5 minutes'))")
         .bind(max_attempts).execute(database).await?;
-    sqlx::query_as::<_, PendingNotification>("WITH next AS (SELECT id FROM notifications WHERE ((status = 'pending' AND available_at <= now()) OR (status = 'sending' AND locked_at < now() - interval '5 minutes')) AND attempts < $1 ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE notifications SET status = 'sending', attempts = attempts + 1, locked_at = now() WHERE id = (SELECT id FROM next) RETURNING id, recipient, subject, text_body")
+    sqlx::query("UPDATE notifications SET status = 'cancelled', locked_at = NULL, last_error = 'expired' WHERE status IN ('pending','sending') AND expires_at IS NOT NULL AND expires_at <= now()").execute(database).await?;
+    sqlx::query_as::<_, PendingNotification>("WITH next AS (SELECT id FROM notifications WHERE ((status = 'pending' AND available_at <= now()) OR (status = 'sending' AND locked_at < now() - interval '5 minutes')) AND (expires_at IS NULL OR expires_at > now()) AND attempts < $1 ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE notifications SET status = 'sending', attempts = attempts + 1, locked_at = now() WHERE id = (SELECT id FROM next) RETURNING id, recipient, subject, text_body")
         .bind(max_attempts).fetch_optional(database).await
 }
 

@@ -391,6 +391,7 @@ export default function App() {
     } catch { return []; }
   });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [informationalNotifications, setInformationalNotifications] = useState(() => localStorage.getItem(`${STORAGE_KEY}.notifications.informational`) !== 'false');
   const [account, setAccount] = useState<Account | null>(null);
   const [remoteStatus, setRemoteStatus] = useState<
     'local' | 'saved' | 'saving' | 'error' | 'conflict'
@@ -492,6 +493,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!toast) return;
+    if (!informationalNotifications) return;
     setNotifications((current) =>
       [
         { id: crypto.randomUUID(), message: toast, read: false },
@@ -500,10 +502,11 @@ export default function App() {
     );
     const timeout = window.setTimeout(() => setToast(''), 4500);
     return () => window.clearTimeout(timeout);
-  }, [toast]);
+  }, [toast, informationalNotifications]);
   useEffect(() => {
     try { localStorage.setItem(`${STORAGE_KEY}.notifications`, JSON.stringify(notifications)); } catch { /* notification history is optional */ }
   }, [notifications]);
+  useEffect(() => { try { localStorage.setItem(`${STORAGE_KEY}.notifications.informational`, String(informationalNotifications)); } catch { /* optional */ } }, [informationalNotifications]);
   useEffect(() => {
     document.title = `${nav.find((n) => n.id === view)?.label} — Cekarna`;
   }, [view]);
@@ -803,6 +806,7 @@ export default function App() {
               {notificationsOpen && (
                 <div className="notification-panel" role="status">
                   <strong>Notifications</strong>
+                  <label><input type="checkbox" checked={informationalNotifications} onChange={(event) => setInformationalNotifications(event.target.checked)} /> Informations</label>
                   {notifications.length ? (
                     <ul>
                       {notifications.map((item) => (
@@ -812,6 +816,7 @@ export default function App() {
                   ) : (
                     <p>Aucune notification pour le moment.</p>
                   )}
+                  {notifications.length > 0 && <button type="button" onClick={() => setNotifications([])}>Effacer l’historique</button>}
                 </div>
               )}
             </div>

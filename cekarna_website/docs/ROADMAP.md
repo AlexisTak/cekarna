@@ -76,7 +76,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C09 | P1 | Brouillons corrigibles et exportables | En cours | Codex (adaptateur Hermes local uniquement) | Domaine brouillons, adaptateur IA éventuel, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | En cours | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
 | C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
-| C12 | P0 avant lancement | Préparer exploitation et recette | À faire | Libre | Déploiement, CI, supervision, sauvegardes, tests | À mener progressivement |
+| C12 | P0 avant lancement | Préparer exploitation et recette | En cours | Codex | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | À mener progressivement |
 | C13 | P1 | Réconcilier la documentation avec le code | En cours | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | Après chaque tranche |
 | C14 | P2 | Abonnement éventuel | Différé | Non attribué | Paiement, quotas, droits | Parcours validé et décision commerciale |
 
@@ -183,6 +183,8 @@ Lire [la spécification existante](superpowers/specs/2026-09-06-auth-passkeys-tr
 
 ### C12 — Recette et exploitation avant lancement
 
+- [x] Créer un tableau de supervision local séparé du site candidat. L’application Tauri ne propose pour l’instant que des contrôles de santé en lecture seule, exécutés depuis le processus Rust vers les adresses de bouclage.
+
 - [ ] Séparer développement, préproduction et production ; configurer HTTPS, secrets et services privés.
 - [ ] Vérifier la CI distante, les migrations et le retour applicatif sur l’environnement choisi.
 - [ ] Mettre en place sauvegardes et restauration réellement testée ; mesurer les objectifs RPO/RTO des PDF avant tout engagement.
@@ -223,5 +225,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C03 | Codex | Contrôle direct de l’identité ajouté pour l’import ; extraction et confirmation restent liées au propriétaire côté serveur | 69 tests NestJS, 21 tests HTTP et build NestJS réussis | Stockage temporaire en mémoire par instance ; le déploiement multi-instance exigera un stockage partagé ou une affinité de session |
 | 2026-09-07 | C05 (idempotence) | Codex | Clé d’idempotence SHA-256 transmise par l’auth et contrainte unique ajoutée à la file Rust | `go test ./... -count=1`, `cargo test` et `cargo clippy --all-targets -- -D warnings` réussis | Rétention, annulation et purge lors de la suppression du compte restent à construire |
 | 2026-09-07 | C13 (pages légales) | Codex | Footer et routes pour mentions légales, confidentialité, cookies et CGU ; identité de l’éditeur configurable hors dépôt | 56 tests front, build Vite, `cargo test` et Clippy réussis | Renseigner `VITE_LEGAL_PUBLISHER` et `VITE_LEGAL_CONTACT` avec les données réelles avant publication |
+| 2026-09-07 | C12 (supervision locale) | Codex | Création de `../desktop-admin/`, application Tauri distincte du site public ; contrôles lecture seule de l’API, identité, notifications et Ollama depuis Rust | `npm run build`, `cargo fmt --check`, `cargo check` et `npm run tauri:build -- --debug --no-bundle` réussis ; exécutable debug généré | Les opérations d’administration, l’authentification d’opérateur et les procédures d’incident restent à définir avant tout accès aux données ou action d’écriture |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

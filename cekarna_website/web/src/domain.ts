@@ -47,6 +47,7 @@ export interface Job {
   qualification?: string;
   skills?: string[];
   accessibleToDisabledPeople?: boolean;
+  reminderAt?: string;
 }
 export interface Experience {
   id: string;
@@ -479,6 +480,7 @@ export function parseWorkspace(raw: string): Workspace | null {
         'workDuration',
         'experience',
         'qualification',
+        'reminderAt',
       ])
         if (
           job[key] !== undefined &&
@@ -488,6 +490,11 @@ export function parseWorkspace(raw: string): Workspace | null {
       if (
         job.publishedAt !== undefined &&
         Number.isNaN(Date.parse(job.publishedAt as string))
+      )
+        return null;
+      if (
+        job.reminderAt !== undefined &&
+        Number.isNaN(Date.parse(job.reminderAt as string))
       )
         return null;
       if (

@@ -74,7 +74,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
 | C08 | P1 | Comparaison expliquée profil–offre | En cours | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
 | C09 | P1 | Brouillons corrigibles et exportables | En cours | Codex (adaptateur Hermes local uniquement) | Domaine brouillons, adaptateur IA éventuel, interface | C02/C08 et validation du parcours principal |
-| C10 | P1 | Notifications visibles et préférences | En cours | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
+| C10 | P1 | Notifications visibles et préférences | Terminé | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
 | C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
 | C12 | P0 avant lancement | Préparer exploitation et recette | En cours | Codex | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | À mener progressivement |
 | C13 | P1 | Réconcilier la documentation avec le code | En cours | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | Après chaque tranche |
@@ -168,9 +168,9 @@ Lire d’abord [la spécification](superpowers/specs/2026-09-06-offers-collecte-
 ### C10 — Notifications produit
 
 - [x] Définir les événements utiles : résultat disponible, erreur nécessitant une action, rappel choisi par la personne. La première tranche transforme les messages de résultat et d’erreur déjà affichés par l’interface en notifications internes ; aucun rappel n’est créé sans choix explicite.
-- [x] Ajouter consultation et états lu/non lu. Un centre de notifications local permet de consulter les vingt derniers événements de l’onglet et de les marquer lus à l’ouverture ; les préférences persistantes et les autres canaux restent à construire.
-- [ ] Éviter les doublons et les notifications obsolètes ; respecter les préférences enregistrées.
-- [ ] Ne pas assimiler un rappel à une autorisation d’envoyer une candidature.
+- [x] Ajouter consultation et états lu/non lu. Le centre conserve localement les vingt derniers événements et leur lecture, dans un historique isolé par compte sur l’appareil.
+- [x] Éviter les doublons et les notifications obsolètes ; respecter les préférences enregistrées. Les informations peuvent être désactivées, l’historique effacé et chaque rappel possède un identifiant stable lié à l’offre et à sa date.
+- [x] Ne pas assimiler un rappel à une autorisation d’envoyer une candidature. Le rappel est choisi dans le formulaire d’offre, reste dans le dossier synchronisé et indique explicitement qu’aucun envoi n’a eu lieu.
 
 ### C11 — MFA / passkeys
 
@@ -229,5 +229,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C04 / C12 (notifications locales) | Codex | Compose notifications complété par Mailpit local ; configuration desktop de développement générable avec secrets hors dépôt ; SMTP non chiffré limité à `APP_ENV=development`, STARTTLS restant le défaut | `cargo fmt --check`, `cargo test` : 5 réussis, 1 ignoré, Clippy strict ; build desktop ; démarrage Compose ; `/health/live` et `/health/ready` notifications retournent HTTP 200 | Mailpit capte les emails localement sur le poste ; configuration d’un fournisseur réel et test de réception externe restent à faire pour C04 |
 | 2026-09-07 | C05 (suppression interservices) | Codex | Migration propriétaire des notifications, contrat auth→notifications enrichi et purge interne avant suppression d’un compte | `go test ./...` et `cargo check` réussis | Une panne de la purge refuse la suppression afin de ne pas laisser de notifications orphelines ; une reprise durable transactionnelle reste à construire |
 | 2026-09-07 | C05 (expiration) | Codex | Ajout de `expires_at`, statut `cancelled` et transmission des délais réels des liens d’authentification | `go test ./...`, `cargo test` et Clippy strict réussis | Les opérations auth et mise en file ne sont pas encore coordonnées par une outbox durable |
+| 2026-09-07 | C10 | Codex | Préférence d’informations, historique effaçable et isolé par compte, rappels manuels persistés dans les offres et dédupliqués par offre/date | 57 tests frontend et build Vite réussis | Rappels évalués uniquement lorsque l’application est ouverte ; aucune notification système, aucun email et aucun envoi de candidature |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

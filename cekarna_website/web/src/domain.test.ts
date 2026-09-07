@@ -75,6 +75,15 @@ describe('workspace persistence', () => {
     state.jobs[0].url = 'javascript:alert(1)';
     expect(parseWorkspace(JSON.stringify(state))).toBeNull();
   });
+  it('keeps valid reminders and rejects malformed reminder dates', () => {
+    const state = demoWorkspace();
+    state.jobs[0].reminderAt = '2026-09-08T08:30:00.000Z';
+    expect(parseWorkspace(JSON.stringify(state))?.jobs[0].reminderAt).toBe(
+      state.jobs[0].reminderAt,
+    );
+    state.jobs[0].reminderAt = 'not-a-date';
+    expect(parseWorkspace(JSON.stringify(state))).toBeNull();
+  });
 });
 describe('manual criteria', () => {
   it('creates clearly identified test offers', () => {

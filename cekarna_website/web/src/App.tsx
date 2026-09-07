@@ -68,6 +68,7 @@ import {
 } from './domain';
 
 type View = 'dashboard' | 'jobs' | 'applications' | 'profile';
+type ProductNotification = { id: string; message: string; read: boolean };
 const nav = [
   { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { id: 'jobs', label: 'Mes offres', icon: Search },
@@ -96,6 +97,25 @@ function load(): { workspace: Workspace; error: string } {
       error:
         'Le stockage de ce navigateur est indisponible. Exportez votre travail avant de fermer la page.',
     };
+  }
+}
+
+function loadNotifications(key: string): ProductNotification[] {
+  try {
+    const saved = localStorage.getItem(key);
+    const parsed: unknown = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed)
+      ? parsed
+          .filter(
+            (item): item is ProductNotification =>
+              typeof item?.id === 'string' &&
+              typeof item?.message === 'string' &&
+              typeof item?.read === 'boolean',
+          )
+          .slice(0, 20)
+      : [];
+  } catch {
+    return [];
   }
 }
 
@@ -159,7 +179,9 @@ function JobForm({
       setError('Le poste et l’entreprise sont nécessaires.');
       return;
     }
+    const reminder = value('reminderAt');
     onSave({
+      ...job,
       id: job?.id ?? crypto.randomUUID(),
       title: value('title'),
       company: value('company'),
@@ -171,6 +193,7 @@ function JobForm({
       description: value('description'),
       status: job?.status ?? 'saved',
       notes: job?.notes ?? '',
+      reminderAt: reminder ? new Date(reminder).toISOString() : undefined,
       updatedAt: new Date().toISOString(),
     });
   }
@@ -254,6 +277,26 @@ function JobForm({
           placeholder="Missions, compétences recherchées, détails utiles…"
         />
       </label>
+      <label>
+        Me le rappeler
+        <input
+          name="reminderAt"
+          type="datetime-local"
+          defaultValue={
+            job?.reminderAt
+              ? new Date(
+                  new Date(job.reminderAt).getTime() -
+                    new Date(job.reminderAt).getTimezoneOffset() * 60_000,
+                )
+                  .toISOString()
+                  .slice(0, 16)
+              : ''
+          }
+        />
+        <span className="muted">
+          Ce rappel reste dans Cekarna et n’envoie aucune candidature.
+        </span>
+      </label>
       {error && (
         <p role="alert" className="form-error">
           {error}
@@ -335,6 +378,15 @@ function JobCard({
               )}
             </span>
           )}
+          {job.reminderAt && (
+            <span className="job-date">
+              Rappel :{' '}
+              {new Intl.DateTimeFormat('fr-FR', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              }).format(new Date(job.reminderAt))}
+            </span>
+          )}
           {job.source && (
             <span className="job-source">Source : {job.source}</span>
           )}
@@ -381,17 +433,15 @@ export default function App() {
   const [cvImport, setCvImport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
-  const [notifications, setNotifications] = useState<
-    { id: string; message: string; read: boolean }[]
-  >(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}.notifications`);
-      const parsed: unknown = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed.filter((item): item is { id: string; message: string; read: boolean } => typeof item?.id === 'string' && typeof item?.message === 'string' && typeof item?.read === 'boolean').slice(0, 20) : [];
-    } catch { return []; }
-  });
+  const [notifications, setNotifications] = useState<ProductNotification[]>(
+    () => loadNotifications(`${STORAGE_KEY}.notifications`),
+  );
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [informationalNotifications, setInformationalNotifications] = useState(() => localStorage.getItem(`${STORAGE_KEY}.notifications.informational`) !== 'false');
+  const [informationalNotifications, setInformationalNotifications] = useState(
+    () =>
+      localStorage.getItem(`${STORAGE_KEY}.notifications.informational`) !==
+      'false',
+  );
   const [account, setAccount] = useState<Account | null>(null);
   const [remoteStatus, setRemoteStatus] = useState<
     'local' | 'saved' | 'saving' | 'error' | 'conflict'
@@ -400,6 +450,10 @@ export default function App() {
   const saveQueue = useRef(Promise.resolve());
   const remoteRevision = useRef(0);
   const accountStorageKey = useRef(STORAGE_KEY);
+  const notificationStorageKey = useRef(`${STORAGE_KEY}.notifications`);
+  const notificationPreferenceKey = useRef(
+    `${STORAGE_KEY}.notifications.informational`,
+  );
   const remoteReady = useRef(false);
   const { profile, jobs, demo } = workspace;
   const selected = jobs.find((j) => j.id === selectedId);
@@ -422,6 +476,12 @@ export default function App() {
         if (cancelled) return;
         setAccount(me);
         accountStorageKey.current = `${STORAGE_KEY}.account.${me.id}`;
+        notificationStorageKey.current = `${STORAGE_KEY}.account.${me.id}.notifications`;
+        notificationPreferenceKey.current = `${notificationStorageKey.current}.informational`;
+        setNotifications(loadNotifications(notificationStorageKey.current));
+        setInformationalNotifications(
+          localStorage.getItem(notificationPreferenceKey.current) !== 'false',
+        );
         const personal = emptyWorkspace();
         personal.profile.firstName = me.first_name;
         setWorkspace(personal);
@@ -493,20 +553,61 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!toast) return;
-    if (!informationalNotifications) return;
-    setNotifications((current) =>
-      [
-        { id: crypto.randomUUID(), message: toast, read: false },
-        ...current.filter((item) => item.message !== toast),
-      ].slice(0, 20),
-    );
+    if (informationalNotifications)
+      setNotifications((current) =>
+        [
+          { id: crypto.randomUUID(), message: toast, read: false },
+          ...current.filter((item) => item.message !== toast),
+        ].slice(0, 20),
+      );
     const timeout = window.setTimeout(() => setToast(''), 4500);
     return () => window.clearTimeout(timeout);
   }, [toast, informationalNotifications]);
   useEffect(() => {
-    try { localStorage.setItem(`${STORAGE_KEY}.notifications`, JSON.stringify(notifications)); } catch { /* notification history is optional */ }
+    const collectDueReminders = () => {
+      const now = Date.now();
+      const due = jobs.filter(
+        (job) => job.reminderAt && Date.parse(job.reminderAt) <= now,
+      );
+      if (!due.length) return;
+      setNotifications((current) => {
+        const known = new Set(current.map((item) => item.id));
+        const additions = due
+          .map((job) => ({
+            id: `reminder:${job.id}:${job.reminderAt}`,
+            message: `Rappel choisi : revoir l’offre « ${job.title} » chez ${job.company}. Aucune candidature n’a été envoyée.`,
+            read: false,
+          }))
+          .filter((item) => !known.has(item.id));
+        return additions.length
+          ? [...additions, ...current].slice(0, 20)
+          : current;
+      });
+    };
+    collectDueReminders();
+    const interval = window.setInterval(collectDueReminders, 60_000);
+    return () => window.clearInterval(interval);
+  }, [jobs]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        notificationStorageKey.current,
+        JSON.stringify(notifications),
+      );
+    } catch {
+      // Notification history is optional.
+    }
   }, [notifications]);
-  useEffect(() => { try { localStorage.setItem(`${STORAGE_KEY}.notifications.informational`, String(informationalNotifications)); } catch { /* optional */ } }, [informationalNotifications]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        notificationPreferenceKey.current,
+        String(informationalNotifications),
+      );
+    } catch {
+      // The preference remains active for the current tab.
+    }
+  }, [informationalNotifications]);
   useEffect(() => {
     document.title = `${nav.find((n) => n.id === view)?.label} — Cekarna`;
   }, [view]);

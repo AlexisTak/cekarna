@@ -38,13 +38,17 @@ func (m NotificationMailer) Send(ctx context.Context, to, subject, text string) 
 	return m.SendForOwner(ctx, "legacy", to, subject, text)
 }
 func (m NotificationMailer) SendForOwner(ctx context.Context, ownerID, to, subject, text string) error {
+	return m.SendForOwnerUntil(ctx, ownerID, to, subject, text, time.Time{})
+}
+func (m NotificationMailer) SendForOwnerUntil(ctx context.Context, ownerID, to, subject, text string, expiresAt time.Time) error {
 	body, err := json.Marshal(struct {
 		Kind      string `json:"kind"`
 		OwnerID   string `json:"owner_id"`
+		ExpiresAt string `json:"expires_at,omitempty"`
 		Recipient string `json:"recipient"`
 		Subject   string `json:"subject"`
 		TextBody  string `json:"text_body"`
-	}{Kind: "auth.email", OwnerID: ownerID, Recipient: to, Subject: subject, TextBody: text})
+	}{Kind: "auth.email", OwnerID: ownerID, Recipient: to, Subject: subject, TextBody: text, ExpiresAt: formatExpiry(expiresAt)})
 	if err != nil {
 		return fmt.Errorf("encode notification: %w", err)
 	}
@@ -69,6 +73,12 @@ func (m NotificationMailer) SendForOwner(ctx context.Context, ownerID, to, subje
 		return fmt.Errorf("notification service returned status %d", resp.StatusCode)
 	}
 	return nil
+}
+func formatExpiry(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339)
 }
 func (m NotificationMailer) PurgeOwner(ctx context.Context, ownerID string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, m.URL+"/v1/notifications/owner/"+url.PathEscape(ownerID), nil)

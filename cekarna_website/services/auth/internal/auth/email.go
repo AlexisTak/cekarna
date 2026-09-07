@@ -11,12 +11,21 @@ import (
 type ownerMailer interface {
 	SendForOwner(context.Context, string, string, string, string) error
 }
+type expiringOwnerMailer interface {
+	SendForOwnerUntil(context.Context, string, string, string, string, time.Time) error
+}
 
 func sendOwnedMail(ctx context.Context, mailer Mailer, ownerID, to, subject, text string) error {
 	if owned, ok := mailer.(ownerMailer); ok {
 		return owned.SendForOwner(ctx, ownerID, to, subject, text)
 	}
 	return mailer.Send(ctx, to, subject, text)
+}
+func sendOwnedMailUntil(ctx context.Context, mailer Mailer, ownerID, to, subject, text string, expiresAt time.Time) error {
+	if owned, ok := mailer.(expiringOwnerMailer); ok {
+		return owned.SendForOwnerUntil(ctx, ownerID, to, subject, text, expiresAt)
+	}
+	return sendOwnedMail(ctx, mailer, ownerID, to, subject, text)
 }
 
 type tokenInput struct {
@@ -37,7 +46,7 @@ func (s *Server) deliverVerification(r *http.Request, uid, email string) {
 		return
 	}
 	subject, text := verificationMessage(s.Config.Origin, token)
-	if err := sendOwnedMail(r.Context(), s.Mailer, uid, email, subject, text); err != nil {
+	if err := sendOwnedMailUntil(r.Context(), s.Mailer, uid, email, subject, text, time.Now().Add(verifyEmailTTL)); err != nil {
 		slog.Error("verification email delivery failed")
 		s.auditEmailDelivery(r, "email_delivery_failed", uid)
 		return
@@ -110,7 +119,7 @@ func (s *Server) resetRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		subject, text := resetMessage(s.Config.Origin, token)
-		if serr := sendOwnedMail(r.Context(), s.Mailer, user.ID, user.Email, subject, text); serr != nil {
+		if serr := sendOwnedMailUntil(r.Context(), s.Mailer, user.ID, user.Email, subject, text, time.Now().Add(passwordResetTTL)); serr != nil {
 			slog.Error("reset email delivery failed")
 			s.auditEmailDelivery(r, "email_delivery_failed", user.ID)
 		} else {

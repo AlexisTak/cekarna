@@ -475,6 +475,8 @@ mod tests {
     fn rejects_invalid_input() {
         assert!(
             validate_input(&EnqueueRequest {
+                owner_id: "owner".into(),
+                expires_at: None,
                 kind: "Email!".into(),
                 recipient: "x@example.com".into(),
                 subject: "Subject".into(),

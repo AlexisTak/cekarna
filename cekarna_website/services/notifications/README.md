@@ -24,6 +24,12 @@ Utiliser des valeurs locales uniquement en développement. En production, inject
 les secrets depuis un gestionnaire dédié, utiliser PostgreSQL avec TLS et isoler
 le port HTTP sur le réseau interne.
 
+Pour le développement local, le panneau Tauri peut créer un `.env` ignoré par Git
+et démarrer Mailpit. Les messages restent alors dans Mailpit, accessible sur
+`http://127.0.0.1:8025`, et ne sont jamais remis à une boîte email réelle. Ce
+mode impose `APP_ENV=development` et utilise SMTP non chiffré uniquement entre
+les conteneurs locaux. Le réglage par défaut reste `NOTIFICATIONS_SMTP_SECURITY=starttls`.
+
 ## Contrat interne
 
 Toutes les routes sauf les contrôles de santé exigent `Authorization: Bearer

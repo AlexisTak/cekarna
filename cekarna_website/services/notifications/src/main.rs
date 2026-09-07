@@ -13,7 +13,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use config::{Config, SmtpConfig};
+use config::{Config, SmtpConfig, SmtpSecurity};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
     message::{Mailbox, Message, header::ContentType},
@@ -229,7 +229,13 @@ async fn dispatch_loop(
     retry_delay: Duration,
     retention_days: i64,
 ) {
-    let transport = match AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&smtp.host) {
+    let builder = match smtp.security {
+        SmtpSecurity::StartTls => AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&smtp.host),
+        SmtpSecurity::PlainDevelopment => Ok(
+            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&smtp.host),
+        ),
+    };
+    let transport = match builder {
         Ok(builder) => builder
             .port(smtp.port)
             .credentials(Credentials::new(

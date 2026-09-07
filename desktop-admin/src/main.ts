@@ -12,6 +12,7 @@ type ServiceStatus = {
   detail: string
   managedByPanel: boolean
   control: ServiceControl
+  setupRequired: boolean
 }
 
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -48,6 +49,9 @@ const refresh = document.querySelector<HTMLButtonElement>('#refresh')!
 const lastCheck = document.querySelector<HTMLParagraphElement>('#last-check')!
 
 function controlMarkup(service: ServiceStatus) {
+  if (service.setupRequired) {
+    return `<button class="service-action" data-service="${service.id}" data-action="initialize" type="button">Préparer le développement</button>`
+  }
   if (service.control === 'local' && service.available && !service.managedByPanel) {
     return '<p class="control-note">Démarré hors panneau</p>'
   }
@@ -93,11 +97,11 @@ services.addEventListener('click', async (event) => {
   if (!button) return
 
   const { service, action } = button.dataset
-  if (!service || (action !== 'start' && action !== 'stop')) return
+  if (!service || (action !== 'start' && action !== 'stop' && action !== 'initialize')) return
   if (action === 'stop' && !window.confirm(`Arrêter ${service} ?`)) return
 
   button.disabled = true
-  button.textContent = action === 'start' ? 'Démarrage…' : 'Arrêt…'
+  button.textContent = action === 'start' ? 'Démarrage…' : action === 'stop' ? 'Arrêt…' : 'Préparation…'
   try {
     await invoke('control_service', { service, action })
     await new Promise((resolve) => window.setTimeout(resolve, action === 'start' ? 1200 : 350))
@@ -105,7 +109,7 @@ services.addEventListener('click', async (event) => {
   } catch (error) {
     services.insertAdjacentHTML('afterbegin', `<p class="error">${typeof error === 'string' ? error : 'Action impossible. Consultez les journaux du service.'}</p>`)
     button.disabled = false
-    button.textContent = action === 'start' ? 'Démarrer' : 'Arrêter'
+    button.textContent = action === 'start' ? 'Démarrer' : action === 'stop' ? 'Arrêter' : 'Préparer le développement'
   }
 })
 

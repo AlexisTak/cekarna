@@ -1,3 +1,4 @@
+use rand::{distr::Alphanumeric, Rng};
 use serde::Serialize;
 use std::{
     collections::HashMap,
@@ -20,6 +21,7 @@ struct ServiceStatus {
     detail: String,
     managed_by_panel: bool,
     control: &'static str,
+    setup_required: bool,
 }
 
 fn workspace_root() -> PathBuf {
@@ -54,6 +56,7 @@ async fn check_service(
     endpoint: &'static str,
     control: &'static str,
     managed_by_panel: bool,
+    setup_required: bool,
 ) -> ServiceStatus {
     match client.get(endpoint).send().await {
         Ok(response) => {
@@ -74,6 +77,7 @@ async fn check_service(
                 },
                 managed_by_panel,
                 control,
+                setup_required,
             }
         }
         Err(error) => ServiceStatus {
@@ -89,6 +93,7 @@ async fn check_service(
             },
             managed_by_panel,
             control,
+            setup_required,
         },
     }
 }
@@ -103,6 +108,8 @@ async fn check_services(
         .map_err(|_| "Impossible de préparer le contrôle local.".to_owned())?;
     let api_managed = managed_by_panel(&processes, "candidate-api");
     let ollama_managed = managed_by_panel(&processes, "ollama");
+    let notifications_setup_required =
+        !project_path().join("services/notifications/.env").is_file();
 
     Ok(vec![
         check_service(
@@ -112,6 +119,7 @@ async fn check_services(
             "http://127.0.0.1:3000/health",
             "local",
             api_managed,
+            false,
         )
         .await,
         check_service(
@@ -120,6 +128,7 @@ async fn check_services(
             "Identité",
             "http://127.0.0.1:8081/health/ready",
             "docker",
+            false,
             false,
         )
         .await,
@@ -130,6 +139,7 @@ async fn check_services(
             "http://127.0.0.1:8082/health/ready",
             "docker",
             false,
+            notifications_setup_required,
         )
         .await,
         check_service(
@@ -139,6 +149,7 @@ async fn check_services(
             "http://127.0.0.1:11434/api/tags",
             "local",
             ollama_managed,
+            false,
         )
         .await,
     ])
@@ -165,6 +176,28 @@ fn run_docker_compose(directory: PathBuf, service: &str, action: &str) -> Result
     } else {
         Err("La commande Docker a échoué. Vérifiez Docker Desktop, le fichier .env et les journaux du service.".to_owned())
     }
+}
+
+fn random_secret() -> String {
+    rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(48)
+        .map(char::from)
+        .collect()
+}
+
+fn initialize_notifications_development() -> Result<(), String> {
+    let path = project_path().join("services/notifications/.env");
+    if path.exists() {
+        return Ok(());
+    }
+    let content = format!(
+        "# Configuration locale créée par Cekarna Admin. Ne pas utiliser en production.\nAPP_ENV=development\nPOSTGRES_PASSWORD={}\nNOTIFICATIONS_DATABASE_URL=postgres://cekarna:change-me@127.0.0.1:55433/cekarna_notifications?sslmode=disable\nNOTIFICATIONS_INTERNAL_TOKEN={}\nNOTIFICATIONS_SMTP_HOST=mailpit\nNOTIFICATIONS_SMTP_PORT=1025\nNOTIFICATIONS_SMTP_USERNAME=local\nNOTIFICATIONS_SMTP_PASSWORD=local\nNOTIFICATIONS_SMTP_FROM=Cekarna <no-reply@cekarna.local>\nNOTIFICATIONS_SMTP_SECURITY=plain\nNOTIFICATIONS_MAX_ATTEMPTS=5\nNOTIFICATIONS_RETRY_SECONDS=60\nNOTIFICATIONS_RETENTION_DAYS=30\nRUST_LOG=info\n",
+        random_secret(),
+        random_secret(),
+    );
+    std::fs::write(path, content)
+        .map_err(|_| "Impossible de créer la configuration locale des notifications.".to_owned())
 }
 
 fn start_local_service(processes: &ManagedProcesses, id: &'static str) -> Result<(), String> {
@@ -240,10 +273,11 @@ fn control_service(
     action: String,
     processes: tauri::State<'_, ManagedProcesses>,
 ) -> Result<(), String> {
-    if !matches!(action.as_str(), "start" | "stop") {
+    if !matches!(action.as_str(), "start" | "stop" | "initialize") {
         return Err("Action non autorisée.".to_owned());
     }
     match (service.as_str(), action.as_str()) {
+        ("notifications", "initialize") => initialize_notifications_development(),
         ("auth", action) => {
             run_docker_compose(project_path().join("services/auth"), "auth", action)
         }

@@ -21,6 +21,13 @@ pub struct SmtpConfig {
     pub username: String,
     pub password: String,
     pub from: Mailbox,
+    pub security: SmtpSecurity,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SmtpSecurity {
+    StartTls,
+    PlainDevelopment,
 }
 
 #[derive(Debug, Error)]
@@ -58,6 +65,27 @@ impl Config {
         let from = required("NOTIFICATIONS_SMTP_FROM")?
             .parse()
             .map_err(|err| invalid("NOTIFICATIONS_SMTP_FROM", err))?;
+        let security = match env::var("NOTIFICATIONS_SMTP_SECURITY")
+            .unwrap_or_else(|_| "starttls".into())
+            .as_str()
+        {
+            "starttls" => SmtpSecurity::StartTls,
+            "plain" if env::var("APP_ENV").as_deref() == Ok("development") => {
+                SmtpSecurity::PlainDevelopment
+            }
+            "plain" => {
+                return Err(ConfigError::Invalid {
+                    name: "NOTIFICATIONS_SMTP_SECURITY",
+                    reason: "plain is allowed only when APP_ENV=development".into(),
+                });
+            }
+            _ => {
+                return Err(ConfigError::Invalid {
+                    name: "NOTIFICATIONS_SMTP_SECURITY",
+                    reason: "must be starttls or plain".into(),
+                });
+            }
+        };
         let max_attempts = optional_number("NOTIFICATIONS_MAX_ATTEMPTS", 5, 1, 20)? as i32;
         let retry_seconds = optional_number("NOTIFICATIONS_RETRY_SECONDS", 60, 1, 86_400)? as u64;
         let retention_days = optional_number("NOTIFICATIONS_RETENTION_DAYS", 30, 1, 3_650)?;
@@ -71,6 +99,7 @@ impl Config {
                 username,
                 password,
                 from,
+                security,
             },
             max_attempts,
             retry_delay: Duration::from_secs(retry_seconds),

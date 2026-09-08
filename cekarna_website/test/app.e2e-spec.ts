@@ -227,4 +227,19 @@ describe('API HTTP configuration', () => {
         .expect(400);
     });
   });
+
+  describe('recommandations d’offres', () => {
+    it('refuse une analyse sans session', () =>
+      request(app.getHttpServer())
+        .post('/v1/local-ai/recommend-offers')
+        .send({ profile: { skills: 'React' } })
+        .expect(401));
+
+    it('refuse les champs inattendus avant tout appel à Hermes', () =>
+      request(app.getHttpServer())
+        .post('/v1/local-ai/recommend-offers')
+        .set('Authorization', 'Bearer candidate-a')
+        .send({ profile: { skills: 'React' }, email: 'secret@example.test' })
+        .expect(400));
+  });
 });

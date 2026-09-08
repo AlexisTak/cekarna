@@ -48,7 +48,8 @@ def draw_frame(docdata):
         c.saveState()
         c.setFillColor(NAVY); c.rect(0,H-115,W,115,fill=1,stroke=0)
         c.setFillColor(colors.HexColor('#F9CF67')); c.setFont('Bold',10)
-        c.drawString(50,H-28,'CEKARNA  /  ARCHIVE — HORS PÉRIMÈTRE B2C')
+        banner = 'CEKARNA  /  ARCHIVE — HORS PÉRIMÈTRE B2C' if docdata.get('archived', True) else 'CEKARNA  /  PRODUIT B2C'
+        c.drawString(50,H-28,banner)
         c.setFillColor(colors.white); c.setFont('Bold',25)
         c.drawString(50,H-62,docdata['title'])
         c.setFont('Body',10); c.drawString(50,H-83,docdata['subtitle'])
@@ -56,7 +57,7 @@ def draw_frame(docdata):
         c.drawString(50,H-102,docdata['status'])
         c.setStrokeColor(LINE); c.line(50,43,W-50,43)
         c.setFillColor(MUTED); c.setFont('Body',8)
-        c.drawString(50,29,f"{docdata['code']}   ·   V{DATA['version']}   ·   {DATA['date']}")
+        c.drawString(50,29,f"{docdata['code']}   ·   V{docdata.get('version', DATA['version'])}   ·   {docdata.get('date', DATA['date'])}")
         c.drawRightString(W-50,29,f"{doc.page} / {len(docdata['pages'])}")
         c.restoreState()
     return draw
@@ -95,7 +96,7 @@ for d in DATA['documents']:
         flow.append(Paragraph(q(page['lead']),styles['lead']))
         for b in page['blocks']: flow.extend(block(b))
     dest=OUT/d['file']
-    doc=SimpleDocTemplate(str(dest),pagesize=A4,rightMargin=50,leftMargin=50,topMargin=132,bottomMargin=57,title=f"Cekarna — {d['title']} — V2.0",author='Cekarna',subject=d['subtitle'],pageCompression=1)
+    doc=SimpleDocTemplate(str(dest),pagesize=A4,rightMargin=50,leftMargin=50,topMargin=132,bottomMargin=57,title=f"Cekarna — {d['title']} — V{d.get('version', DATA['version'])}",author='Cekarna',subject=d['subtitle'],pageCompression=1)
     doc.build(flow,onFirstPage=draw_frame(d),onLaterPages=draw_frame(d))
     pdf=PdfReader(dest)
     assert len(pdf.pages)==len(d['pages']), f"Pagination overflow: {d['file']} = {len(pdf.pages)} expected {len(d['pages'])}"

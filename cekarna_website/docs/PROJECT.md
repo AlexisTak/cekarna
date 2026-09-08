@@ -46,7 +46,7 @@ Aider à analyser des profils et des offres, puis à préparer des candidatures 
 
 Le porteur avait envisagé un SaaS B2B pour cabinets de recrutement. Ce segment, les organisations, les missions et la formation associée sont désormais hors projet. L’assistant candidat est devenu le produit unique.
 
-Les cinq PDF V2.0 du dossier parent et `../../documents/README.md` décrivent le cadrage détaillé. Leurs noms historiques contenant `v1` sont conservés, mais leur contenu est en V2. Les tarifs, quotas et objectifs sont des hypothèses de pilote, pas des engagements publiés.
+Le cahier des charges V3 du dossier parent décrit le B2C actif. Les quatre autres PDF V2.0 et `../../documents/README.md` conservent le cadrage historique ; leurs tarifs, quotas et objectifs B2B ne sont pas des engagements publiés.
 
 ## Première tranche fonctionnelle B2B historique — ne pas développer
 

@@ -4,7 +4,7 @@
 
 Lire `cekarna_website/docs/ROADMAP.md` avant de choisir une tâche. Cette feuille tenue par Codex recense les priorités, critères de livraison et validations restantes. Mettre à jour la tâche concernée et son journal après intervention ; vérifier l’état Git avant d’éditer.
 
-À la demande de l’utilisateur, conserver les cinq PDF comme références durables du projet. Ce fichier sert de repère aux prochaines sessions ; consulter les documents ou leurs sources avant de prendre une décision détaillée.
+À la demande de l’utilisateur, conserver les cinq PDF comme références durables du projet. Le cahier des charges est désormais une référence B2C active ; les quatre autres PDF restent historiques. Ce fichier sert de repère aux prochaines sessions ; consulter les documents ou leurs sources avant de prendre une décision détaillée.
 
 ## Priorité actuelle — décision ultérieure du 6 septembre 2026
 
@@ -13,9 +13,9 @@ L’utilisateur a décidé que Cekarna est **exclusivement une application web p
 - Référence actuelle : `cekarna_website/docs/B2C.md`.
 - Interface : `cekarna_website/web/`, React + Vite + TypeScript, npm. La racine est la page d’accueil publique ; `?workspace=candidate` ouvre l’espace candidat sans exiger de règle de réécriture serveur.
 - Socle B2C : profil manuel, offres ajoutées manuellement, filtres, suivi de candidature, notes, export/restauration JSON. État local conservé dans le navigateur ; mode découverte explicitement fictif. L’import de CV PDF textuel, avec extraits visibles et correction, est également livré ; aucune valeur ne doit être inventée.
-- Le compte connecté, la vérification d’adresse, la récupération et la synchronisation du dossier candidat sont livrés. La recherche automatique, l’envoi de candidatures et la génération IA ne sont pas livrés. Ne pas présenter les repères textuels comme un score IA.
-- Backend NestJS conservé. Le microservice Go/Chi est dans `cekarna_website/services/auth/` : PostgreSQL, Redis, Argon2id, JWT Ed25519 de 5 min, JWKS, refresh opaques avec rotation et audit. Lire son README avant modification. Le microservice Rust `cekarna_website/services/notifications/` gère la file SMTP transactionnelle durable. MFA/passkeys restent à construire. Ces demandes explicites autorisent ces services malgré le report historique ci-dessous.
-- Les PDF V2 restent conservés comme références historiques de principes utiles (preuves, correction humaine, fiabilité), **pas comme un cahier des charges à implémenter**. Ne pas les réécrire sans demande ou besoin explicite.
+- Le compte connecté, la vérification d’adresse, la récupération, la synchronisation du dossier candidat, les passkeys facultatives et les recommandations d’offres par Hermes sont livrés. L’envoi automatique de candidatures ne l’est pas. Ne pas présenter une comparaison ou une recommandation comme une probabilité d’embauche.
+- Backend NestJS conservé. Le microservice Go/Chi est dans `cekarna_website/services/auth/` : PostgreSQL, Redis, Argon2id, JWT Ed25519 de 5 min, JWKS, refresh opaques avec rotation, audit et passkeys WebAuthn. Lire son README avant modification. Le microservice Rust `cekarna_website/services/notifications/` gère la file SMTP transactionnelle durable. Ces services répondent aux demandes explicites de l’utilisateur malgré le report historique ci-dessous.
+- Le cahier des charges V3 décrit le B2C actif. Les quatre PDF V2 restants sont des références historiques de principes utiles (preuves, correction humaine, fiabilité), pas un périmètre à implémenter.
 
 ## Décisions B2B antérieures — historique non retenu
 
@@ -25,7 +25,7 @@ L’utilisateur a décidé que Cekarna est **exclusivement une application web p
 
 ## Références V2.0
 
-Les chemins ci-dessous sont relatifs à la racine de ce projet. Malgré certains noms contenant `v1`, les cinq PDF courants ont été réécrits en **V2.0**.
+Les chemins ci-dessous sont relatifs à la racine de ce projet. Le cahier des charges courant est en **V3.0 B2C**. Malgré certains noms contenant `v1`, les quatre autres PDF restent en **V2.0 historique**.
 
 1. `cahier_des_charges_cekarna.pdf` — périmètre, exigences et recette (4 pages).
 2. `optimisation_cekarna_v1.pdf` — charge, coûts et fiabilité (4 pages).

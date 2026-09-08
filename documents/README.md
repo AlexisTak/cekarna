@@ -1,18 +1,18 @@
-# Cekarna — dossier stratégique V2.0
+# Cekarna — références produit
 
-**Historique B2B : périmètre abandonné.** Décision ultérieure de l’utilisateur : Cekarna est exclusivement destiné aux personnes en recherche d’emploi. Référence active : `../cekarna_website/docs/B2C.md`. Les PDF restent inchangés comme archives, sans être une feuille de route à implémenter.
+**Périmètre B2C actif.** Cekarna est exclusivement destiné aux personnes en recherche d’emploi. Le cahier des charges V3.0 et `../cekarna_website/docs/B2C.md` décrivent ce produit. Les quatre autres PDF conservent l’historique B2B et formation sans constituer une feuille de route.
 
 Révision historique du 6 septembre 2026 : elle décrivait un **SaaS B2B pour cabinets de recrutement**, désormais hors périmètre. Le segment tech, les prix, quotas et objectifs chiffrés restent des hypothèses archivées.
 
 ## Documents remplacés à la racine
 
-1. `cahier_des_charges_cekarna.pdf` : périmètre, règles métier, données et recette — 4 pages.
+1. `cahier_des_charges_cekarna.pdf` : périmètre B2C actif, règles métier, données et recette — V3.0, 4 pages.
 2. `optimisation_cekarna_v1.pdf` : charge, pipeline, simulation de coûts et résilience — 4 pages.
 3. `plan_b2b_saas_v1.pdf` : positionnement, grille expérimentale, pilotes et lancement — 5 pages.
 4. `plan_formation_ia_v1.pdf` : offre future et programme reproductible — 3 pages.
 5. `stack_microservices_rust_v1.pdf` : architecture NestJS progressive et conditions de migration — 4 pages.
 
-Les noms historiques contenant `v1` sont conservés pour ne pas casser les références existantes. Les PDF régénérés portent une mention visible **« Archivé · hors périmètre B2C »** ; ils ne sont pas la spécification active. Le dossier assemblé est `dossier_cekarna_v2.pdf`, avec signets par document.
+Les noms historiques contenant `v1` sont conservés pour ne pas casser les références existantes. Les quatre PDF historiques portent une mention visible **« Archivé · hors périmètre B2C »**. Le cahier porte **« Produit B2C »** et constitue la spécification active avec la feuille de route. Le dossier assemblé historique reste `dossier_cekarna_v2.pdf`.
 
 ## Ce qui a changé
 

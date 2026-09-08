@@ -4,7 +4,7 @@
 
 Références : périmètre B2C, README des services et source structurée des cinq
 
-PDF (`../../documents/sources/cekarna_v2.json`). Les PDF V2 documentent un B2B
+PDF (`../../documents/sources/cekarna_v2.json`). Le cahier V3 documente le B2C actif ; les quatre autres PDF V2 documentent un B2B
 
 abandonné ; leurs exigences de preuves, d'isolation et de décision humaine
 
@@ -60,13 +60,11 @@ s'appliquent comme principes au parcours B2C. Aucun PDF historique n'est modifi�
 
 
 
-- Notifications : configuration du fournisseur et validation d'une réception réelle,
+- Notifications : l’outbox, l’idempotence, l’expiration et la purge interservices
 
-  idempotence, expiration des messages, rétention et suppression des données de la
+  sont livrées. La configuration d’un fournisseur réel, la validation d’une réception
 
-  file lors d'une suppression de compte. Aucun accusé de réception ni suivi des
-
-  rebonds n'est implémenté. Ne pas annoncer une suppression interservices complète.
+  externe, les règles de rétention et le suivi des rebonds restent à réaliser.
 
 - Les caches navigateur historiques sous la clé commune ne sont pas effacés
 
@@ -84,13 +82,13 @@ s'appliquent comme principes au parcours B2C. Aucun PDF historique n'est modifi�
 
 
 
-- La comparaison reste textuelle, sans corpus d'évaluation ni score IA.
+- La comparaison et les recommandations Hermes restent textuelles, sans mesure de performance représentative ni score de probabilité.
 
-- Passkeys/MFA, facturation, brouillons IA et automatisations ne sont pas livrés.
+- Les passkeys facultatives et les brouillons sont livrés. Facturation et automatisations de candidature ne le sont pas.
 
-- Collecte d'offres : un plan de développement non suivi est présent ; sa présence
+- Collecte d'offres : le service Rust et la façade NestJS sont livrés, mais France
 
-  ne prouve pas une fonctionnalité exécutée.
+  Travail reste désactivé tant que ses identifiants et conditions ne sont pas validés.
 
 
 

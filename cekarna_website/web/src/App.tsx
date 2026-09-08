@@ -1300,6 +1300,10 @@ export default function App() {
               <OfferSearch
                 tracked={new Set(jobs.map((job) => job.id))}
                 onAdd={saveJob}
+                profile={profile}
+                experiences={workspace.experiences}
+                education={workspace.education}
+                authenticated={Boolean(account)}
               />
               <div className="test-data-actions">
                 <span>Besoin de données pour essayer la comparaison ?</span>

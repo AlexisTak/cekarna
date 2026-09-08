@@ -1,6 +1,6 @@
 {
-  "version": "2.0 — archive",
-  "date": "07 septembre 2026",
+  "version": "3.0",
+  "date": "08 septembre 2026",
   "sources": {
     "CNIL": {
       "label": "CNIL — Le guide du recrutement",
@@ -30,97 +30,93 @@
   "documents": [
     {
       "file": "cahier_des_charges_cekarna.pdf",
-      "code": "01 / PRODUIT",
+      "code": "01 / PRODUIT B2C",
       "title": "Cahier des charges",
-      "subtitle": "Archive historique — Un assistant de présélection pour les cabinets de recrutement",
-      "status": "ARCHIVÉ · HORS PÉRIMÈTRE B2C",
+      "subtitle": "Application web pour les personnes en recherche d’emploi",
+      "status": "PÉRIMÈTRE B2C ACTIF · PRODUIT EN DÉVELOPPEMENT",
       "pages": [
         {
-          "title": "Un produit précis, une valeur démontrable",
-          "lead": "Transformer les CV existants en une sélection argumentée, vérifiable et révisable.",
+          "title": "Un assistant personnel pour chercher un emploi",
+          "lead": "Centraliser un profil confirmé, trouver des offres adaptées et préparer ses candidatures sans automatiser les décisions.",
           "blocks": [
             {
               "type": "h",
-              "text": "Client et problème prioritaires"
+              "text": "Public et besoin prioritaires"
             },
             {
               "type": "p",
-              "text": "Cible retenue : cabinets de recrutement. Segment initial proposé : cabinets indépendants de 2 à 10 recruteurs spécialisés dans les métiers tech. Cette spécialisation reste à tester. Le premier problème traité est le temps consacré à relire des CV et à justifier une sélection pour une mission."
+              "text": "Cekarna s’adresse exclusivement aux particuliers en recherche d’emploi. Le produit aide une personne à structurer son profil, retrouver des annonces publiques, comprendre les correspondances avec son parcours et suivre ses démarches. Les entreprises, cabinets de recrutement, organisations et viviers de candidats sont hors périmètre."
             },
             {
               "type": "box",
-              "label": "PROMESSE COMMERCIALE",
-              "text": "« Retrouvez les éléments pertinents de votre vivier et préparez une sélection expliquée, en gardant la décision. » Aucun placement, gain de temps ou niveau de pertinence n’est garanti avant mesure."
+              "label": "PROPOSITION DE VALEUR",
+              "text": "« Retrouvez des offres adaptées à votre profil, comprenez pourquoi elles sont proposées et gardez la maîtrise de chaque candidature. » Aucun emploi, entretien ou niveau de pertinence n’est garanti."
             },
             {
               "type": "table",
               "headers": [
                 "Statut",
-                "Périmètre"
+                "Périmètre actuel"
               ],
               "rows": [
                 [
-                  "Existant vérifié",
-                  "API NestJS/Express, TypeScript strict, configuration, validation HTTP, /health et 25 tests locaux."
+                  "Livré dans le code",
+                  "Application React, comptes et synchronisation, import de CV textuel avec preuves, recherche et suivi d’offres, comparaison expliquée, recommandations Hermes sobres et vérifiables, brouillons corrigibles, notifications et passkeys."
                 ],
                 [
-                  "À construire",
-                  "Interface, comptes, organisations, stockage, import, rapprochement, génération, quotas et facturation."
-                ],
-                [
-                  "Différé",
-                  "Assistant candidat, application locale, formation commercialisée, sourcing public et microservices."
+                  "Avant lancement",
+                  "France Travail réellement configuré, fournisseur email réel, hébergement HTTPS, secrets, sauvegardes, supervision et recette sur données autorisées."
                 ]
               ]
             },
             {
               "type": "h",
-              "text": "Parcours MVP"
+              "text": "Parcours principal"
             },
             {
               "type": "p",
-              "text": "Créer une organisation → saisir une mission et ses critères → importer des CV autorisés → corriger les profils extraits → consulter une sélection expliquée → rédiger et exporter une synthèse ou un brouillon de message."
+              "text": "Créer un compte → confirmer son adresse → compléter le profil ou importer un CV textuel → vérifier et corriger chaque information → rechercher ou demander des suggestions d’offres → ajouter volontairement une annonce au suivi → comparer, préparer puis exporter un brouillon."
             },
             {
               "type": "p",
-              "text": "Le recruteur peut consulter tous les profils, modifier les critères et réviser le classement. Aucun rejet, envoi ou partage externe automatique. Les données d’un cabinet ne constituent jamais un vivier partagé avec d’autres cabinets."
+              "text": "Cekarna ne postule pas à la place de la personne, ne contacte pas une entreprise et ne transforme pas un niveau de correspondance en décision."
             }
           ]
         },
         {
-          "title": "Périmètre et règles fonctionnelles",
-          "lead": "Une première version complète sur un cas d’usage limité.",
+          "title": "Fonctions et règles du produit",
+          "lead": "Une application B2C centrée sur le dossier privé de la personne.",
           "blocks": [
             {
               "type": "table",
               "headers": [
                 "Fonction",
-                "Exigence MVP"
+                "Comportement attendu"
               ],
               "rows": [
                 [
-                  "Organisation",
-                  "Administrateur : membres, abonnement, rétention. Recruteur : missions et profils autorisés. Contrôles côté serveur sur chaque ressource."
+                  "Compte",
+                  "Inscription, vérification email, récupération, déconnexion, révocation de tous les appareils, suppression complète et passkeys facultatives comme second facteur."
                 ],
                 [
-                  "Import",
-                  "PDF textuels uniquement, 10 Mo et 30 pages par fichier ; lot de 100 fichiers. Vérifier le type réel. PDF scanné ou chiffré : refus expliqué."
+                  "Profil et CV",
+                  "Saisie manuelle ou PDF textuel de 5 Mo et 10 pages maximum. Extraits sources visibles, correction obligatoire avant enregistrement ; aucun OCR ni valeur devinée."
                 ],
                 [
-                  "Profil",
-                  "Extraire compétences, expériences, formations et extraits sources avec pages. Les champs incertains restent à vérifier."
+                  "Offres",
+                  "Collecte depuis une liste de sources autorisées, normalisation, provenance, dates utiles et déduplication. France Travail reste désactivé sans identifiants et conditions acceptées."
                 ],
                 [
-                  "Mission",
-                  "Description et critères professionnels obligatoires ou souhaitables. Versionner les modifications et leur auteur."
+                  "Suggestions Hermes",
+                  "Jusqu’à 100 offres préfiltrées localement ; au maximum 6 annonces compactes dans un seul appel. Au plus 5 suggestions avec extraits littéraux du profil et de l’offre."
                 ],
                 [
-                  "Comparaison",
-                  "Critères satisfaits, non satisfaits ou inconnus, avec preuves. Une absence de preuve ne vaut pas absence de compétence."
+                  "Suivi",
+                  "Ajout explicite, statuts, notes privées et rappels choisis. Une suggestion ne crée jamais une candidature."
                 ],
                 [
                   "Brouillons",
-                  "Synthèse ou message fondé sur le profil confirmé. Édition et export explicites ; pas d’envoi intégré."
+                  "Texte fondé sur les informations confirmées, modifiable et exportable. Aucun envoi intégré."
                 ]
               ]
             },
@@ -131,136 +127,134 @@
             {
               "type": "bullets",
               "items": [
-                "Un import identique dans la même organisation est signalé ; aucune fusion silencieuse de personnes.",
-                "Une modification du profil ou des critères invalide le résultat concerné et propose un nouveau traitement.",
-                "Chaque traitement affiche son état : en attente, en cours, réussi, échoué ou annulé.",
-                "Chaque résultat mentionne les versions du profil, de la mission, du modèle et de la méthode ; une sortie non valide est bloquée."
+                "Une modification du profil ou du lot d’offres change la clé de cache et produit une nouvelle analyse sur demande.",
+                "Une panne d’Hermes ou du collecteur laisse le profil, la recherche manuelle et le suivi accessibles.",
+                "Les conflits entre appareils montrent les deux choix avant tout écrasement.",
+                "Les résultats IA mentionnent le modèle et distinguent correspondance forte, possible ou à vérifier, sans probabilité d’embauche."
               ]
             },
             {
               "type": "box",
-              "label": "HORS PÉRIMÈTRE INITIAL",
-              "text": "OCR, DOCX, enrichissement public, connexion ATS, facturation à la performance et messages automatiques. Réintroduire une fonction après preuve du besoin et estimation de son coût."
+              "label": "HORS PÉRIMÈTRE",
+              "text": "Espace entreprise, ATS, vivier partagé, OCR, candidature automatique, messages envoyés automatiquement, paiement et abonnement tant que leur valeur et leur exploitation ne sont pas validées."
             }
           ]
         },
         {
-          "title": "Fiabilité, données et contrôle humain",
-          "lead": "Conditions de lancement ; ces protections ne sont pas encore toutes implémentées.",
+          "title": "Données, sécurité et contrôle humain",
+          "lead": "Les données professionnelles servent l’assistance ; les coordonnées et notes privées restent hors des requêtes Hermes.",
           "blocks": [
             {
               "type": "h",
-              "text": "Architecture de confiance"
+              "text": "Identité et isolation"
             },
             {
               "type": "bullets",
               "items": [
-                "Isoler organisations, fichiers, recherches, exports et tâches. Le tenant provient d’une session autorisée ; un identifiant envoyé par le navigateur ne suffit jamais.",
-                "Stockage privé, liens temporaires, TLS, chiffrement au repos et secrets hors dépôt. Journaux sans CV ni contenu de message.",
-                "Un CV est une donnée non fiable : ses instructions ne doivent piloter aucun outil ni appel externe.",
-                "Pas d’apprentissage sur les données clients par défaut. Documenter prestataires, régions et flux avant d’activer un modèle distant."
+                "Le service d’identité Go utilise PostgreSQL, Redis, Argon2id, JWT Ed25519 courts et refresh opaques rotatifs. Les passkeys sont liées à l’origine et au RP ID ; leurs challenges expirent après cinq minutes.",
+                "Chaque import et chaque dossier synchronisé sont rattachés au compte contrôlé côté serveur. Un identifiant fourni par le navigateur ne suffit pas.",
+                "La récupération du mot de passe supprime toutes les passkeys et révoque les sessions. La suppression du compte purge les données rattachées ou refuse clairement si un service dépendant est indisponible.",
+                "Les secrets, jetons, CV, destinataires et contenus de message ne doivent pas apparaître dans les journaux."
               ]
             },
             {
               "type": "h",
-              "text": "Cycle de vie proposé"
+              "text": "Traitement optimisé avec Hermes"
             },
             {
               "type": "p",
-              "text": "Paramétrer une durée justifiée par cabinet avant import. Proposition technique : fichiers bruts supprimés 30 jours après validation ; vivier réexaminé à 6 mois. Ce ne sont pas des durées légales universelles. La suppression purge fichiers, profils, vecteurs et caches ; les sauvegardes expirent sous 35 jours au maximum selon la politique opératoire retenue."
+              "text": "Le PDF brut n’est pas transmis au modèle. NestJS compacte uniquement poste, ville, contrat, compétences, résumé, expériences et formations confirmés. Un préfiltre textuel traite au plus 100 offres, puis un appel unique présente au plus 6 candidates à Hermes avec un contexte borné. Les appels identiques sont regroupés, le résultat est réutilisé 15 minutes et chaque compte est limité à 6 nouvelles analyses par fenêtre."
             },
             {
               "type": "h",
-              "text": "Pertinence et équité à évaluer"
+              "text": "Aucune information inventée"
             },
             {
               "type": "p",
-              "text": "Écarter du classement nom, photo, âge et informations personnelles sans lien avec la mission ; ne pas inférer de traits sensibles. Tester des profils fictifs équivalents et examiner les écarts. Les extraits sources restent attachés au profil tant qu’il est conservé. Un recruteur peut revoir la sélection entière, pas seulement les dix premiers résultats."
+              "text": "Une recommandation n’est affichée que si Hermes recopie un extrait du profil et un extrait de l’annonce correspondante. Le serveur écarte les identifiants inconnus, les preuves absentes des données et les doublons. Une absence d’information reste inconnue. La personne relit l’annonce complète et choisit seule de l’ajouter à son suivi."
             },
             {
               "type": "h",
-              "text": "Qualification avant les premiers CV réels"
+              "text": "Information et conformité"
             },
             {
               "type": "p",
-              "text": "Le guide CNIL demande notamment finalité, base légale, droits d’accès, information et conservation justifiée. Qualifier les rôles client/prestataire, contractualiser le traitement et évaluer le besoin d’AIPD avec une personne compétente. [CNIL]"
-            },
-            {
-              "type": "p",
-              "text": "La Commission cite le tri de CV parmi les usages IA à haut risque. La qualification de Cekarna dépend de son usage réel ; une validation humaine ne constitue pas à elle seule une exemption. Faire confirmer obligations et calendrier applicables avant commercialisation. [AI]"
+              "text": "Les pages légales décrivent les traitements prévus. Avant publication, renseigner l’éditeur réel, les contacts, les prestataires, les régions, les durées de conservation et la procédure d’exercice des droits, puis faire revalider le cadre applicable à l’usage B2C réel par une personne compétente. [CNIL]"
             },
             {
               "type": "refs",
               "keys": [
-                "CNIL",
-                "AI"
+                "CNIL"
               ]
             }
           ]
         },
         {
-          "title": "Recette et étapes de livraison",
-          "lead": "Objectifs de recette à tester sur un environnement documenté ; aucun SLA contractuel à ce stade.",
+          "title": "Recette et conditions de lancement",
+          "lead": "Les validations locales prouvent le comportement du code testé, pas la disponibilité d’un service de production.",
           "blocks": [
             {
               "type": "table",
               "headers": [
                 "Étape",
-                "Preuve et responsable"
+                "Preuve attendue"
               ],
               "rows": [
                 [
-                  "G0 · problème",
-                  "10 entretiens, workflow observé, 3 cabinets candidats au pilote. Produit."
+                  "G1 · parcours local",
+                  "Compte, CV, profil, recherche, suggestions, suivi, brouillon, export, récupération et suppression fonctionnent sur données fictives ou autorisées."
                 ],
                 [
-                  "G1 · socle privé",
-                  "Comptes, isolation, restauration, suppression et quotas testés. Technique."
+                  "G2 · sources réelles",
+                  "France Travail et email transactionnel configurés hors dépôt ; réception, limites, erreurs, retraits et rebonds vérifiés."
                 ],
                 [
-                  "G2 · valeur",
-                  "Import → correction → sélection → brouillon → export fonctionnel. Produit et technique."
+                  "G3 · préproduction",
+                  "HTTPS, secrets privés, migrations, sauvegarde et restauration, supervision, procédures d’incident et retour applicatif testés."
                 ],
                 [
-                  "G3 · pilote",
-                  "Corpus évalué, coûts mesurés, cadre données validé. Produit et référent données."
+                  "G4 · pilote B2C",
+                  "Parcours mobile, clavier et multiappareil observé ; extraction et suggestions évaluées sur un corpus séparé des exemples de réglage."
                 ],
                 [
-                  "G4 · lancement",
-                  "Bilan de 3 pilotes, support opérable, offre claire et qualification réglementaire documentée. Dirigeant."
+                  "G5 · lancement",
+                  "Résultats, limites, coûts, support, information utilisateur et responsabilités documentés."
                 ]
               ]
             },
             {
               "type": "h",
-              "text": "Seuils de recette proposés"
+              "text": "Critères de recette"
             },
             {
               "type": "bullets",
               "items": [
-                "Isolation : aucun accès croisé réussi dans les scénarios couvrant API, fichiers, tâches, cache et exports.",
-                "Extraction : au moins 95 % des champs factuels annotés correctement extraits sur 100 CV représentatifs. Les inconnus comptent comme omissions.",
-                "Génération : aucune invention factuelle critique dans 100 sorties examinées ; une erreur critique bloque la vente. Ce test ne prouve pas un risque nul.",
-                "Pertinence : précision des 10 premiers résultats d’au moins 80 % sur 20 missions ayant chacune au moins 10 profils pertinents ; sinon adapter k et publier le protocole.",
-                "Performance : charge et cibles dans le document 02 ; toute promesse client attend une mesure reproductible."
+                "Isolation : aucun accès croisé dans les tests d’import, de dossier, de session et de cache personnalisé.",
+                "CV : chaque valeur annoncée comme extraite correspond à un passage littéral ; fichiers invalides, scannés, chiffrés, trop grands ou expirés sont refusés clairement.",
+                "Suggestions : au plus 100 offres inspectées, 6 envoyées en un appel Hermes et 5 affichées ; toute preuve inventée ou liée à une autre offre est rejetée.",
+                "Sobriété : appels identiques regroupés et mis en cache 15 minutes ; au plus 6 analyses nouvelles par compte et par fenêtre.",
+                "Résilience : panne IA sans perte du dossier ; conflits de synchronisation résolus par un choix explicite ; restauration de sauvegarde réellement démontrée avant lancement."
               ]
             },
             {
               "type": "p",
-              "text": "Corpus fictif ou autorisé, séparé des exemples de réglage ; deux recruteurs annotent les critères et résolvent leurs désaccords avant évaluation. Rapporter aussi omissions et affirmations ajoutées à tort, puis comparer le classement à une référence par mots-clés."
+              "text": "Le corpus d’évaluation doit contenir des profils et offres fictifs ou autorisés, rester distinct des exemples utilisés pour régler les règles et consigner commit, modèle, paramètres, matériel, erreurs et corrections humaines. Ne publier aucun taux de pertinence avant cette mesure."
             },
             {
               "type": "box",
-              "label": "DÉFINITION DE « TERMINÉ »",
-              "text": "Parcours normal, erreurs, droits d’accès, suppression et documentation vérifiés. Les PDF sont une spécification V2 ; le produit reste en développement."
+              "label": "DÉFINITION DE TERMINÉ",
+              "text": "Code, erreurs, isolation, absence d’invention, suppression, documentation et tests concordent. La production reste bloquée tant que les dépendances réelles et la recette d’exploitation ne sont pas validées."
             },
             {
               "type": "p",
-              "text": "Ce cahier fixe le périmètre ; le plan B2B définit l’offre ; l’optimisation fixe les mesures ; l’architecture décrit la trajectoire. Toute modification des quotas doit être répercutée dans la recette."
+              "text": "Ce cahier B2C et la feuille de route du dépôt sont les références actives. Les quatre autres PDF historiques restent des archives B2B et ne définissent aucune fonction à développer."
             }
           ]
         }
-      ]
+      ],
+      "version": "3.0",
+      "date": "08 septembre 2026",
+      "archived": false
     },
     {
       "file": "optimisation_cekarna_v1.pdf",
@@ -504,7 +498,10 @@
             }
           ]
         }
-      ]
+      ],
+      "version": "2.0 archive",
+      "date": "07 septembre 2026",
+      "archived": true
     },
     {
       "file": "plan_b2b_saas_v1.pdf",
@@ -781,7 +778,10 @@
             }
           ]
         }
-      ]
+      ],
+      "version": "2.0 archive",
+      "date": "07 septembre 2026",
+      "archived": true
     },
     {
       "file": "plan_formation_ia_v1.pdf",
@@ -950,7 +950,10 @@
             }
           ]
         }
-      ]
+      ],
+      "version": "2.0 archive",
+      "date": "07 septembre 2026",
+      "archived": true
     },
     {
       "file": "stack_microservices_rust_v1.pdf",
@@ -1167,7 +1170,10 @@
             }
           ]
         }
-      ]
+      ],
+      "version": "2.0 archive",
+      "date": "07 septembre 2026",
+      "archived": true
     }
   ]
 }

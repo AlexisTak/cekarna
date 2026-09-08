@@ -1,10 +1,10 @@
 # Cekarna — application candidats et API
 
-Priorité actuelle : application web pour les particuliers en recherche d’emploi. Le B2B est abandonné ; les PDF V2 du dossier parent sont conservés comme archives historiques.
+Priorité actuelle : application web pour les particuliers en recherche d’emploi. Le B2B est abandonné ; le cahier des charges V3 du dossier parent décrit le B2C actif et les quatre autres PDF restent des archives historiques.
 
 ## Application web B2C
 
-La racine du site est une page d’accueil publique qui présente les fonctions réellement disponibles. L’espace candidat contient un tableau de bord, un profil manuel, des offres, des filtres, un suivi des candidatures et des notes. Le mode découverte contient uniquement des exemples fictifs. Sans compte, les données sont sauvegardées dans le navigateur. Avec un compte, elles sont aussi conservées dans PostgreSQL via le service Go ; export et restauration JSON restent disponibles. Des passkeys facultatives peuvent protéger la connexion comme second facteur et se gèrent dans la page compte.
+La racine du site est une page d’accueil publique qui présente les fonctions réellement disponibles. L’espace candidat contient un tableau de bord, un profil manuel, des offres, des filtres, des recommandations expliquées par Hermes, un suivi des candidatures et des notes. Le mode découverte contient uniquement des exemples fictifs. Sans compte, les données sont sauvegardées dans le navigateur. Avec un compte, elles sont aussi conservées dans PostgreSQL via le service Go ; export et restauration JSON restent disponibles. Des passkeys facultatives peuvent protéger la connexion comme second facteur et se gèrent dans la page compte.
 
 Prérequis du frontend : Node.js 22.12+ (ou Node.js 24), npm. Depuis `cekarna_website` :
 
@@ -19,7 +19,7 @@ Ouvrir http://127.0.0.1:5173 pour la page d’accueil, puis utiliser http://127.
 
 ## État réel
 
-Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. La comparaison optionnelle peut appeler un modèle Ollama local. Le brouillon de candidature est construit localement avec les informations confirmées, reste modifiable et n’est jamais envoyé par Cekarna. Les PDF V2 du dossier parent décrivent l’ancien projet B2B abandonné. Le cadrage prioritaire actuel est `docs/B2C.md`.
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. La comparaison optionnelle peut appeler un modèle Ollama local. Le brouillon de candidature est construit localement avec les informations confirmées, reste modifiable et n’est jamais envoyé par Cekarna. Le cadrage prioritaire actuel est `docs/B2C.md` et le cahier des charges V3 du dossier parent.
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.

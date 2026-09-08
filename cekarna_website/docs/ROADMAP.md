@@ -4,7 +4,7 @@
 
 ## Périmètre et références
 
-Le périmètre décidé par l’utilisateur est le **B2C exclusivement : application web pour particuliers en recherche d’emploi**. Les cinq PDF V2 décrivent un produit B2B et une formation qui ne seront pas développés. Ils restent conservés comme archives ; seuls leurs principes de preuves, de correction humaine, d’isolation et de fiabilité guident le B2C. Les demandes ultérieures de l’utilisateur priment.
+Le périmètre décidé par l’utilisateur est le **B2C exclusivement : application web pour particuliers en recherche d’emploi**. Le cahier des charges V3 décrit ce produit actif. Les quatre autres PDF V2 décrivent un produit B2B et une formation qui ne seront pas développés ; seuls leurs principes de preuves, de correction humaine, d’isolation et de fiabilité restent utiles. Les demandes ultérieures de l’utilisateur priment.
 
 - [Périmètre B2C](B2C.md), [référence projet](PROJECT.md), [audit](AUDIT.md).
 - [Guide des PDF](../../documents/README.md) et [contenu structuré des cinq PDF](../../documents/sources/cekarna_v2.json).
@@ -79,6 +79,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C12 | P0 avant lancement | Préparer exploitation et recette | Bloqué | Libre | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | Hébergeur, domaines, fournisseur SMTP et responsables d’exploitation à choisir |
 | C13 | P1 | Réconcilier la documentation avec le code | Terminé | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | À revalider après chaque nouvelle tranche |
 | C14 | P2 | Abonnement éventuel | Différé | Non attribué | Paiement, quotas, droits | Parcours validé et décision commerciale |
+| C15 | P1 | Recommandations d’offres avec Hermes | Terminé | Codex | API NestJS, offres publiques et recherche frontend | C02, C07, C08 et Hermes local |
 
 P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validation de la valeur. L’ordre ne signifie pas qu’il faut lancer de nouveaux microservices : documenter le besoin et le coût de toute infrastructure ajoutée.
 
@@ -181,6 +182,17 @@ Lire [la spécification existante](superpowers/specs/2026-09-06-auth-passkeys-tr
 - [x] Définir récupération et perte d’appareil avant activation. Une réinitialisation du mot de passe supprime toutes les passkeys et sessions ; la page explique cette conséquence avant activation.
 - [x] Tester rejeu, compte incorrect, expiration et parcours de secours. Les intégrations PostgreSQL/Redis couvrent l’absence de session intermédiaire, le rattachement au compte, la consommation, l’expiration simulée et la purge lors de la récupération.
 
+### C15 — Recommandations d’offres avec Hermes
+
+Lire [la spécification](superpowers/specs/2026-09-08-hermes-offer-recommendations-design.md).
+
+- [x] Compacter uniquement les données professionnelles confirmées et ne jamais transmettre le PDF brut, les coordonnées ou les notes privées.
+- [x] Préfiltrer localement un lot borné puis appeler Hermes une seule fois pour plusieurs offres.
+- [x] Conserver seulement les recommandations reliées à des extraits littéraux du profil et de l’annonce.
+- [x] Mettre en cache par compte et version des données, avec expiration et taille maximales.
+- [x] Afficher les recommandations séparément de la recherche et exiger une action pour ajouter une offre au suivi.
+- [x] Tester indisponibilité, données malveillantes, preuves inventées, limites de lot et réutilisation du cache.
+
 ### C12 — Recette et exploitation avant lancement
 
 **Blocage actuel :** les contrôles locaux sont disponibles, mais la recette de
@@ -242,5 +254,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-08 | C06 (origine locale) | Codex | Alignement du frontend, du cookie Strict et de la liste CORS de l’identité sur `127.0.0.1`; message spécifique si l’origine est refusée | Santé identité 200, requête CSRF avec origine réelle 200 et en-têtes CORS ; `go test ./... -count=1`, 66 tests web et build Vite réussis | Configuration de développement locale ; l’origine HTTPS de production reste à définir dans C12 |
 
 | 2026-09-08 | C11 | Codex | Passkeys WebAuthn facultatives : enrôlement réauthentifié, plusieurs appareils nommés, étape MFA sans session intermédiaire, révocation, invitation dans l’espace candidat et récupération supprimant passkeys et sessions | `npm run check:all` : 74 tests NestJS, 21 tests HTTP, 69 tests web et deux builds ; tests et vet Go ; intégration Docker PostgreSQL/Redis avec détecteur de courses ; Govulncheck sans vulnérabilité appelée ; service migré et prêt | L’essai matériel Windows Hello/Touch ID et la configuration du RP ID HTTPS réel font partie de la recette C12 |
+| 2026-09-08 | C15 / documentation | Codex | Recommandations d’offres sur demande : profil professionnel compacté, préfiltre de 100 offres, lot Hermes limité à 6, preuves littérales, cache et quota par compte ; cahier des charges V3 B2C régénéré | `npm run check:all` : 78 tests NestJS, 23 tests HTTP, 70 tests web et deux builds, puis test web du quota : 71 tests et build ; contrôle visuel des 4 pages du PDF | La pertinence doit encore être mesurée sur un corpus autorisé dans la recette C12 ; France Travail et les services de production restent à configurer |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

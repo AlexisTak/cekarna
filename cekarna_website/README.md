@@ -13,7 +13,7 @@ npm ci --prefix web
 npm run dev:web
 ```
 
-Ouvrir http://localhost:5173 pour la page d’accueil, puis utiliser http://localhost:5173/?workspace=candidate pour l’espace candidat. Vérifier avec `npm run check:web`. Voir `web/README.md` et `docs/B2C.md`.
+Ouvrir http://127.0.0.1:5173 pour la page d’accueil, puis utiliser http://127.0.0.1:5173/?workspace=candidate pour l’espace candidat. Vérifier avec `npm run check:web`. Voir `web/README.md` et `docs/B2C.md`.
 
 ## API NestJS conservée
 

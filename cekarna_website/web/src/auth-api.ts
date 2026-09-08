@@ -19,7 +19,7 @@ export class AuthError extends Error {
 
 const BASE: string =
   (import.meta.env.VITE_AUTH_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
-  'http://localhost:8081';
+  'http://127.0.0.1:8081';
 
 let csrfToken = '';
 let accessToken = '';
@@ -247,6 +247,8 @@ export async function confirmPasswordReset(
 
 export function describeAuthError(error: unknown): string {
   if (error instanceof AuthError) {
+    if (error.code === 'origin_denied')
+      return 'L’adresse locale du site n’est pas autorisée par le service d’identité.';
     if (error.status === 400) return 'Vérifiez vos informations et réessayez.';
     if (error.status === 429)
       return 'Trop de tentatives. Réessayez dans quelques minutes.';

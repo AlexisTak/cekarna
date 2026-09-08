@@ -221,6 +221,9 @@ describe('auth-api', () => {
     expect(api.describeAuthError(new Error('network'))).toContain(
       'indisponible',
     );
+    expect(
+      api.describeAuthError(new api.AuthError(403, 'origin_denied')),
+    ).toContain('adresse locale');
   });
 
   it('reports a refused logout instead of claiming success', async () => {

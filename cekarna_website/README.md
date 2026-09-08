@@ -23,6 +23,7 @@ Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un fron
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.
+- `GET /health/ready` : disponibilité détaillée de l’identité, du service d’offres et du modèle Hermes configuré. Renvoie 503 avec des états génériques si une dépendance manque, sans exposer d’URL privée ni d’erreur brute.
 - `POST /v1/cv-import/extraction` : import authentifié d’un CV PDF **textuel** (multipart, champ `file`). Renvoie le texte page par page, des propositions de profil et, pour chacune, les extraits sources (page, ligne, bornes). Rien n’est enregistré. Un PDF scanné est refusé en 422 : aucune reconnaissance d’image, aucune valeur devinée.
 - `POST /v1/cv-import/profile` : validation authentifiée du profil après correction manuelle. Chaque champ porte `source` : `extracted` (vérifié caractère pour caractère contre le CV importé) ou `manual` (saisie assumée). Une valeur annoncée comme extraite mais absente du document est refusée en 400.
 - `POST /v1/local-ai/compare` : comparaison sur demande, réservée à une session active, via Ollama local. Les preuves sans extrait littéral sont écartées et le résultat n’est pas un score d’embauche.

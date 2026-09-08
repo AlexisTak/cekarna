@@ -4,10 +4,16 @@ import { AppService } from './app.service';
 import { CvImportModule } from './cv-import/cv-import.module';
 import { LocalAiModule } from './local-ai/local-ai.module';
 import { OffersModule } from './offers/offers.module';
+import { ENVIRONMENT, readEnvironment } from './config/environment';
+import { ReadinessService } from './readiness.service';
 
 @Module({
   imports: [CvImportModule, LocalAiModule, OffersModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    ReadinessService,
+    { provide: ENVIRONMENT, useFactory: () => readEnvironment(process.env) },
+  ],
 })
 export class AppModule {}

@@ -20,7 +20,7 @@ npm run tauri:dev
 npm run tauri:build
 ```
 
-Le premier écran vérifie les adresses de bouclage de l’API candidat, de l’identité, des notifications, des offres et d’Ollama. Il peut démarrer et arrêter les services Docker Cekarna `auth` et `notifications`, sans supprimer leurs volumes. Il peut aussi démarrer l’API candidat, le service Rust d’offres ou Ollama ; il n’arrête ces processus que lorsqu’ils ont été créés depuis le panneau.
+Le premier écran vérifie les adresses de bouclage de l’API candidat, de l’identité, des notifications, des offres et d’Ollama. La disponibilité de l’API candidat contrôle aussi ses dépendances et nomme celles qui manquent. Le panneau peut démarrer et arrêter les services Docker Cekarna `auth` et `notifications`, sans supprimer leurs volumes. Il peut aussi démarrer l’API candidat, le service Rust d’offres ou Ollama ; il n’arrête ces processus que lorsqu’ils ont été créés depuis le panneau.
 
 Le bouton de préparation des offres crée une configuration locale ignorée par Git, reprend le jeton interne de l’API et charge uniquement les annonces synthétiques du dépôt. France Travail reste désactivé. Une réponse indisponible ne donne pas de diagnostic détaillé : consulter les journaux du service concerné avant toute intervention.
 

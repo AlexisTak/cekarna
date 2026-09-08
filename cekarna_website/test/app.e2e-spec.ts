@@ -15,6 +15,7 @@ import { readEnvironment } from '../src/config/environment';
 import { sampleCvPdf } from '../src/cv-import/pdf-text.spec';
 import type { CvExtraction } from '../src/cv-import/cv-import.types';
 import { IdentityService } from '../src/cv-import/identity.service';
+import { ReadinessService } from '../src/readiness.service';
 
 class ProbeDto {
   @IsString()
@@ -47,6 +48,22 @@ describe('API HTTP configuration', () => {
           return Promise.resolve(authorization.slice('Bearer '.length));
         },
       })
+      .overrideProvider(ReadinessService)
+      .useValue({
+        check: () =>
+          Promise.resolve({
+            status: 'ready',
+            dependencies: {
+              identity: { status: 'up', latency_ms: 1 },
+              offers: { status: 'up', latency_ms: 1 },
+              hermes: {
+                status: 'up',
+                latency_ms: 1,
+                model: 'hermes3:3b',
+              },
+            },
+          }),
+      })
       .compile();
     app = moduleFixture.createNestApplication();
     configureApp(
@@ -74,6 +91,25 @@ describe('API HTTP configuration', () => {
       .expect('Cache-Control', 'no-store')
       .expect('X-Content-Type-Options', 'nosniff')
       .expect({ status: 'ok' });
+  });
+
+  it('exposes uncached dependency readiness', () => {
+    return request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(200)
+      .expect('Cache-Control', 'no-store')
+      .expect({
+        status: 'ready',
+        dependencies: {
+          identity: { status: 'up', latency_ms: 1 },
+          offers: { status: 'up', latency_ms: 1 },
+          hermes: {
+            status: 'up',
+            latency_ms: 1,
+            model: 'hermes3:3b',
+          },
+        },
+      });
   });
 
   it('allows the configured frontend origin', () => {

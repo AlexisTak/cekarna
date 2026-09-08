@@ -24,6 +24,24 @@ struct ServiceStatus {
     setup_required: bool,
 }
 
+fn candidate_readiness_detail(body: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(body).ok()?;
+    let dependencies = value.get("dependencies")?.as_object()?;
+    let unavailable = [
+        ("identity", "identité"),
+        ("offers", "offres"),
+        ("hermes", "Hermes"),
+    ]
+    .iter()
+    .filter_map(|(key, label)| {
+        let dependency = dependencies.get(*key)?.as_object()?;
+        (dependency.get("status")?.as_str()? != "up").then_some(*label)
+    })
+    .collect::<Vec<_>>();
+    (!unavailable.is_empty())
+        .then(|| format!("Dépendances indisponibles : {}", unavailable.join(", ")))
+}
+
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -62,6 +80,15 @@ async fn check_service(
         Ok(response) => {
             let status = response.status();
             let available = status.is_success();
+            let degraded_detail = if !available && id == "candidate-api" {
+                response
+                    .text()
+                    .await
+                    .ok()
+                    .and_then(|body| candidate_readiness_detail(&body))
+            } else {
+                None
+            };
             ServiceStatus {
                 id,
                 name,
@@ -72,6 +99,8 @@ async fn check_service(
                     "Disponible · démarré par ce panneau".to_owned()
                 } else if available {
                     "Disponible".to_owned()
+                } else if let Some(detail) = degraded_detail {
+                    detail
                 } else {
                     format!("Réponse HTTP {}", status.as_u16())
                 },
@@ -127,7 +156,7 @@ async fn check_services(
             &client,
             "candidate-api",
             "API candidat",
-            "http://127.0.0.1:3000/health",
+            "http://127.0.0.1:3000/health/ready",
             "local",
             api_managed,
             false,
@@ -435,7 +464,19 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{env_value, set_env_value};
+    use super::{candidate_readiness_detail, env_value, set_env_value};
+
+    #[test]
+    fn readiness_detail_lists_only_known_unavailable_dependencies() {
+        let detail = candidate_readiness_detail(
+            r#"{"status":"degraded","dependencies":{"identity":{"status":"up"},"offers":{"status":"down"},"hermes":{"status":"not_configured"}}}"#,
+        );
+        assert_eq!(
+            detail.as_deref(),
+            Some("Dépendances indisponibles : offres, Hermes")
+        );
+        assert!(candidate_readiness_detail("not json").is_none());
+    }
 
     #[test]
     fn env_value_is_added_then_replaced_without_duplicate() {

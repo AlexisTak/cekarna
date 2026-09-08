@@ -26,6 +26,8 @@ Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un fron
 - `POST /v1/cv-import/extraction` : import authentifié d’un CV PDF **textuel** (multipart, champ `file`). Renvoie le texte page par page, des propositions de profil et, pour chacune, les extraits sources (page, ligne, bornes). Rien n’est enregistré. Un PDF scanné est refusé en 422 : aucune reconnaissance d’image, aucune valeur devinée.
 - `POST /v1/cv-import/profile` : validation authentifiée du profil après correction manuelle. Chaque champ porte `source` : `extracted` (vérifié caractère pour caractère contre le CV importé) ou `manual` (saisie assumée). Une valeur annoncée comme extraite mais absente du document est refusée en 400.
 - `POST /v1/local-ai/compare` : comparaison sur demande, réservée à une session active, via Ollama local. Les preuves sans extrait littéral sont écartées et le résultat n’est pas un score d’embauche.
+- `GET /v1/offers` : offres publiques collectées et dédupliquées par `services/offers`, avec filtres et pagination.
+- `GET /v1/offers/:id` : offre, chemins d'origine, membres du groupe de doublons et décisions de regroupement.
 - Validation globale des futurs DTO avec `class-validator` : champs inconnus refusés, sans conversion implicite des valeurs.
 - En-têtes HTTP Helmet, CORS limité aux origines configurées, arrêt sur signaux système.
 
@@ -54,6 +56,8 @@ L’API écoute par défaut sur http://127.0.0.1:3000. Aucun service Docker n’
 | `CV_IMPORT_RETENTION_SECONDS` | `900` | Durée de conservation en mémoire du texte extrait, de 60 à 3600 secondes |
 | `CV_IMPORT_MAX_PAGES` | `10` | Nombre maximal de pages d’un PDF, de 1 à 50 |
 | `AUTH_IDENTITY_URL` | `http://127.0.0.1:8081/v1/auth/me` | Endpoint HTTP(S) interne utilisé pour vérifier la session des routes privées |
+| `OFFERS_BASE_URL` | `http://127.0.0.1:8083` | Origine interne du service Rust d'offres |
+| `OFFERS_INTERNAL_TOKEN` | vide | Secret partagé ; vide désactive la lecture des offres collectées |
 
 L'écran d'import du frontend appelle cette API depuis le navigateur : en développement, renseigner `CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173` pour couvrir les deux adresses locales. En production, n’autoriser que l’origine HTTPS réelle. Côté frontend, `VITE_API_BASE_URL` pointe l'API NestJS (défaut `http://127.0.0.1:3000`).
 

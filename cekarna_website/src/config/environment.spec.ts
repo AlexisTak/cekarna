@@ -10,6 +10,8 @@ describe('environment', () => {
       cvImportRetentionSeconds: 900,
       cvImportMaxPages: 10,
       authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
+      offersBaseUrl: 'http://127.0.0.1:8083',
+      offersInternalToken: '',
     });
   });
   it.each(['', '0', '-1', '65536', '3.5', '3000abc'])(
@@ -54,6 +56,8 @@ describe('environment', () => {
       cvImportRetentionSeconds: 120,
       cvImportMaxPages: 10,
       authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
+      offersBaseUrl: 'http://127.0.0.1:8083',
+      offersInternalToken: '',
     });
   });
   it.each(['0', '10000001', 'beaucoup'])(

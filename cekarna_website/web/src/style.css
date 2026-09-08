@@ -1541,6 +1541,22 @@ dialog::backdrop {
 .comparison-list li.not_satisfied > strong {
   color: #af6e48;
 }
+
+.public-offers {
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.public-offer-results {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.public-offer-results .job-card {
+  align-items: center;
+}
 .comparison-list li.unknown > strong {
   color: #7f8a91;
 }

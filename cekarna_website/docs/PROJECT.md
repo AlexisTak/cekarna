@@ -31,7 +31,7 @@ disponibles localement comme repli.
 État du code et écarts constatés : voir [AUDIT.md](AUDIT.md). Les descriptions
 d'infrastructure ci-dessous appartiennent au cadrage B2B historique.
 
-Aider à analyser des profils et des offres, puis à préparer des candidatures fondées sur les informations confirmées. Le code actuel livre l’espace candidat, l’import CV sourcé, la synchronisation du dossier, le suivi d’offres, la comparaison expliquée et les brouillons texte corrigibles.
+Aider à analyser des profils et des offres, puis à préparer des candidatures fondées sur les informations confirmées. Le code actuel livre l’espace candidat, l’import CV sourcé, la synchronisation du dossier, la collecte d’offres publiques autorisées, le suivi privé, la comparaison expliquée et les brouillons texte corrigibles.
 
 ## Décisions du socle
 

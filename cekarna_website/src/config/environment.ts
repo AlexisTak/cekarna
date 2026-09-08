@@ -11,6 +11,8 @@ export interface Environment {
   cvImportRetentionSeconds: number;
   cvImportMaxPages: number;
   authIdentityUrl: string;
+  offersBaseUrl: string;
+  offersInternalToken: string;
 }
 
 /** Plafond technique de l'interception multipart : la configuration ne peut pas le dépasser. */
@@ -48,6 +50,21 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
   } catch {
     throw new Error('AUTH_IDENTITY_URL must be a valid HTTP(S) URL');
+  }
+  const offersBaseUrl = (
+    env.OFFERS_BASE_URL?.trim() || 'http://127.0.0.1:8083'
+  ).replace(/\/$/, '');
+  try {
+    const url = new URL(offersBaseUrl);
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/'
+    )
+      throw new Error();
+  } catch {
+    throw new Error('OFFERS_BASE_URL must be a valid HTTP(S) origin');
   }
   const corsOrigins = (env.CORS_ORIGINS ?? '')
     .split(',')
@@ -92,5 +109,7 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
       'CV_IMPORT_MAX_PAGES',
     ),
     authIdentityUrl,
+    offersBaseUrl,
+    offersInternalToken: env.OFFERS_INTERNAL_TOKEN?.trim() ?? '',
   };
 }

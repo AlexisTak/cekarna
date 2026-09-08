@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS raw_documents(id TEXT PRIMARY KEY,source_id TEXT NOT NULL,external_id TEXT,fetched_at TEXT NOT NULL,content_type TEXT NOT NULL,payload BLOB NOT NULL,payload_sha256 TEXT NOT NULL,normalize_error TEXT);
+CREATE INDEX IF NOT EXISTS raw_documents_source ON raw_documents(source_id,fetched_at);
+CREATE TABLE IF NOT EXISTS offers(id TEXT PRIMARY KEY,raw_document_id TEXT NOT NULL REFERENCES raw_documents(id),source_id TEXT NOT NULL,external_id TEXT,title TEXT NOT NULL,company TEXT NOT NULL,location TEXT NOT NULL,contract TEXT,url TEXT,description TEXT NOT NULL,published_at TEXT,fingerprint TEXT NOT NULL,group_id TEXT NOT NULL,origins TEXT NOT NULL,first_seen_at TEXT NOT NULL,last_seen_at TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1);
+CREATE UNIQUE INDEX IF NOT EXISTS offers_source_external ON offers(source_id,external_id) WHERE external_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS offers_fingerprint ON offers(fingerprint);
+CREATE INDEX IF NOT EXISTS offers_group ON offers(group_id);
+CREATE TABLE IF NOT EXISTS duplicate_decisions(offer_id TEXT NOT NULL REFERENCES offers(id),group_id TEXT NOT NULL,rule TEXT NOT NULL,compared TEXT NOT NULL,decided_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS duplicate_decisions_offer ON duplicate_decisions(offer_id);
+CREATE TABLE IF NOT EXISTS source_runs(source_id TEXT PRIMARY KEY,last_started_at TEXT,last_completed_at TEXT,last_error TEXT);
+CREATE TABLE IF NOT EXISTS collection_lock(name TEXT PRIMARY KEY,acquired_at TEXT NOT NULL);

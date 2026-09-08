@@ -71,7 +71,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C04 | P0 | Activer et vérifier les emails réels | À faire | Libre | `services/auth/`, `services/notifications/`, configuration | Fournisseur et configuration disponibles |
 | C05 | P0 | Fiabiliser les notifications et leur purge | Terminé | Codex | File Rust, cycle de vie des comptes | Contrat interservices |
 | C06 | P0 | Valider sessions, conflits et reprise locale | Terminé | Codex | `auth-api.ts`, `App.tsx`, service Go | C01/C02 validés |
-| C07 | P1 | Collecter et dédupliquer les offres | À faire | Libre | Futur domaine offres, plan existant | Sources autorisées et contrat offre |
+| C07 | P1 | Collecter et dédupliquer les offres | Terminé | Codex | `services/offers`, façade NestJS et recherche frontend | Activation France Travail conditionnée aux identifiants et conditions acceptées |
 | C08 | P1 | Comparaison expliquée profil–offre | Terminé | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
 | C09 | P1 | Brouillons corrigibles et exportables | Terminé | Codex | Domaine brouillons, adaptateur Hermes local, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | Terminé | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
@@ -140,12 +140,12 @@ P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validatio
 
 Lire d’abord [la spécification](superpowers/specs/2026-09-06-offers-collecte-deduplication-design.md) et [le plan existant](superpowers/plans/2026-09-06-offers-collecte-deduplication.md), puis vérifier les éventuelles modifications de Claude.
 
-- [ ] Choisir et documenter les sources autorisées, leurs limites et leur fraîcheur.
-- [ ] Collecter et normaliser les offres ; garder source, lien original et dates utiles.
-- [ ] Dédupliquer sans perdre les candidatures et notes personnelles.
-- [ ] Gérer expiration, retrait, erreurs et limitation de débit.
-- [ ] Intégrer recherche, filtres et ajout au suivi candidat sans casser les offres manuelles.
-- [ ] Séparer offres publiques mutualisables et données privées du candidat.
+- [x] Choisir et documenter les sources autorisées, leurs limites et leur fraîcheur. La liste blanche désactive France Travail sans activation explicite et impose un intervalle minimal de 15 minutes.
+- [x] Collecter et normaliser les offres ; garder source, lien original et dates utiles. Le brut, son SHA-256 et les chemins JSON de chaque champ sont conservés ; une valeur absente reste vide.
+- [x] Dédupliquer sans perdre les candidatures et notes personnelles. Les règles identifiant source et empreinte normalisée gardent tous les membres et leurs décisions ; le dossier candidat reste séparé.
+- [x] Gérer expiration, retrait, erreurs et limitation de débit. Une collecte complète désactive les offres disparues, conserve les documents invalides et isole les échecs par source.
+- [x] Intégrer recherche, filtres et ajout au suivi candidat sans casser les offres manuelles. NestJS sert la recherche paginée et le frontend copie une offre dans le suivi uniquement sur action explicite.
+- [x] Séparer offres publiques mutualisables et données privées du candidat. SQLite ne contient ni statut, ni note, ni candidature ; ces données restent dans le dossier privé synchronisé.
 
 ### C08 — Comparaison expliquée
 
@@ -238,5 +238,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C08 | Codex | Comparaison déterministe à trois états, preuves visibles, références de version et filtrage des données personnelles pour Hermes | 62 tests frontend, dont 12 décisions du corpus annoté ; 70 tests NestJS, lint, typage et builds réussis | Le corpus protège le contrat fonctionnel mais ne mesure pas une performance représentative sur des CV et offres réels ; aucun score qualité n'est affiché |
 | 2026-09-07 | C09 | Codex | Brouillon texte déterministe construit avec les informations confirmées, inconnus visibles, correction et export explicites, sans envoi automatique | Tests frontend du contenu manquant et d'une instruction malveillante ; test NestJS d'indisponibilité Hermes ; suites et builds complets réussis | Le brouillon n'est pas persisté dans le dossier : l'utilisateur doit l'exporter avant de fermer ou changer d'offre |
 | 2026-09-07 | C13 | Codex | README racine, frontend, cadrage projet et feuille de route alignés avec le produit B2C réellement livré ; ancien B2B identifié comme archive abandonnée | Recherche des formulations historiques et concordance avec C05, C08 et C09 vérifiées | C12 reste bloqué avant lancement tant que l'environnement cible et les prestataires ne sont pas choisis |
+| 2026-09-08 | C07 | Codex | Service Rust de collecte et déduplication, brut et provenance conservés, liste blanche France Travail/feed/fichier, façade NestJS et recherche frontend avec ajout explicite au suivi privé | `cargo fmt --check`, 9 tests Rust, Clippy strict ; `npm run check:all` : 74 tests NestJS, 21 tests HTTP, 66 tests web et builds ; trajet réel NestJS→Rust vérifié avec filtre accent-insensible et contrôle 401 interne | France Travail reste désactivé jusqu’à fourniture des identifiants et acceptation de ses conditions ; Docker Desktop était arrêté lors de la tentative locale, le build d’image est aussi contrôlé par `.github/workflows/offers.yml` |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

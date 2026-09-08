@@ -1,0 +1,16 @@
+# Liste blanche. Une source absente n'est jamais interrogée.
+[[source]]
+id = "fixtures-locales"
+kind = "file"
+terms = "Données synthétiques locales, tests uniquement"
+enabled = false
+min_interval_seconds = 0
+locations = ["tests/fixtures/offres-synthetiques.json"]
+
+[[source]]
+id = "france-travail"
+kind = "france_travail"
+terms = "https://francetravail.io/data/api/offres-emploi"
+enabled = false
+min_interval_seconds = 900
+locations = []

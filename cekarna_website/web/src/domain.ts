@@ -32,7 +32,7 @@ export interface Job {
   title: string;
   company: string;
   location: string;
-  contract: Contract;
+  contract: Contract | '';
   remote: boolean;
   salary: string;
   url: string;
@@ -514,7 +514,8 @@ export function parseWorkspace(raw: string): Workspace | null {
       ids.add(job.id);
       if (
         !STATUSES.includes(job.status as Status) ||
-        !CONTRACTS.includes(job.contract as Contract) ||
+        (job.contract !== '' &&
+          !CONTRACTS.includes(job.contract as Contract)) ||
         typeof job.remote !== 'boolean' ||
         safeUrl(job.url as string) === null ||
         Number.isNaN(Date.parse(job.updatedAt as string))

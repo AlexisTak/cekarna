@@ -24,6 +24,8 @@ const CONFIG: Environment = {
   cvImportRetentionSeconds: 900,
   cvImportMaxPages: 10,
   authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
+  offersBaseUrl: 'http://127.0.0.1:8083',
+  offersInternalToken: '',
 };
 
 function build(config: Environment = CONFIG): CvImportService {

@@ -1,0 +1,27 @@
+name: Offers service
+on:
+  push:
+    paths: ['cekarna_website/services/offers/**', '.github/workflows/offers.yml']
+  pull_request:
+    paths: ['cekarna_website/services/offers/**', '.github/workflows/offers.yml']
+permissions:
+  contents: read
+jobs:
+  offers:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cekarna_website/services/offers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.85'
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cekarna_website/services/offers
+      - run: cargo fmt --check
+      - run: cargo test --locked
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: docker build -t cekarna-offers:test .

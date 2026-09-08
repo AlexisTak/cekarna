@@ -41,7 +41,7 @@ demande une confirmation explicite.
 4. Ajouter collecte d’offres depuis des sources autorisées et une comparaison évaluée sur corpus.
 5. Préparer des brouillons personnalisés, sans inventer d’expériences ; validation et export avant tout envoi.
 
-L’import de CV PDF textuel est livré. Un centre de notifications local conserve les messages importants et les rappels d’offres explicitement choisis ; son historique est isolé par compte sur l’appareil et il ne déclenche aucun e-mail. Les rappels sont évalués lorsque l’application est ouverte. La comparaison optionnelle par Ollama local est disponible après connexion, sans génération de candidature. La recherche automatique, les brouillons IA, l’abonnement et l’envoi de candidature ne sont pas activés.
+L’import de CV PDF textuel est livré. Un centre de notifications local conserve les messages importants et les rappels d’offres explicitement choisis ; son historique est isolé par compte sur l’appareil et il ne déclenche aucun e-mail. Les rappels sont évalués lorsque l’application est ouverte. La comparaison optionnelle par Ollama local est disponible après connexion. Un service Rust collecte et déduplique les offres de sources explicitement autorisées ; France Travail reste désactivé sans identifiants. L'ajout d'une offre publique au suivi privé exige une action explicite. L’abonnement et l’envoi de candidature ne sont pas activés.
 
 ## Vérification
 

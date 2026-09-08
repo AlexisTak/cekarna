@@ -47,6 +47,7 @@ import {
 import CvImport from './CvImport';
 import { LocalAiComparison } from './LocalAiComparison';
 import { ApplicationDraft } from './ApplicationDraft';
+import { OfferSearch } from './OfferSearch';
 import {
   CONTRACTS,
   LABELS,
@@ -240,6 +241,7 @@ function JobForm({
         <label>
           Contrat
           <select name="contract" defaultValue={job?.contract ?? 'CDI'}>
+            <option value="">Non renseigné</option>
             {CONTRACTS.map((c) => (
               <option key={c}>{c}</option>
             ))}
@@ -1249,6 +1251,10 @@ export default function App() {
 
           {view === 'jobs' && (
             <section>
+              <OfferSearch
+                tracked={new Set(jobs.map((job) => job.id))}
+                onAdd={saveJob}
+              />
               <div className="test-data-actions">
                 <span>Besoin de données pour essayer la comparaison ?</span>
                 <button

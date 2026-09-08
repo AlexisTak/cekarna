@@ -41,7 +41,8 @@ describe('auth-api', () => {
     const api = await loadApi();
     const result = await api.login('a@b.test', 'une longue phrase');
     expect(result.kind).toBe('session');
-    if (result.kind === 'session') expect(result.account.first_name).toBe('Camille');
+    if (result.kind === 'session')
+      expect(result.account.first_name).toBe('Camille');
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const loginHeaders = new Headers(
       (fetchMock.mock.calls[1][1] as RequestInit).headers,
@@ -72,7 +73,10 @@ describe('auth-api', () => {
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
       .mockResolvedValueOnce(
-        jsonResponse(202, { mfa_required: true, mfa_token: 'transition-token' }),
+        jsonResponse(202, {
+          mfa_required: true,
+          mfa_token: 'transition-token',
+        }),
       );
     vi.stubGlobal('fetch', fetchMock);
     const api = await loadApi();
@@ -169,6 +173,39 @@ describe('auth-api', () => {
       String(c[0]).endsWith('/v1/auth/refresh'),
     );
     expect(refreshCalls).toHaveLength(1);
+  });
+
+  it('refreshes an expired token and retries an authenticated service call', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-old' }))
+      .mockResolvedValueOnce(jsonResponse(401, { error: 'invalid_token' }))
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'at-new' }))
+      .mockResolvedValueOnce(jsonResponse(200, { recommendations: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = await loadApi();
+    await api.bootstrapAuth();
+
+    await expect(
+      api.fetchAuthenticatedService(
+        'http://127.0.0.1:3000/v1/local-ai/recommend-offers',
+        {
+          method: 'POST',
+          body: '{}',
+        },
+      ),
+    ).resolves.toMatchObject({ status: 200 });
+
+    const firstHeaders = new Headers(
+      (fetchMock.mock.calls[2][1] as RequestInit).headers,
+    );
+    const retriedHeaders = new Headers(
+      (fetchMock.mock.calls[4][1] as RequestInit).headers,
+    );
+    expect(firstHeaders.get('Authorization')).toBe('Bearer at-old');
+    expect(retriedHeaders.get('Authorization')).toBe('Bearer at-new');
+    expect(fetchMock.mock.calls[4][1]).toMatchObject({ body: '{}' });
   });
 
   it('surfaces the 401 without retrying when the refresh yields no token', async () => {

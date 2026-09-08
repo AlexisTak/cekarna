@@ -1,4 +1,4 @@
-import { accessTokenForService } from './auth-api';
+import { fetchAuthenticatedService } from './auth-api';
 import type { Education, Experience, Job, Profile } from './domain';
 import type { PublicOffer } from './offers-api';
 export interface AiFinding {
@@ -28,11 +28,10 @@ export async function compareWithLocalAi(
       /\/$/,
       '',
     ) || 'http://127.0.0.1:3000';
-  const response = await fetch(`${base}/v1/local-ai/compare`, {
+  const response = await fetchAuthenticatedService(`${base}/v1/local-ai/compare`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${await accessTokenForService()}`,
     },
     body: JSON.stringify({
       profile: {
@@ -68,11 +67,10 @@ export async function recommendOffersWithLocalAi(
       /\/$/,
       '',
     ) || 'http://127.0.0.1:3000';
-  const response = await fetch(`${base}/v1/local-ai/recommend-offers`, {
+  const response = await fetchAuthenticatedService(`${base}/v1/local-ai/recommend-offers`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${await accessTokenForService()}`,
     },
     body: JSON.stringify({
       profile: {
@@ -97,9 +95,13 @@ export async function recommendOffersWithLocalAi(
   });
   if (!response.ok)
     throw new Error(
-      response.status === 429
-        ? 'offer_recommendations_quota'
-        : 'offer_recommendations_unavailable',
+      response.status === 400
+        ? 'offer_recommendations_profile'
+        : response.status === 401
+          ? 'offer_recommendations_session'
+          : response.status === 429
+            ? 'offer_recommendations_quota'
+            : 'offer_recommendations_unavailable',
     );
   return response.json() as Promise<OfferRecommendations>;
 }

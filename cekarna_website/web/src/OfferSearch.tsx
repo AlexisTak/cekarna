@@ -71,11 +71,15 @@ export function OfferSearch({
         }),
       );
     } catch (error) {
+      const code = error instanceof Error ? error.message : '';
       setRecommendationError(
-        error instanceof Error &&
-          error.message === 'offer_recommendations_quota'
+        code === 'offer_recommendations_quota'
           ? 'La limite temporaire d’analyses est atteinte. Réessayez dans quelques minutes.'
-          : 'Les recommandations sont indisponibles. Vérifiez les services d’offres, l’API et Hermes local.',
+          : code === 'offer_recommendations_session'
+            ? 'Votre session a expiré. Reconnectez-vous puis relancez la recherche.'
+            : code === 'offer_recommendations_profile'
+              ? 'Complétez votre profil professionnel avant de demander des recommandations.'
+              : 'Les recommandations sont indisponibles. Vérifiez les services d’offres, l’API et Hermes local.',
       );
     } finally {
       setRecommending(false);
@@ -210,8 +214,9 @@ export function OfferSearch({
             })
           ) : (
             <p>
-              Hermes n’a trouvé aucune correspondance accompagnée de preuves
-              vérifiables dans ce lot.
+              {recommendations.inspected_offers === 0
+                ? 'Aucune offre collectée ne correspond aux filtres actuels. Élargissez le métier, le lieu ou le contrat puis réessayez.'
+                : 'Hermes n’a trouvé aucune correspondance accompagnée de preuves vérifiables dans ce lot.'}
             </p>
           )}
           <small>

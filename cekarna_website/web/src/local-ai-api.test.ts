@@ -4,7 +4,7 @@ import { recommendOffersWithLocalAi } from './local-ai-api';
 
 vi.mock('./auth-api', async (original) => ({
   ...(await original<typeof import('./auth-api')>()),
-  accessTokenForService: vi.fn().mockResolvedValue('candidate-token'),
+  fetchAuthenticatedService: vi.fn((input, init) => fetch(input, init)),
 }));
 
 describe('Hermes offer recommendations API', () => {
@@ -57,9 +57,9 @@ describe('Hermes offer recommendations API', () => {
     expect(body).not.toContain('camille@example.test');
     expect(body).not.toContain('0600000000');
     expect(body).not.toContain('private-id');
-    expect(request.headers).toMatchObject({
-      Authorization: 'Bearer candidate-token',
-    });
+    expect(new Headers(request.headers).get('Content-Type')).toBe(
+      'application/json',
+    );
   });
 
   it('exposes the temporary quota separately', async () => {
@@ -75,5 +75,24 @@ describe('Hermes offer recommendations API', () => {
         {},
       ),
     ).rejects.toThrow('offer_recommendations_quota');
+  });
+
+  it.each([
+    [400, 'offer_recommendations_profile'],
+    [401, 'offer_recommendations_session'],
+    [503, 'offer_recommendations_unavailable'],
+  ])('maps HTTP %s to %s', async (status, code) => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{}', { status }),
+    );
+    const workspace = emptyWorkspace();
+    await expect(
+      recommendOffersWithLocalAi(
+        workspace.profile,
+        workspace.experiences,
+        workspace.education,
+        {},
+      ),
+    ).rejects.toThrow(code);
   });
 });

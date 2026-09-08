@@ -243,6 +243,28 @@ export async function accessTokenForService(): Promise<string> {
   return accessToken;
 }
 
+/**
+ * Calls a Cekarna API with the short-lived identity token. A 401 triggers one
+ * coordinated refresh and one replay with the new token.
+ */
+export async function fetchAuthenticatedService(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const execute = async (token: string): Promise<Response> => {
+    const headers = new Headers(init.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+    return fetch(input, { ...init, headers });
+  };
+
+  const first = await execute(await accessTokenForService());
+  if (first.status !== 401) return first;
+
+  await bootstrapAuth();
+  if (!accessToken) return first;
+  return execute(accessToken);
+}
+
 export async function logout(): Promise<void> {
   const response = await mutate('/v1/auth/logout', {}, false);
   if (response.status !== 204) throw await toError(response);

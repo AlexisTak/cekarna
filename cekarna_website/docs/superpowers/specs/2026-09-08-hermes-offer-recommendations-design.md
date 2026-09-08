@@ -13,11 +13,14 @@ confirmé, sans envoyer le PDF brut au modèle et sans lancer un appel par annon
    expériences et formations enregistrés dans le dossier candidat.
 2. NestJS charge au maximum 100 offres actives depuis le service mutualisé.
 3. Un préfiltre déterministe compare les termes professionnels, la ville et le
-   contrat, puis retient au maximum 8 annonces.
+   contrat, puis retient au maximum 6 annonces.
 4. Un unique appel Hermes reçoit ces données compactes. Le contexte est limité à
    4 096 tokens, la température à zéro et le modèle reste chargé cinq minutes.
 5. Le serveur accepte au maximum 5 recommandations. Chaque preuve doit être un
    extrait littéral du profil et de l’offre correspondante ; sinon elle est retirée.
+   Si Hermes ne respecte pas le schéma, le préfiltre peut conserver des suggestions
+   au niveau « à vérifier » uniquement lorsqu’il peut produire lui-même deux extraits
+   littéraux correspondants. L’interface identifie alors ce repli comme textuel.
 6. Le résultat est conservé 15 minutes dans un cache mémoire borné par compte,
    profil et lot d’offres. Une nouvelle version invalide naturellement la clé.
 

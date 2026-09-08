@@ -107,9 +107,20 @@ async fn check_services(
         .build()
         .map_err(|_| "Impossible de préparer le contrôle local.".to_owned())?;
     let api_managed = managed_by_panel(&processes, "candidate-api");
+    let offers_managed = managed_by_panel(&processes, "offers");
     let ollama_managed = managed_by_panel(&processes, "ollama");
     let notifications_setup_required =
         !project_path().join("services/notifications/.env").is_file();
+    let offers_env = project_path().join("services/offers/.env");
+    let api_env = project_path().join(".env");
+    let offers_token = env_value(&offers_env, "OFFERS_INTERNAL_TOKEN");
+    let api_token = env_value(&api_env, "OFFERS_INTERNAL_TOKEN");
+    let offers_token_invalid = match offers_token.as_deref() {
+        Some(value) => value.len() < 32,
+        None => true,
+    };
+    let offers_setup_required =
+        !offers_env.is_file() || offers_token_invalid || offers_token != api_token;
 
     Ok(vec![
         check_service(
@@ -140,6 +151,16 @@ async fn check_services(
             "docker",
             false,
             notifications_setup_required,
+        )
+        .await,
+        check_service(
+            &client,
+            "offers",
+            "Offres d’emploi",
+            "http://127.0.0.1:8083/health/ready",
+            "local",
+            offers_managed,
+            offers_setup_required,
         )
         .await,
         check_service(
@@ -200,6 +221,91 @@ fn initialize_notifications_development() -> Result<(), String> {
         .map_err(|_| "Impossible de créer la configuration locale des notifications.".to_owned())
 }
 
+fn env_value(path: &Path, key: &str) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    content.lines().find_map(|line| {
+        let (name, value) = line.split_once('=')?;
+        (name.trim() == key).then(|| value.trim().to_owned())
+    })
+}
+
+fn set_env_value(path: &Path, key: &str, value: &str) -> Result<(), String> {
+    let existing = std::fs::read_to_string(path).unwrap_or_default();
+    let mut found = false;
+    let mut lines = existing
+        .lines()
+        .map(|line| {
+            if line
+                .split_once('=')
+                .is_some_and(|(name, _)| name.trim() == key)
+            {
+                found = true;
+                format!("{key}={value}")
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>();
+    if !found {
+        lines.push(format!("{key}={value}"));
+    }
+    std::fs::write(path, format!("{}\n", lines.join("\n")))
+        .map_err(|_| "Impossible de mettre à jour la configuration de l’API candidat.".to_owned())
+}
+
+fn initialize_offers_development() -> Result<(), String> {
+    let project = project_path();
+    let directory = project.join("services/offers");
+    let env_path = directory.join(".env");
+    let api_env = project.join(".env");
+    let token = env_value(&env_path, "OFFERS_INTERNAL_TOKEN")
+        .filter(|value| value.len() >= 32)
+        .or_else(|| env_value(&api_env, "OFFERS_INTERNAL_TOKEN").filter(|value| value.len() >= 32))
+        .unwrap_or_else(random_secret);
+    set_env_value(&api_env, "OFFERS_BASE_URL", "http://127.0.0.1:8083")?;
+    set_env_value(&api_env, "OFFERS_INTERNAL_TOKEN", &token)?;
+    if env_path.exists() {
+        set_env_value(&env_path, "OFFERS_INTERNAL_TOKEN", &token)?;
+        return Ok(());
+    }
+    let validation = directory.join(".validation");
+    std::fs::create_dir_all(&validation)
+        .map_err(|_| "Impossible de préparer les données locales des offres.".to_owned())?;
+    std::fs::write(
+        validation.join("sources.toml"),
+        "# Données entièrement synthétiques pour le développement local.\n[[source]]\nid = \"fixtures-locales\"\nkind = \"file\"\nterms = \"Données synthétiques locales, tests uniquement\"\nenabled = true\nmin_interval_seconds = 0\nlocations = [\"tests/fixtures/offres-synthetiques.json\"]\n\n[[source]]\nid = \"france-travail\"\nkind = \"france_travail\"\nterms = \"https://francetravail.io/data/api/offres-emploi\"\nenabled = false\nmin_interval_seconds = 900\nlocations = []\n",
+    )
+    .map_err(|_| "Impossible de créer la source locale des offres.".to_owned())?;
+    std::fs::write(
+        &env_path,
+        format!(
+            "# Configuration locale créée par Cekarna Admin. Ne pas utiliser en production.\nOFFERS_ADDR=127.0.0.1:8083\nOFFERS_DATABASE_PATH=offers.db\nOFFERS_INTERNAL_TOKEN={token}\nOFFERS_SOURCES_PATH=.validation/sources.toml\nRUST_LOG=info\n"
+        ),
+    )
+    .map_err(|_| "Impossible de créer la configuration locale des offres.".to_owned())?;
+    let status = Command::new("cargo")
+        .args([
+            "run",
+            "--quiet",
+            "--",
+            "collect",
+            "--source",
+            "fixtures-locales",
+        ])
+        .current_dir(&directory)
+        .status()
+        .map_err(|_| "Cargo est introuvable ; installez Rust puis réessayez.".to_owned())?;
+    if status.success() {
+        Ok(())
+    } else {
+        let _ = std::fs::remove_file(env_path);
+        Err(
+            "La préparation des offres synthétiques a échoué. Consultez les journaux Cargo."
+                .to_owned(),
+        )
+    }
+}
+
 fn start_local_service(processes: &ManagedProcesses, id: &'static str) -> Result<(), String> {
     if managed_by_panel(processes, id) {
         return Ok(());
@@ -216,6 +322,16 @@ fn start_local_service(processes: &ManagedProcesses, id: &'static str) -> Result
             command.arg("serve");
             command
         }
+        "offers" => {
+            let mut command = Command::new("cargo");
+            command
+                .arg("run")
+                .arg("--quiet")
+                .arg("--")
+                .arg("serve")
+                .current_dir(project.join("services/offers"));
+            command
+        }
         _ => return Err("Service local inconnu.".to_owned()),
     };
     let child = command
@@ -225,6 +341,7 @@ fn start_local_service(processes: &ManagedProcesses, id: &'static str) -> Result
         .spawn()
         .map_err(|_| match id {
             "ollama" => "Ollama est introuvable. Installez-le ou démarrez-le manuellement.".to_owned(),
+            "offers" => "Le service d’offres n’a pas pu démarrer. Vérifiez Rust et sa configuration locale.".to_owned(),
             _ => "Le service candidat n’a pas pu démarrer. Vérifiez l’installation Node.js et ses dépendances.".to_owned(),
         })?;
     processes
@@ -278,6 +395,7 @@ fn control_service(
     }
     match (service.as_str(), action.as_str()) {
         ("notifications", "initialize") => initialize_notifications_development(),
+        ("offers", "initialize") => initialize_offers_development(),
         ("auth", action) => {
             run_docker_compose(project_path().join("services/auth"), "auth", action)
         }
@@ -287,8 +405,10 @@ fn control_service(
             action,
         ),
         ("candidate-api", "start") => start_local_service(&processes, "candidate-api"),
+        ("offers", "start") => start_local_service(&processes, "offers"),
         ("ollama", "start") => start_local_service(&processes, "ollama"),
         ("candidate-api", "stop") => stop_local_service(&processes, "candidate-api"),
+        ("offers", "stop") => stop_local_service(&processes, "offers"),
         ("ollama", "stop") => stop_local_service(&processes, "ollama"),
         _ => Err("Service inconnu.".to_owned()),
     }
@@ -311,4 +431,28 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{env_value, set_env_value};
+
+    #[test]
+    fn env_value_is_added_then_replaced_without_duplicate() {
+        let path = std::env::temp_dir().join(format!(
+            "cekarna-admin-env-{}-{}.tmp",
+            std::process::id(),
+            rand::random::<u64>()
+        ));
+        std::fs::write(&path, "PORT=3000\n").unwrap();
+        set_env_value(&path, "OFFERS_INTERNAL_TOKEN", "first-token").unwrap();
+        set_env_value(&path, "OFFERS_INTERNAL_TOKEN", "second-token").unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            env_value(&path, "OFFERS_INTERNAL_TOKEN").as_deref(),
+            Some("second-token")
+        );
+        assert_eq!(content.matches("OFFERS_INTERNAL_TOKEN=").count(), 1);
+        std::fs::remove_file(path).unwrap();
+    }
 }

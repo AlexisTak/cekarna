@@ -39,7 +39,7 @@ app.innerHTML = `
     </section>
     <section class="guidance" aria-labelledby="guidance-title">
       <h2 id="guidance-title">Utilisation</h2>
-      <p>Le démarrage de l’identité ou des notifications exige Docker Desktop et leur configuration locale. Le panneau ne lit pas les CV, profils, jetons, secrets ou contenus de notifications. Consultez les journaux du service quand un démarrage échoue.</p>
+      <p>Le démarrage de l’identité ou des notifications exige Docker Desktop. Les offres locales utilisent Rust et des annonces entièrement synthétiques ; France Travail reste désactivé. Le panneau ne lit pas les CV, profils, jetons, secrets ou contenus de notifications. Consultez les journaux du service quand un démarrage échoue.</p>
     </section>
   </main>
 `
@@ -104,6 +104,9 @@ services.addEventListener('click', async (event) => {
   button.textContent = action === 'start' ? 'Démarrage…' : action === 'stop' ? 'Arrêt…' : 'Préparation…'
   try {
     await invoke('control_service', { service, action })
+    if (service === 'offers' && action === 'initialize') {
+      window.alert('Configuration des offres prête. Redémarrez l’API candidat si elle était déjà active afin qu’elle relise le jeton interne.')
+    }
     await new Promise((resolve) => window.setTimeout(resolve, action === 'start' ? 1200 : 350))
     await refreshStatuses()
   } catch (error) {

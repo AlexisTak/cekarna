@@ -13,6 +13,7 @@ export interface OfferRecommendation {
 }
 export interface OfferRecommendations {
   model: string;
+  method: 'hermes' | 'textual_fallback';
   cached: boolean;
   inspected_offers: number;
   analyzed_offers: number;

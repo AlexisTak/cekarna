@@ -136,7 +136,11 @@ export function OfferSearch({
       {recommendations && (
         <section className="recommendation-results" aria-live="polite">
           <div className="recommendation-summary">
-            <strong>Suggestions expliquées par {recommendations.model}</strong>
+            <strong>
+              {recommendations.method === 'hermes'
+                ? `Suggestions expliquées par ${recommendations.model}`
+                : 'Suggestions textuelles à vérifier'}
+            </strong>
             <span>
               {recommendations.inspected_offers} offres préfiltrées,{' '}
               {recommendations.analyzed_offers} analysées par Hermes

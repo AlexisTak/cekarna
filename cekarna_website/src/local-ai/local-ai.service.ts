@@ -40,6 +40,7 @@ export interface CompactOffer {
 }
 export interface RecommendationResult {
   model: string;
+  method: 'hermes' | 'textual_fallback';
   cached: boolean;
   inspected_offers: number;
   analyzed_offers: number;
@@ -215,6 +216,37 @@ function textualValues(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(textualValues);
   const item = record(value);
   return item ? Object.values(item).flatMap(textualValues) : [];
+}
+function deterministicEvidence(
+  profile: object,
+  offer: CompactOffer,
+): RecommendationEvidence[] {
+  const profileValues = [...new Set(textualValues(profile).filter(Boolean))];
+  const offerValues = [...new Set(textualValues(offer).filter(Boolean))];
+  return profileValues
+    .flatMap((profileValue) =>
+      offerValues.map((offerValue) => {
+        const shared = overlap(tokens(profileValue), tokens(offerValue));
+        const exact = normalize(profileValue) === normalize(offerValue);
+        return {
+          profile: profileValue,
+          offer: offerValue,
+          score: exact ? 100 + shared : shared,
+        };
+      }),
+    )
+    .filter((pair) => pair.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .filter(
+      (pair, index, all) =>
+        all.findIndex(
+          (candidate) =>
+            candidate.profile === pair.profile &&
+            candidate.offer === pair.offer,
+        ) === index,
+    )
+    .slice(0, 4)
+    .map(({ profile, offer }) => ({ profile, offer }));
 }
 function shortlist(profile: object, offers: CompactOffer[]) {
   const source = profile as Record<string, unknown>;
@@ -393,6 +425,7 @@ export class LocalAiService {
     if (!candidates.length)
       return {
         model,
+        method: 'textual_fallback',
         cached: false,
         inspected_offers: offers.length,
         analyzed_offers: 0,
@@ -419,6 +452,7 @@ export class LocalAiService {
     if (active) return { ...(await active), cached: true };
     this.consumeQuota(userId, now);
     const work = this.analyzeRecommendationBatch(
+      profile,
       profileSource,
       offerSources,
       source,
@@ -439,6 +473,7 @@ export class LocalAiService {
   }
 
   private async analyzeRecommendationBatch(
+    profile: object,
     profileSource: string,
     offerSources: Map<string, string>,
     source: string,
@@ -455,9 +490,10 @@ export class LocalAiService {
             (candidate) => candidate.id === item.offer_id,
           );
           const offerSource = offerSources.get(item.offer_id);
-          if (!offer || !offerSource || !Array.isArray(item.evidence))
-            return [];
-          const evidence = item.evidence
+          if (!offer || !offerSource) return [];
+          const modelEvidence = (
+            Array.isArray(item.evidence) ? item.evidence : []
+          )
             .flatMap((value): RecommendationEvidence[] => {
               const pair = record(value);
               if (!pair) return [];
@@ -475,6 +511,9 @@ export class LocalAiService {
                 : [];
             })
             .slice(0, 4);
+          const evidence = modelEvidence.length
+            ? modelEvidence
+            : deterministicEvidence(profile, offer);
           if (!evidence.length) return [];
           const assessment = ['high', 'medium', 'uncertain'].includes(
             String(item.assessment),
@@ -490,11 +529,22 @@ export class LocalAiService {
           all.findIndex((entry) => entry.offer.id === item.offer.id) === index,
       )
       .slice(0, MAX_RECOMMENDATIONS);
+    const verified = unique.length
+      ? unique
+      : candidates
+          .flatMap((offer): RecommendedOffer[] => {
+            const evidence = deterministicEvidence(profile, offer);
+            return evidence.length
+              ? [{ offer, assessment: 'uncertain', evidence }]
+              : [];
+          })
+          .slice(0, MAX_RECOMMENDATIONS);
     return {
       model: answer.model,
+      method: unique.length ? 'hermes' : 'textual_fallback',
       inspected_offers: inspectedOffers,
       analyzed_offers: candidates.length,
-      recommendations: unique,
+      recommendations: verified,
     };
   }
 

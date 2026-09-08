@@ -157,6 +157,94 @@ describe('LocalAiService', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('rebuilds literal evidence when Hermes selects a valid offer but paraphrases its proof', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            content: JSON.stringify({
+              recommendations: [
+                {
+                  offer_id: 'offer-1',
+                  assessment: 'high',
+                  evidence: [
+                    {
+                      profile: 'Ville : Lyon',
+                      offer: 'Localisation : Lyon',
+                    },
+                  ],
+                },
+              ],
+            }),
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await new LocalAiService().recommendOffers(
+      'candidate-a',
+      { title: 'Développeuse web', city: 'Lyon', contract: 'CDI' },
+      [],
+      [],
+      {
+        offers: [
+          {
+            id: 'offer-1',
+            source_id: 'test',
+            title: 'Développeur web',
+            company: 'Entreprise fictive',
+            location: 'Lyon',
+            contract: 'CDI',
+            description: 'Poste entièrement fictif.',
+          },
+        ],
+      },
+    );
+    expect(result.recommendations[0].evidence).toContainEqual({
+      profile: 'Lyon',
+      offer: 'Lyon',
+    });
+  });
+
+  it('keeps a verifiable uncertain suggestion when Hermes returns no usable item', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: { content: JSON.stringify({ recommendations: [] }) },
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await new LocalAiService().recommendOffers(
+      'candidate-a',
+      { title: 'Développeuse web', city: 'Lyon', contract: 'CDI' },
+      [],
+      [],
+      {
+        offers: [
+          {
+            id: 'offer-1',
+            source_id: 'test',
+            title: 'Développeur web',
+            company: 'Entreprise fictive',
+            location: 'Lyon',
+            contract: 'CDI',
+            description: 'Poste entièrement fictif.',
+          },
+        ],
+      },
+    );
+    expect(result.recommendations[0].offer.id).toBe('offer-1');
+    expect(result.recommendations[0].assessment).toBe('uncertain');
+    expect(result.recommendations[0].evidence).toEqual(
+      expect.arrayContaining([
+        { profile: 'CDI', offer: 'CDI' },
+        { profile: 'Lyon', offer: 'Lyon' },
+      ]),
+    );
+    expect(result.method).toBe('textual_fallback');
+  });
+
   it('coalesces concurrent requests for the same profile and offer batch', async () => {
     let release!: (response: Response) => void;
     const fetchMock = jest

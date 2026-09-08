@@ -1615,7 +1615,8 @@ dialog::backdrop {
   border-radius: 8px;
   margin-bottom: 18px;
 }
-.warning-banner button {
+.warning-banner button,
+.warning-banner .button-link {
   text-decoration: underline;
   display: block;
   padding: 5px 0;
@@ -3757,3 +3758,14 @@ dialog::backdrop {
     gap: 10px;
   }
 }
+
+.passkey-card { align-items: flex-start; flex-direction: column; }
+.passkey-content { display: grid; gap: 16px; width: 100%; }
+.passkey-list { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.passkey-list li { align-items: center; border: 1px solid var(--border); border-radius: 10px; display: flex; gap: 16px; justify-content: space-between; padding: 13px; }
+.passkey-list span { display: grid; gap: 4px; }
+.passkey-list small, .passkey-recovery { color: var(--muted); }
+.passkey-form { display: grid; gap: 12px; grid-template-columns: 1fr 1fr auto; align-items: end; }
+.passkey-form label { display: grid; gap: 6px; font-weight: 650; }
+.passkey-form input { border: 1px solid var(--border); border-radius: 9px; font: inherit; padding: 10px 12px; }
+@media (max-width: 760px) { .passkey-form { grid-template-columns: 1fr; } .passkey-list li { align-items: stretch; flex-direction: column; } }

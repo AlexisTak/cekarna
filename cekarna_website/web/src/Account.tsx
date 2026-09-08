@@ -11,6 +11,7 @@ import {
   type Account as AccountData,
 } from './auth-api';
 import { STORAGE_KEY } from './domain';
+import { Passkeys } from './Passkeys';
 
 function leave(path: string) {
   window.location.assign(path);
@@ -94,6 +95,7 @@ export default function Account() {
           {account && <p>{account.email}{account.email_verified ? ' · adresse confirmée' : ' · adresse à confirmer'}</p>}
         </section>
         {message && <p className="account-feedback" role="alert">{message}</p>}
+        <Passkeys active={Boolean(account)} />
         <section className="account-card">
           <div><KeyRound size={20} /><div><h2>Session actuelle</h2><p>Fermez la session sur cet appareil.</p></div></div>
           <button className="button secondary" onClick={signOut} disabled={busy !== ''}>

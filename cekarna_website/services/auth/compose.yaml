@@ -40,6 +40,7 @@ services:
       AUTH_ISSUER: http://localhost:8081
       AUTH_AUDIENCE: cekarna-api
       WEB_ORIGIN: http://127.0.0.1:5173
+      AUTH_RP_ID: 127.0.0.1
       AUTH_SIGNING_KEY_FILE: /run/secrets/ed25519.key
       AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY:?Run go run ./cmd/auth init-dev}
       DATABASE_URL: postgres://cekarna:${POSTGRES_PASSWORD}@postgres:5432/cekarna_auth?sslmode=disable

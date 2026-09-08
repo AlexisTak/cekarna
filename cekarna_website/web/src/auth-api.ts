@@ -164,11 +164,57 @@ export async function saveCandidateWorkspace(
   return nextRevision;
 }
 
-export async function login(email: string, password: string): Promise<Account> {
+export type LoginResult = { kind: 'session'; account: Account } | { kind: 'mfa'; token: string };
+
+export async function login(email: string, password: string): Promise<LoginResult> {
   const response = await mutate('/v1/auth/login', { email, password }, false);
   if (!response.ok) throw await toError(response);
+  if (response.status === 202) {
+    const body = (await response.json()) as { mfa_required?: boolean; mfa_token?: string };
+    if (body.mfa_required && typeof body.mfa_token === 'string' && body.mfa_token)
+      return { kind: 'mfa', token: body.mfa_token };
+    throw new AuthError(503, 'mfa_token_missing');
+  }
   await storeAccessToken(response);
-  return fetchAccount();
+  return { kind: 'session', account: await fetchAccount() };
+}
+
+export interface PasskeySummary {
+  id: string;
+  name: string;
+  created_at: string;
+  last_used_at?: string;
+}
+type Ceremony = { challenge_id: string; options: Record<string, unknown> };
+
+export async function beginPasskeyLogin(mfaToken: string): Promise<Ceremony> {
+  const response = await mutate('/v1/auth/mfa/login/begin', { mfa_token: mfaToken }, false);
+  if (!response.ok) throw await toError(response);
+  return response.json() as Promise<Ceremony>;
+}
+export async function finishPasskeyLogin(mfaToken: string, challengeId: string, credential: unknown): Promise<void> {
+  const response = await mutate('/v1/auth/mfa/login/finish', { mfa_token: mfaToken, challenge_id: challengeId, credential }, false);
+  if (!response.ok) throw await toError(response);
+  await storeAccessToken(response);
+}
+export async function beginPasskeyEnrollment(password: string): Promise<Ceremony> {
+  const response = await mutate('/v1/auth/mfa/register/begin', { password }, true);
+  if (!response.ok) throw await toError(response);
+  return response.json() as Promise<Ceremony>;
+}
+export async function finishPasskeyEnrollment(challengeId: string, name: string, credential: unknown): Promise<void> {
+  const response = await mutate('/v1/auth/mfa/register/finish', { challenge_id: challengeId, name, credential }, true);
+  if (response.status !== 201) throw await toError(response);
+}
+export async function listPasskeys(): Promise<PasskeySummary[]> {
+  const response = await bearerGet('/v1/auth/mfa/passkeys');
+  if (!response.ok) throw await toError(response);
+  const body = (await response.json()) as { passkeys?: PasskeySummary[] };
+  return Array.isArray(body.passkeys) ? body.passkeys : [];
+}
+export async function deletePasskey(id: string): Promise<void> {
+  const response = await mutate(`/v1/auth/mfa/passkeys/${encodeURIComponent(id)}`, {}, true, 'DELETE');
+  if (response.status !== 204) throw await toError(response);
 }
 
 // bootstrapAuth shares a single in-flight refresh: replaying a lost refresh

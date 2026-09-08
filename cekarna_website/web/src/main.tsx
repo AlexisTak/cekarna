@@ -23,7 +23,7 @@ else if (path === '/connexion') screen = <Auth mode="login" />;
 else if (path === '/mot-de-passe-oublie') screen = <Recover />;
 else if (path === '/reinitialiser') screen = <PasswordReset />;
 else if (path === '/verifier-email') screen = <VerifyEmail />;
-else if (path === '/compte') screen = <Account />;
+else if (path === '/compte' || path === '/app/securite') screen = <Account />;
 else if (path === '/mentions-legales') screen = <Legal page="legal" />;
 else if (path === '/confidentialite') screen = <Legal page="privacy" />;
 else if (path === '/cookies') screen = <Legal page="cookies" />;

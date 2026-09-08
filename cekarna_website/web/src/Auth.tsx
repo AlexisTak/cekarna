@@ -6,14 +6,18 @@ import {
   Compass,
   Eye,
   EyeOff,
+  KeyRound,
   LockKeyhole,
 } from 'lucide-react';
 import {
   AuthError,
+  beginPasskeyLogin,
   describeAuthError,
+  finishPasskeyLogin,
   login,
   registerAccount,
 } from './auth-api';
+import { getPasskey, supportsPasskeys } from './webauthn';
 
 type AuthMode = 'signup' | 'login';
 
@@ -38,6 +42,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
   const [busy, setBusy] = useState(false);
   const [signedUp, setSignedUp] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
 
   useEffect(() => {
     document.title = isSignup
@@ -72,14 +77,41 @@ export default function Auth({ mode }: { mode: AuthMode }) {
         await registerAccount(email, password, firstName);
         setSignedUp(true);
       } else {
-        await login(email, password);
-        window.location.assign('/app');
+        const result = await login(email, password);
+        if (result.kind === 'mfa') setMfaToken(result.token);
+        else window.location.assign('/app');
       }
     } catch (error) {
       if (error instanceof AuthError && error.status === 401 && !isSignup) {
         setServerError('Adresse ou mot de passe incorrect.');
       } else {
         setServerError(describeAuthError(error));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmPasskey() {
+    setBusy(true);
+    setServerError('');
+    try {
+      const ceremony = await beginPasskeyLogin(mfaToken);
+      const credential = await getPasskey(ceremony.options);
+      if (!credential) return;
+      await finishPasskeyLogin(mfaToken, ceremony.challenge_id, credential);
+      window.location.assign('/app');
+    } catch (error) {
+      if (
+        error instanceof AuthError &&
+        (error.status === 401 || error.code === 'passkey_rejected')
+      ) {
+        setMfaToken('');
+        setServerError(
+          'La vérification a expiré ou a été refusée. Saisissez à nouveau votre mot de passe.',
+        );
+      } else {
+        setServerError('La passkey n’a pas été reconnue. Réessayez.');
       }
     } finally {
       setBusy(false);
@@ -105,6 +137,29 @@ export default function Auth({ mode }: { mode: AuthMode }) {
             <div className="auth-local-access">
               <a href="/connexion">Aller à la connexion</a>
             </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (mfaToken) {
+    return (
+      <div className="auth-page">
+        <main className="auth-main">
+          <section className="auth-card" aria-label="Second facteur">
+            <div className="auth-card-heading">
+              <span className="auth-lock"><KeyRound size={19} /></span>
+              <div><h2>Confirmez avec votre passkey</h2><p>Utilisez Windows Hello, votre téléphone ou votre clé de sécurité.</p></div>
+            </div>
+            {!supportsPasskeys() ? (
+              <p className="auth-feedback error">Ce navigateur ne prend pas en charge les passkeys. Utilisez la récupération du mot de passe pour retirer les passkeys du compte.</p>
+            ) : (
+              <button className="auth-submit" onClick={confirmPasskey} disabled={busy}>{busy ? 'Vérification…' : 'Utiliser ma passkey'} <ArrowRight size={18} /></button>
+            )}
+            <button className="button secondary" onClick={() => { setMfaToken(''); setServerError(''); }} disabled={busy}>Annuler</button>
+            {serverError && <div className="auth-feedback error" role="alert">{serverError}</div>}
+            <a className="forgot-link" href="/mot-de-passe-oublie">Passkey perdue ? Récupérer mon compte</a>
           </section>
         </main>
       </div>

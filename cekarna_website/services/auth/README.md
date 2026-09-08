@@ -36,13 +36,21 @@ idempotentes dans une transaction protégée par verrou consultatif.
 Toutes les mutations exigent `Origin` exactement égal à `WEB_ORIGIN`, le cookie
 CSRF et le même jeton dans `X-CSRF-Token`. CORS autorise cette seule origine.
 Le navigateur envoie `credentials: 'include'`. Les corps métier sont JSON strict,
-sans champs inconnus et limités à 4 Kio. Les POST sans corps peuvent envoyer `{}`.
+sans champs inconnus et limités à 4 Kio. Les réponses WebAuthn envoyées aux routes
+`mfa/*/finish` sont bornées à 64 Kio afin d’accepter les attestations avec chaîne
+de certificats. Les POST sans corps peuvent envoyer `{}`.
 
 | Méthode | Route | Résultat |
 | --- | --- | --- |
 | GET | `/v1/auth/csrf` | Jeton CSRF + cookie HttpOnly, valables 15 min ; Origin obligatoire |
 | POST | `/v1/auth/register` | `{email, password, first_name}` ; 202 identique si adresse déjà utilisée |
-| POST | `/v1/auth/login` | `{email, password}` ; access token JSON + refresh token en cookie HttpOnly |
+| POST | `/v1/auth/login` | `{email, password}` ; session directe sans passkey, ou 202 `{mfa_required, mfa_token}` sans session lorsqu’un second facteur est requis |
+| POST | `/v1/auth/mfa/login/begin` | `{mfa_token}` ; options WebAuthn et `challenge_id` à usage unique |
+| POST | `/v1/auth/mfa/login/finish` | `{mfa_token, challenge_id, credential}` ; valide la passkey puis crée la session |
+| POST | `/v1/auth/mfa/register/begin` | Bearer + CSRF + `{password}` ; réauthentification avant enrôlement |
+| POST | `/v1/auth/mfa/register/finish` | Bearer + CSRF + `{challenge_id, name, credential}` ; ajoute une passkey nommée |
+| GET | `/v1/auth/mfa/passkeys` | Bearer ; liste les passkeys du compte sans clé publique |
+| DELETE | `/v1/auth/mfa/passkeys/{id}` | Bearer + CSRF ; révoque la passkey sélectionnée |
 | POST | `/v1/auth/refresh` | Cookie refresh ; rotation et nouvel access token |
 | POST | `/v1/auth/logout` | Révocation de la session/famille, suppression du cookie ; 204 |
 | POST | `/v1/auth/logout-all` | Bearer + CSRF ; révoque toutes les sessions du compte ; 204 |
@@ -176,14 +184,23 @@ avec politique noeviction : saturation = refus, jamais effacement silencieux des
 compteurs de sécurité. Aucune estimation mensuelle n’est acquise sans hébergeur,
 trafic, sauvegardes et disponibilité choisis.
 
-## MFA / passkeys et limites de cette livraison
+## MFA / passkeys
 
-Passkeys/WebAuthn/MFA ne sont **pas implémentés**. Pour ce premier espace candidat
-sans rôle administrateur ni paiement, la tranche couvre une authentification par
-mot de passe. Ajouter une bibliothèque WebAuthn reconnue, vérification RP ID/origin,
-challenge à usage unique stocké dans Redis, enrôlement après réauthentification,
-révocation et récupération avant activation. Les accès administrateurs futurs
-devront exiger un second facteur ; ne pas les ouvrir avec cette seule tranche.
+Une personne connectée peut enregistrer plusieurs passkeys nommées depuis
+`/compte` ou `/app/securite`. L’enrôlement exige le mot de passe courant et une
+session active. Dès qu’au moins une passkey existe, un mot de passe correct ne
+crée plus de session : le navigateur doit terminer le challenge WebAuthn dans les
+5 minutes. Les challenges et jetons de transition sont aléatoires, liés au compte,
+conservés dans Redis et consommés une seule fois. Le serveur vérifie l’origine et
+le RP ID configuré ; `AUTH_RP_ID` est dérivé de `WEB_ORIGIN` lorsqu’il est absent.
+
+La récupération par email et nouveau mot de passe constitue le parcours de secours.
+Une réinitialisation réussie supprime toutes les passkeys et révoque toutes les
+sessions, afin qu’un appareil perdu ne conserve pas l’accès. La personne doit
+ensuite enregistrer de nouvelles passkeys. La révocation individuelle reste
+accessible dans la page compte. WebAuthn dépend d’un navigateur et d’un
+authenticator compatibles ; le mot de passe et l’adresse de récupération restent
+donc nécessaires.
 
 Vérification email et récupération du mot de passe utilisent `AUTH_MAILER=log`
 en développement. En production, définir `AUTH_MAILER=smtp` avec `SMTP_HOST`,

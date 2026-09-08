@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 type Server struct {
@@ -26,10 +27,11 @@ type Server struct {
 	Mailer    Mailer
 	hashSlots chan struct{}
 	dummyHash string
+	WebAuthn  *webauthn.WebAuthn
 }
 
 func NewServer(c Config, s Store, g Guard, m Mailer) *Server {
-	return &Server{c, s, g, m, make(chan struct{}, 4), hashPassword(randomToken())}
+	return &Server{Config: c, Store: s, Guard: g, Mailer: m, hashSlots: make(chan struct{}, 4), dummyHash: hashPassword(randomToken()), WebAuthn: newWebAuthn(c)}
 }
 func respond(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -88,7 +90,13 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/verify/confirm", s.verifyConfirm)
 			r.Post("/reset/request", s.resetRequest)
 			r.Post("/reset/confirm", s.resetConfirm)
+			r.Post("/mfa/register/begin", s.mfaRegisterBegin)
+			r.Post("/mfa/register/finish", s.mfaRegisterFinish)
+			r.Post("/mfa/login/begin", s.mfaLoginBegin)
+			r.Post("/mfa/login/finish", s.mfaLoginFinish)
+			r.Delete("/mfa/passkeys/{id}", s.deletePasskey)
 		})
+		r.Get("/mfa/passkeys", s.listPasskeys)
 	})
 	r.Route("/v1/candidate", func(r chi.Router) {
 		r.Use(s.limitIP)
@@ -123,7 +131,7 @@ func (s *Server) boundary(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
 		if r.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token, Authorization")
 			w.WriteHeader(204)
 			return
@@ -131,6 +139,10 @@ func (s *Server) boundary(next http.Handler) http.Handler {
 		bodyLimit := int64(4096)
 		if r.URL.Path == "/v1/candidate/workspace" {
 			bodyLimit = 5_100_000
+		} else if r.URL.Path == "/v1/auth/mfa/register/finish" || r.URL.Path == "/v1/auth/mfa/login/finish" {
+			// Attestation objects may include certificate chains. Keep them bounded,
+			// while allowing authenticators whose response exceeds the normal API limit.
+			bodyLimit = 65_536
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, bodyLimit)
 		next.ServeHTTP(w, r)
@@ -342,6 +354,20 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		problem(w, 401, "invalid_credentials")
+		return
+	}
+	passkeyCount, err := s.Store.PasskeyCount(r.Context(), user.ID)
+	if err != nil {
+		problem(w, 503, "unavailable")
+		return
+	}
+	if passkeyCount > 0 {
+		token := randomToken()
+		if s.Guard.Redis.Set(r.Context(), "auth:mfa:pending:"+digest(token), user.ID, 5*time.Minute).Err() != nil {
+			problem(w, 503, "unavailable")
+			return
+		}
+		respond(w, 202, map[string]any{"mfa_required": true, "mfa_token": token})
 		return
 	}
 	token := randomToken()

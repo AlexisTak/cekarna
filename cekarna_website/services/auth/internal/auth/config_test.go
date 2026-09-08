@@ -49,7 +49,7 @@ func TestProductionConfiguration(t *testing.T) {
 		t.Fatal("unsafe SMTP port accepted")
 	}
 	t.Setenv("SMTP_PORT", "587")
-	for key, bad := range map[string]string{"WEB_ORIGIN": "http://app.example.test", "AUTH_ISSUER": "https://evil.test/path", "AUTH_AUDIENCE": "", "AUTH_MAILER": "unsupported", "DATABASE_URL": "postgres://db/auth?sslmode=disable", "REDIS_URL": "redis://cache:6379", "AUDIT_HMAC_KEY": "short", "AUTH_SIGNING_KEY_FILE": "missing", "AUTH_PREVIOUS_PUBLIC_KEYS": "invalid"} {
+	for key, bad := range map[string]string{"WEB_ORIGIN": "http://app.example.test", "AUTH_RP_ID": "evil.example.test", "AUTH_ISSUER": "https://evil.test/path", "AUTH_AUDIENCE": "", "AUTH_MAILER": "unsupported", "DATABASE_URL": "postgres://db/auth?sslmode=disable", "REDIS_URL": "redis://cache:6379", "AUDIT_HMAC_KEY": "short", "AUTH_SIGNING_KEY_FILE": "missing", "AUTH_PREVIOUS_PUBLIC_KEYS": "invalid"} {
 		t.Run(key, func(t *testing.T) {
 			t.Setenv(key, bad)
 			if _, err := LoadConfig(); err == nil {

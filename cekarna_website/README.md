@@ -4,7 +4,7 @@ Priorité actuelle : application web pour les particuliers en recherche d’empl
 
 ## Application web B2C
 
-La racine du site est une page d’accueil publique qui présente les fonctions réellement disponibles. L’espace candidat contient un tableau de bord, un profil manuel, des offres, des filtres, un suivi des candidatures et des notes. Le mode découverte contient uniquement des exemples fictifs. Sans compte, les données sont sauvegardées dans le navigateur. Avec un compte, elles sont aussi conservées dans PostgreSQL via le service Go ; export et restauration JSON restent disponibles.
+La racine du site est une page d’accueil publique qui présente les fonctions réellement disponibles. L’espace candidat contient un tableau de bord, un profil manuel, des offres, des filtres, un suivi des candidatures et des notes. Le mode découverte contient uniquement des exemples fictifs. Sans compte, les données sont sauvegardées dans le navigateur. Avec un compte, elles sont aussi conservées dans PostgreSQL via le service Go ; export et restauration JSON restent disponibles. Des passkeys facultatives peuvent protéger la connexion comme second facteur et se gèrent dans la page compte.
 
 Prérequis du frontend : Node.js 22.12+ (ou Node.js 24), npm. Depuis `cekarna_website` :
 

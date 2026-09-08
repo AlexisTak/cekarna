@@ -152,6 +152,9 @@ func TestIntegrationResetCycle(t *testing.T) {
 	s.Mailer = m
 	b := newBrowser(t, s)
 	registerAndLogin(t, b)
+	if _, err := s.Store.DB.Exec(context.Background(), "INSERT INTO passkeys(id,user_id,credential_id,public_key,credential,name) SELECT $1,id,$2,$3,'{}'::jsonb,'Test' FROM users WHERE email='person@example.test'", randomToken(), []byte("reset-credential"), []byte("public")); err != nil {
+		t.Fatal("seed passkey", err)
+	}
 
 	// unknown address: same response, no email
 	before := len(m.texts)
@@ -176,6 +179,10 @@ func TestIntegrationResetCycle(t *testing.T) {
 	}
 	if r := b.call("POST", "/v1/auth/reset/confirm", `{"token":"`+token+`","new_password":"une phrase toute neuve"}`); r.Code != 204 {
 		t.Fatal("reset confirm", r.Code)
+	}
+	var passkeys int
+	if err := s.Store.DB.QueryRow(context.Background(), "SELECT count(*) FROM passkeys").Scan(&passkeys); err != nil || passkeys != 0 {
+		t.Fatal("password reset must delete passkeys", err, passkeys)
 	}
 	// every session is revoked: refresh replay refused
 	if r := b.call("POST", "/v1/auth/refresh", ""); r.Code != 401 {

@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Adresse : http://127.0.0.1:5173. La page d’accueil publique est disponible à la racine. Les formulaires `/inscription` et `/connexion` utilisent le service Go d’authentification local sur `http://127.0.0.1:8081`. L’espace candidat reste accessible avec `?workspace=candidate`. Les vues de l’espace utilisent des fragments d’URL.
+Adresse : http://127.0.0.1:5173. La page d’accueil publique est disponible à la racine. Les formulaires `/inscription` et `/connexion` utilisent le service Go d’authentification local sur `http://127.0.0.1:8081`. Les passkeys facultatives se gèrent sur `/compte` ou `/app/securite`. L’espace candidat reste accessible avec `?workspace=candidate`. Les vues de l’espace utilisent des fragments d’URL.
 
 ```sh
 npm test

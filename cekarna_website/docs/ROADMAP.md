@@ -75,7 +75,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C08 | P1 | Comparaison expliquée profil–offre | Terminé | Codex | Domaine comparaison et interface | C02 ; fonctionne aussi avec offres manuelles |
 | C09 | P1 | Brouillons corrigibles et exportables | Terminé | Codex | Domaine brouillons, adaptateur Hermes local, interface | C02/C08 et validation du parcours principal |
 | C10 | P1 | Notifications visibles et préférences | Terminé | Codex | Interface et domaine notifications produit | Événements métier définis ; C05 pour emails |
-| C11 | P1 | MFA / passkeys | À faire | Libre | Service Go et écrans compte | Parcours principal validé |
+| C11 | P1 | MFA / passkeys | Terminé | Codex | Service Go et écrans compte | Parcours principal validé |
 | C12 | P0 avant lancement | Préparer exploitation et recette | Bloqué | Libre | Déploiement, CI, supervision, sauvegardes, tests ; `../desktop-admin/` | Hébergeur, domaines, fournisseur SMTP et responsables d’exploitation à choisir |
 | C13 | P1 | Réconcilier la documentation avec le code | Terminé | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | À revalider après chaque nouvelle tranche |
 | C14 | P2 | Abonnement éventuel | Différé | Non attribué | Paiement, quotas, droits | Parcours validé et décision commerciale |
@@ -176,10 +176,10 @@ Lire d’abord [la spécification](superpowers/specs/2026-09-06-offers-collecte-
 
 Lire [la spécification existante](superpowers/specs/2026-09-06-auth-passkeys-tranche-b-design.md).
 
-- [ ] Construire enrôlement après réauthentification, connexion et révocation.
-- [ ] Vérifier challenge à usage unique, origine et RP ID côté serveur.
-- [ ] Définir récupération et perte d’appareil avant activation.
-- [ ] Tester rejeu, compte incorrect, expiration et parcours de secours.
+- [x] Construire enrôlement après réauthentification, connexion et révocation. Plusieurs passkeys nommées sont gérées dans la page compte ; la session n’est créée qu’après le second facteur.
+- [x] Vérifier challenge à usage unique, origine et RP ID côté serveur. Les états de cérémonie et de transition expirent après cinq minutes dans Redis et sont consommés atomiquement.
+- [x] Définir récupération et perte d’appareil avant activation. Une réinitialisation du mot de passe supprime toutes les passkeys et sessions ; la page explique cette conséquence avant activation.
+- [x] Tester rejeu, compte incorrect, expiration et parcours de secours. Les intégrations PostgreSQL/Redis couvrent l’absence de session intermédiaire, le rattachement au compte, la consommation, l’expiration simulée et la purge lors de la récupération.
 
 ### C12 — Recette et exploitation avant lancement
 
@@ -240,5 +240,7 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-07 | C13 | Codex | README racine, frontend, cadrage projet et feuille de route alignés avec le produit B2C réellement livré ; ancien B2B identifié comme archive abandonnée | Recherche des formulations historiques et concordance avec C05, C08 et C09 vérifiées | C12 reste bloqué avant lancement tant que l'environnement cible et les prestataires ne sont pas choisis |
 | 2026-09-08 | C07 | Codex | Service Rust de collecte et déduplication, brut et provenance conservés, liste blanche France Travail/feed/fichier, façade NestJS et recherche frontend avec ajout explicite au suivi privé | `cargo fmt --check`, 9 tests Rust, Clippy strict ; `npm run check:all` : 74 tests NestJS, 21 tests HTTP, 66 tests web et builds ; trajet réel NestJS→Rust vérifié avec filtre accent-insensible et contrôle 401 interne | France Travail reste désactivé jusqu’à fourniture des identifiants et acceptation de ses conditions ; Docker Desktop était arrêté lors de la tentative locale, le build d’image est aussi contrôlé par `.github/workflows/offers.yml` |
 | 2026-09-08 | C06 (origine locale) | Codex | Alignement du frontend, du cookie Strict et de la liste CORS de l’identité sur `127.0.0.1`; message spécifique si l’origine est refusée | Santé identité 200, requête CSRF avec origine réelle 200 et en-têtes CORS ; `go test ./... -count=1`, 66 tests web et build Vite réussis | Configuration de développement locale ; l’origine HTTPS de production reste à définir dans C12 |
+
+| 2026-09-08 | C11 | Codex | Passkeys WebAuthn facultatives : enrôlement réauthentifié, plusieurs appareils nommés, étape MFA sans session intermédiaire, révocation, invitation dans l’espace candidat et récupération supprimant passkeys et sessions | `npm run check:all` : 74 tests NestJS, 21 tests HTTP, 69 tests web et deux builds ; tests et vet Go ; intégration Docker PostgreSQL/Redis avec détecteur de courses ; Govulncheck sans vulnérabilité appelée ; service migré et prêt | L’essai matériel Windows Hello/Touch ID et la configuration du RP ID HTTPS réel font partie de la recette C12 |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

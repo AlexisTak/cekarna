@@ -39,8 +39,9 @@ describe('auth-api', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
     const api = await loadApi();
-    const account = await api.login('a@b.test', 'une longue phrase');
-    expect(account.first_name).toBe('Camille');
+    const result = await api.login('a@b.test', 'une longue phrase');
+    expect(result.kind).toBe('session');
+    if (result.kind === 'session') expect(result.account.first_name).toBe('Camille');
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const loginHeaders = new Headers(
       (fetchMock.mock.calls[1][1] as RequestInit).headers,
@@ -64,6 +65,22 @@ describe('auth-api', () => {
     await expect(api.login('a@b.test', 'x'.repeat(15))).rejects.toMatchObject({
       status: 401,
     });
+  });
+
+  it('does not create a local session when the password step requires MFA', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-1' }))
+      .mockResolvedValueOnce(
+        jsonResponse(202, { mfa_required: true, mfa_token: 'transition-token' }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const api = await loadApi();
+    await expect(api.login('a@b.test', 'une longue phrase')).resolves.toEqual({
+      kind: 'mfa',
+      token: 'transition-token',
+    });
+    expect(api.hasSession()).toBe(false);
   });
 
   it('renews CSRF once on 403 and retries', async () => {

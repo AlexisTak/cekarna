@@ -76,6 +76,9 @@ func (s Store) ResetPassword(ctx context.Context, tokenHash, passwordHash, actor
 	if _, err = tx.Exec(ctx, "UPDATE credentials SET password_hash=$1,updated_at=now() WHERE user_id=$2", passwordHash, uid); err != nil {
 		return nil, err
 	}
+	if _, err = tx.Exec(ctx, "DELETE FROM passkeys WHERE user_id=$1", uid); err != nil {
+		return nil, err
+	}
 	rows, err := tx.Query(ctx,
 		"UPDATE sessions SET revoked_at=COALESCE(revoked_at,now()) WHERE user_id=$1 AND revoked_at IS NULL RETURNING id", uid)
 	if err != nil {

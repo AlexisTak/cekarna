@@ -20,9 +20,10 @@ raccordés le 6 septembre 2026 ; vérification email et récupération de mot de
 passe livrées (transport `log` en développement, SMTP direct ou file Rust
 `services/notifications` configurable en production). Avec la file Rust, une
 outbox PostgreSQL conserve l'intention d'email jusqu'à son acceptation ou son
-expiration. MFA/passkeys : tranche B
-spécifiée dans `docs/superpowers/specs/2026-09-06-auth-passkeys-tranche-b-design.md`,
-mais non implémentée. Les données du
+expiration. La tranche MFA/passkeys spécifiée dans
+`docs/superpowers/specs/2026-09-06-auth-passkeys-tranche-b-design.md` est livrée :
+enrôlement avec réauthentification, second facteur à la connexion, révocation et
+récupération supprimant les passkeys. Les données du
 candidat sont synchronisées avec PostgreSQL pour les comptes connectés et restent
 disponibles localement comme repli.
 

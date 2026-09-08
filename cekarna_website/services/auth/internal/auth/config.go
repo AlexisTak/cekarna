@@ -15,6 +15,7 @@ import (
 
 type Config struct {
 	Address, DatabaseURL, RedisURL, Origin string
+	RPID                                   string
 	Secure                                 bool
 	AuditKey                               []byte
 	Signer                                 Signer
@@ -35,6 +36,14 @@ func LoadConfig() (Config, error) {
 	}
 	if strings.HasSuffix(c.Origin, "/") || strings.HasSuffix(issuer, "/") {
 		return Config{}, errors.New("origins must not end with a slash")
+	}
+	originURL, _ := url.Parse(c.Origin)
+	c.RPID = strings.TrimSpace(os.Getenv("AUTH_RP_ID"))
+	if c.RPID == "" {
+		c.RPID = originURL.Hostname()
+	}
+	if c.RPID != originURL.Hostname() && !strings.HasSuffix(originURL.Hostname(), "."+c.RPID) {
+		return Config{}, errors.New("AUTH_RP_ID must equal or contain WEB_ORIGIN")
 	}
 	if audience == "" || c.DatabaseURL == "" || c.RedisURL == "" {
 		return Config{}, errors.New("missing audience or database configuration")

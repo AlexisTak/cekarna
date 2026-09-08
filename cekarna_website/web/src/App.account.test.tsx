@@ -18,6 +18,7 @@ vi.mock('./auth-api', async (original) => ({
     }),
   fetchCandidateWorkspace: vi.fn(),
   saveCandidateWorkspace: vi.fn(),
+  listPasskeys: vi.fn().mockResolvedValue([]),
 }));
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }

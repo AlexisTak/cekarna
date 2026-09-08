@@ -15,6 +15,7 @@ Le 7 septembre 2026, l’utilisateur a décidé que Cekarna serait une **applica
 - Synchronisation du dossier avec un compte connecté, conflits explicitement signalés et résolus par choix de l’utilisateur.
 - Création atomique d’un profil personnel vide pour chaque nouveau compte, initialisé avec le prénom saisi et complétable dans « Mon profil ».
 - Page compte : déconnexion, révocation de tous les appareils et suppression définitive des données après confirmation par mot de passe.
+- Passkeys facultatives : plusieurs appareils nommés, second facteur après le mot de passe, révocation unitaire et récupération par réinitialisation du mot de passe.
 - Navigation adaptée au mobile et formulaires utilisables au clavier.
 - Page d’accueil publique : parcours expliqué, accès à l’espace candidat, réponses aux limites de la version et rappel du stockage local.
 

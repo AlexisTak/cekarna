@@ -21,6 +21,7 @@ import {
   Compass,
   FileText,
   LayoutDashboard,
+  KeyRound,
   MailWarning,
   MapPin,
   Plus,
@@ -39,6 +40,7 @@ import {
   describeAuthError,
   fetchAccount,
   fetchCandidateWorkspace,
+  listPasskeys,
   logout,
   requestVerificationEmail,
   saveCandidateWorkspace,
@@ -447,6 +449,7 @@ export default function App() {
       'false',
   );
   const [account, setAccount] = useState<Account | null>(null);
+  const [suggestPasskey, setSuggestPasskey] = useState(false);
   const [remoteStatus, setRemoteStatus] = useState<
     'local' | 'saved' | 'saving' | 'error' | 'conflict'
   >('local');
@@ -479,6 +482,23 @@ export default function App() {
       .then(async (me) => {
         if (cancelled) return;
         setAccount(me);
+        const passkeySuggestionKey = `${STORAGE_KEY}.account.${me.id}.passkey-suggestion-dismissed`;
+        let passkeySuggestionDismissed = false;
+        try {
+          passkeySuggestionDismissed =
+            localStorage.getItem(passkeySuggestionKey) === 'true';
+        } catch {
+          // The security hint can still be shown when browser storage is disabled.
+        }
+        if (!passkeySuggestionDismissed) {
+          void listPasskeys()
+            .then((passkeys) => {
+              if (!cancelled) setSuggestPasskey(passkeys.length === 0);
+            })
+            .catch(() => {
+              // Account and workspace access remain usable if this optional hint fails.
+            });
+        }
         accountStorageKey.current = `${STORAGE_KEY}.account.${me.id}`;
         notificationStorageKey.current = `${STORAGE_KEY}.account.${me.id}.notifications`;
         notificationPreferenceKey.current = `${notificationStorageKey.current}.informational`;
@@ -996,6 +1016,32 @@ export default function App() {
               Confirmez votre adresse email ({account.email}) pour sécuriser
               votre compte.
               <button onClick={resendVerification}>Renvoyer l’email</button>
+            </div>
+          )}
+          {account && suggestPasskey && (
+            <div role="status" className="warning-banner">
+              <KeyRound size={17} />
+              Ajoutez une passkey pour protéger votre compte avec Windows Hello,
+              Touch ID ou la sécurité de votre téléphone.
+              <a className="button-link" href="/app/securite">
+                Ajouter une passkey
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.setItem(
+                      `${STORAGE_KEY}.account.${account.id}.passkey-suggestion-dismissed`,
+                      'true',
+                    );
+                  } catch {
+                    // Dismiss the hint for this page even without persistent storage.
+                  }
+                  setSuggestPasskey(false);
+                }}
+              >
+                Plus tard
+              </button>
             </div>
           )}
           {demo && (

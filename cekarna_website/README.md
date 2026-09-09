@@ -19,7 +19,7 @@ Ouvrir http://127.0.0.1:5173 pour la page d’accueil, puis utiliser http://127.
 
 ## État réel
 
-Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, un service Rust de notifications transactionnelles avec PostgreSQL et SMTP et un service Rust d'offres. Ce dernier préfiltre un lot borné avec un cache d'empreintes avant l'appel optionnel à Ollama/Hermes. Le brouillon de candidature peut être construit localement ou avec des preuves sélectionnées par Hermes après choix d'une offre ; il reste modifiable et n’est jamais envoyé par Cekarna. Le cadrage prioritaire actuel est `docs/B2C.md` et le cahier des charges V3 du dossier parent.
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, un service Rust de notifications transactionnelles avec PostgreSQL et SMTP, un service Rust d'offres et une passerelle Rust privée devant Hermes/Ollama. Le service d'offres préfiltre un lot borné avec un cache d'empreintes avant l'appel à Hermes. Le brouillon de candidature peut être construit localement ou avec des preuves sélectionnées par Hermes après choix d'une offre ; il reste modifiable et n’est jamais envoyé par Cekarna. Le cadrage prioritaire actuel est `docs/B2C.md` et le cahier des charges V3 du dossier parent.
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.
@@ -91,6 +91,7 @@ La configuration commune est appliquée en production et dans les tests HTTP. Le
 - `src/configure-app.ts` : configuration HTTP commune.
 - `src/app.*` : module racine et endpoints d’identification/santé.
 - `src/cv-import/` : import de CV PDF textuel, extraction sourcée et validation du profil corrigé. Le texte analysé reste en mémoire, expire au délai configuré et est oublié dès la confirmation ; il n’est écrit ni sur disque ni en base.
+- `services/hermes-gateway/` : passerelle Rust qui authentifie et borne les appels privés de NestJS vers Ollama/Hermes.
 - `test/` : tests HTTP, dont un contrôleur de validation présent uniquement dans les tests.
 - `docs/PROJECT.md` : périmètre, décisions techniques et prochaines étapes.
 

@@ -5,23 +5,27 @@ ni Hermes ni Ollama. Le navigateur envoie une requête authentifiée à l’API
 NestJS ; seule cette API contacte le moteur d’inférence.
 
 ```text
-Navigateur HTTPS -> API NestJS -> réseau privé -> Ollama/Hermes
-                         |
+Navigateur HTTPS -> API NestJS -> passerelle Rust -> Ollama/Hermes
+                         |              réseau privé
                          +-> service Rust d'offres
 ```
 
 ## Configuration
 
-En développement, `HERMES_BASE_URL=http://127.0.0.1:11434` utilise Ollama sur le
-poste du développeur. En production, cette variable désigne l’origine interne du
-service central. `HERMES_MODEL` sélectionne le modèle et `HERMES_API_KEY` ajoute
-un en-tête `Authorization: Bearer …` aux appels de génération et de disponibilité.
+En développement, `HERMES_BASE_URL=http://127.0.0.1:11434` peut utiliser Ollama
+directement sur le poste. En production, cette variable désigne la passerelle
+Rust `services/hermes-gateway/`, placée devant le service central.
+`HERMES_MODEL` sélectionne le modèle et `HERMES_API_KEY` ajoute un en-tête
+`Authorization: Bearer …` aux appels de génération et de disponibilité. La même
+valeur est fournie à la passerelle dans `HERMES_GATEWAY_TOKEN`.
 
 Ces trois valeurs appartiennent au backend. Elles ne doivent jamais être placées
 dans le build Vite, exposées sous un nom `VITE_*`, enregistrées dans Git ou
 retournées par une route de diagnostic. La clé doit venir du gestionnaire de
-secrets de l’hébergeur. Le service d’inférence doit être inaccessible depuis
-Internet ou protégé par le réseau privé, TLS et une authentification adaptée.
+secrets de l’hébergeur. Ollama doit être inaccessible depuis Internet. La
+passerelle n’accepte que les routes et le schéma utilisés par Cekarna, impose le
+modèle configuré, limite la taille des échanges et le nombre de générations
+simultanées. Elle ne conserve aucune donnée.
 
 Les anciennes variables `LOCAL_LLM_BASE_URL` et `LOCAL_LLM_MODEL` sont encore
 lues si les nouvelles sont absentes afin de préserver les environnements locaux
@@ -44,9 +48,9 @@ dans la recette de production C12.
 
 ## Contrôles avant ouverture
 
-- Déployer Hermes/Ollama dans le même réseau privé que l’API.
+- Déployer la passerelle et Hermes/Ollama dans le même réseau privé que l’API.
 - Charger le modèle indiqué par `HERMES_MODEL`.
-- Créer la clé serveur et l’injecter dans les secrets des deux services.
+- Créer la clé serveur et l’injecter dans NestJS et la passerelle.
 - Vérifier que `/health/ready` voit Hermes sans révéler l’URL ni la clé.
 - Bloquer tout accès direct du navigateur au port d’inférence.
 - Mesurer latence, mémoire, files d’attente et coût sur un corpus autorisé.

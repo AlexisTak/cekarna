@@ -82,6 +82,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C15 | P1 | Recommandations d’offres avec Hermes | Terminé | Codex | API NestJS, offres publiques et recherche frontend | C02, C07, C08 et service Hermes |
 | C16 | P1 | Industrialiser le préfiltrage et les brouillons IA | Terminé | Codex | Préfiltrage Rust, cache par empreinte, orchestration Hermes et brouillon choisi | C02, C07, C09 et C15 |
 | C17 | P0 | Héberger Hermes côté serveur | Terminé | Codex | Configuration NestJS, authentification interservice, interface et documentation | Déploiement réel inclus dans C12 |
+| C18 | P0 | Protéger l’inférence centrale | Terminé | Codex | Passerelle Rust privée, limites et tests | C17 ; déploiement réel inclus dans C12 |
 
 P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validation de la valeur. L’ordre ne signifie pas qu’il faut lancer de nouveaux microservices : documenter le besoin et le coût de toute infrastructure ajoutée.
 
@@ -164,9 +165,9 @@ Lire d’abord [la spécification](superpowers/specs/2026-09-06-offers-collecte-
 - [x] Définir les sorties utiles et faire valider le parcours principal avant activation. La sortie livrée est un brouillon texte local par offre, séparé de l'analyse Hermes facultative.
 - [x] Utiliser seulement les informations confirmées ; laisser les inconnus visibles. Le modèle reprend les champs du profil et de l'offre tels qu'enregistrés et utilise des passages entre crochets lorsqu'ils manquent.
 - [x] Prévoir correction, validation explicite et export ; aucun envoi de candidature automatique. Objet et corps sont modifiables puis exportables en `.txt` ; aucune action d'envoi n'existe.
-- [x] Encadrer fournisseur éventuel, flux de données, versions, délais, coût, erreurs et validation du schéma de sortie. Hermes reste local, facultatif, borné à 60 secondes et son JSON est filtré ; le brouillon principal n'en dépend pas.
+- [x] Encadrer fournisseur éventuel, flux de données, versions, délais, coût, erreurs et validation du schéma de sortie. Hermes est appelé côté serveur, borné à 60 secondes et son JSON est filtré ; le brouillon principal n'en dépend pas.
 - [x] Tester inventions factuelles, instructions malveillantes contenues dans les documents et indisponibilité du fournisseur. Le modèle déterministe ignore description et notes, les preuves Hermes doivent être littérales et la panne est testée.
-- [x] Conserver la lecture du dossier en cas de panne de génération. L'état du dossier et le brouillon local ne dépendent pas du service Ollama.
+- [x] Conserver la lecture du dossier en cas de panne de génération. L'état du dossier et le brouillon déterministe ne dépendent pas du service Hermes.
 
 ### C10 — Notifications produit
 
@@ -211,6 +212,15 @@ Lire [la spécification](superpowers/specs/2026-09-08-hermes-offer-recommendatio
 - [x] Conserver Ollama local comme configuration de développement compatible.
 - [x] Corriger l’interface et les références actives qui demandaient à l’utilisateur de démarrer Ollama.
 - [x] Documenter le réseau privé, les secrets et les limites restantes avant un déploiement multi-instance.
+
+### C18 — Passerelle Rust Hermes
+
+- [x] Exposer uniquement les routes Ollama nécessaires à NestJS.
+- [x] Authentifier les appels avec un secret serveur comparé en temps constant.
+- [x] Refuser un autre modèle, le streaming, les corps inattendus et les requêtes trop volumineuses.
+- [x] Borner les générations simultanées et les délais vers Ollama.
+- [x] Retourner des erreurs génériques sans journaliser les profils ni les réponses.
+- [x] Vérifier les tests, Clippy strict, l’image Docker et l’intégration NestJS avant de terminer la tâche.
 
 ### C12 — Recette et exploitation avant lancement
 
@@ -279,5 +289,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-09 | C15 (session des recommandations) | Codex | Les appels IA protégés renouvellent désormais une fois le jeton d’accès expiré avant de rejouer la requête ; erreurs de session et profil distinguées ; l’état sans offre explique les filtres actifs | Parcours réel dans Chrome après expiration : erreur supprimée et réponse reçue ; identité, API, offres et Ollama en HTTP 200 ; `npm run check:all` : 83 tests NestJS, 24 tests HTTP, 75 tests web et deux builds réussis | Une session dont le refresh a réellement expiré exige toujours une reconnexion explicite, indiquée dans l’interface |
 | 2026-09-09 | C16 | Codex | Préfiltrage déplacé dans le service Rust : 500 offres examinées au maximum, six transmises à Hermes, cache de quinze minutes par empreinte sans CV brut ni coordonnées ; première analyse automatique pour chaque profil actif nouveau ou modifié ; file Hermes limitée à deux appels concurrents ; brouillon assisté créé seulement sur l’offre choisie avec preuves littérales, correction et export | Parcours réel Chrome : brouillon produit pour une offre synthétique avec un rapprochement vérifié et repli sûr ; API, identité, offres et Ollama en HTTP 200 ; `cargo test` : 12 tests, Clippy strict ; `npm run check:all` : 86 tests NestJS, 24 tests HTTP, 76 tests web et deux builds réussis | Le calcul automatique concerne les personnes actives lorsqu’elles ouvrent leur espace ; une analyse hors connexion de tous les comptes demanderait une file durable et un événement de profil dans l’environnement de production |
 | 2026-09-09 | C17 | Codex | Hermes rendu accessible depuis le site via NestJS uniquement : origine, modèle et jeton Bearer configurés côté serveur ; disponibilité authentifiée ; messages frontend et documentation de déploiement alignés ; anciens réglages locaux conservés comme alias de développement | `npm run check:all` : 92 tests NestJS, 24 tests HTTP, 76 tests web, lint, typage et deux builds réussis | L’instance centrale, son réseau privé et ses secrets devront être créés sur l’hébergeur retenu dans C12 ; une file distribuée reste nécessaire pour les analyses hors connexion ou plusieurs réplicas NestJS |
+| 2026-09-09 | C18 | Codex | Passerelle Rust privée devant Ollama : jeton Bearer, modèle et schéma autorisés, corps et réponses bornés, concurrence limitée, délais, erreurs génériques, image Docker non privilégiée et documentation d’exploitation | 7 tests Rust et Clippy strict réussis ; image `cekarna-hermes-gateway:test` construite ; trajet réel conteneur → Ollama `hermes3:3b` vérifié, avec 401 sans jeton et génération reçue avec jeton ; trajet NestJS → passerelle vérifié par `/health/ready` avec Hermes `up` | L’instance GPU, le réseau et les secrets réels restent dépendants du choix d’hébergeur dans C12 ; la passerelle ne fournit pas encore de file durable pour les analyses hors connexion |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

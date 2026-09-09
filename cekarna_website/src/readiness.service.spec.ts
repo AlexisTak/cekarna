@@ -11,13 +11,14 @@ const config: Environment = {
   authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
   offersBaseUrl: 'http://127.0.0.1:8083',
   offersInternalToken: '0123456789abcdef0123456789abcdef',
+  hermesBaseUrl: 'https://hermes.internal.example',
+  hermesModel: 'hermes3:3b',
+  hermesApiKey: 'server-only-secret',
 };
 
 describe('ReadinessService', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-    delete process.env.LOCAL_LLM_BASE_URL;
-    delete process.env.LOCAL_LLM_MODEL;
   });
 
   it('reports ready only when identity, offers and the configured model respond', async () => {
@@ -40,8 +41,11 @@ describe('ReadinessService', () => {
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       'http://127.0.0.1:8081/health/ready',
       'http://127.0.0.1:8083/health/ready',
-      'http://127.0.0.1:11434/api/tags',
+      'https://hermes.internal.example/api/tags',
     ]);
+    expect(fetchMock.mock.calls[2][1]).toMatchObject({
+      headers: { Authorization: 'Bearer server-only-secret' },
+    });
   });
 
   it('distinguishes missing configuration, unreachable identity and missing model', async () => {

@@ -17,17 +17,18 @@ export function LocalAiComparison({
     try {
       setFindings((await compareWithLocalAi(profile, job)).findings);
     } catch {
-      setError(
-        'Hermes local est indisponible. Vérifiez qu’Ollama est démarré.',
-      );
+      setError('Le service IA Cekarna est momentanément indisponible.');
     } finally {
       setBusy(false);
     }
   }
   return (
     <div className="criteria-box">
-      <h3>Analyse locale avec Hermes</h3>
-      <p>Cette analyse reste sur votre machine et doit être relue.</p>
+      <h3>Analyse avec Hermes</h3>
+      <p>
+        L’analyse est exécutée par le service IA de Cekarna et doit être relue.
+        Seules les données professionnelles affichées sont transmises.
+      </p>
       <button
         className="button secondary"
         type="button"

@@ -12,6 +12,9 @@ describe('environment', () => {
       authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
       offersBaseUrl: 'http://127.0.0.1:8083',
       offersInternalToken: '',
+      hermesBaseUrl: 'http://127.0.0.1:11434',
+      hermesModel: 'hermes3:3b',
+      hermesApiKey: '',
     });
   });
   it.each(['', '0', '-1', '65536', '3.5', '3000abc'])(
@@ -58,7 +61,43 @@ describe('environment', () => {
       authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
       offersBaseUrl: 'http://127.0.0.1:8083',
       offersInternalToken: '',
+      hermesBaseUrl: 'http://127.0.0.1:11434',
+      hermesModel: 'hermes3:3b',
+      hermesApiKey: '',
     });
+  });
+  it('configures a protected central Hermes service', () => {
+    expect(
+      readEnvironment({
+        HERMES_BASE_URL: 'https://hermes.internal.example',
+        HERMES_MODEL: 'hermes-cekarna:latest',
+        HERMES_API_KEY: 'server-only-secret',
+      }),
+    ).toMatchObject({
+      hermesBaseUrl: 'https://hermes.internal.example',
+      hermesModel: 'hermes-cekarna:latest',
+      hermesApiKey: 'server-only-secret',
+    });
+  });
+  it('keeps the old local variables as development aliases', () => {
+    expect(
+      readEnvironment({
+        LOCAL_LLM_BASE_URL: 'http://localhost:9999',
+        LOCAL_LLM_MODEL: 'legacy-model',
+      }),
+    ).toMatchObject({
+      hermesBaseUrl: 'http://localhost:9999',
+      hermesModel: 'legacy-model',
+    });
+  });
+  it.each([
+    'ftp://hermes.example',
+    'https://user:pass@hermes.example',
+    'https://hermes.example/api',
+  ])('rejects invalid Hermes origin %s', (origin) => {
+    expect(() => readEnvironment({ HERMES_BASE_URL: origin })).toThrow(
+      'HERMES_BASE_URL',
+    );
   });
   it.each(['0', '10000001', 'beaucoup'])(
     'rejects an invalid CV import size %s',

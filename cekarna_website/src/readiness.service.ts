@@ -32,10 +32,7 @@ export class ReadinessService {
   constructor(@Inject(ENVIRONMENT) private readonly config: Environment) {}
 
   async check(): Promise<ReadinessReport> {
-    const model = process.env.LOCAL_LLM_MODEL?.trim() || 'hermes3:3b';
-    const llmBase = (
-      process.env.LOCAL_LLM_BASE_URL?.trim() || 'http://127.0.0.1:11434'
-    ).replace(/\/$/, '');
+    const model = this.config.hermesModel;
     const [identity, offers, hermes] = await Promise.all([
       this.probe(readinessUrl(this.config.authIdentityUrl)),
       this.config.offersInternalToken
@@ -44,7 +41,11 @@ export class ReadinessService {
             status: 'not_configured',
             latency_ms: 0,
           }),
-      this.probeHermes(`${llmBase}/api/tags`, model),
+      this.probeHermes(
+        `${this.config.hermesBaseUrl}/api/tags`,
+        model,
+        this.config.hermesApiKey,
+      ),
     ]);
     const dependencies = { identity, offers, hermes };
     return {
@@ -82,10 +83,12 @@ export class ReadinessService {
   private async probeHermes(
     url: string,
     model: string,
+    apiKey: string,
   ): Promise<DependencyReadiness> {
     const startedAt = Date.now();
     try {
       const response = await fetch(url, {
+        headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
         signal: AbortSignal.timeout(2_000),
       });
       if (!response.ok)

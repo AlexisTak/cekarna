@@ -21,7 +21,7 @@ Le 7 septembre 2026, l’utilisateur a décidé que Cekarna serait une **applica
 
 ## Architecture actuelle
 
-Le frontend React/TypeScript est dans `web/`, construit par Vite. Il utilise son propre package npm et lockfile, sans transformer le backend en monorepo. L’API NestJS reçoit les imports CV authentifiés et la comparaison locale optionnelle ; les profils, offres et notes confirmés sont enregistrés dans le dossier privé du service Go.
+Le frontend React/TypeScript est dans `web/`, construit par Vite. Il utilise son propre package npm et lockfile, sans transformer le backend en monorepo. L’API NestJS reçoit les imports CV authentifiés et orchestre les outils Hermes côté serveur ; les profils, offres et notes confirmés sont enregistrés dans le dossier privé du service Go.
 
 La racine de l’application web est la page d’accueil publique. L’espace candidat est ouvert avec `?workspace=candidate` afin de rester utilisable sur un hébergement statique sans configuration serveur. L’ancienne URL locale `/app` reste reconnue à des fins de compatibilité.
 
@@ -31,7 +31,7 @@ Les données locales ne sont ni synchronisées ni protégées par un compte. La 
 
 L’identité et le stockage privé du dossier candidat sont livrés dans `services/auth/` : Go/Chi, PostgreSQL, Redis, JWT Ed25519, sessions rotatives et passkeys WebAuthn. Les formulaires publics `/inscription` et `/connexion` sont raccordés. Le frontend charge et sauvegarde le profil, les offres et les notes du compte ; l’import d’un espace local existant demande une confirmation explicite.
 
-L’import de CV PDF textuel est livré dans `src/cv-import/` avec relecture dans `web/src/CvImport.tsx`. Un centre de notifications local conserve les messages importants et les rappels choisis. Le service Rust d’offres collecte, déduplique et préfiltre les sources autorisées avec un cache d'empreintes. La comparaison et les recommandations utilisent Ollama/Hermes après connexion, avec données professionnelles compactes et preuves littérales ; une première sélection est calculée à l'ouverture pour un profil nouveau ou modifié. Une lettre assistée n'est préparée qu'après le choix explicite d'une offre et reste corrigible. L’ajout d’une offre publique au suivi privé exige toujours une action explicite.
+L’import de CV PDF textuel est livré dans `src/cv-import/` avec relecture dans `web/src/CvImport.tsx`. Un centre de notifications local conserve les messages importants et les rappels choisis. Le service Rust d’offres collecte, déduplique et préfiltre les sources autorisées avec un cache d'empreintes. La comparaison et les recommandations utilisent Hermes après connexion, via un service d’inférence central configuré dans NestJS, avec données professionnelles compactes et preuves littérales ; une première sélection est calculée à l'ouverture pour un profil nouveau ou modifié. Une lettre assistée n'est préparée qu'après le choix explicite d'une offre et reste corrigible. L’ajout d’une offre publique au suivi privé exige toujours une action explicite.
 
 Avant lancement, il reste à configurer France Travail et un fournisseur email réels, préparer l’hébergement HTTPS, les secrets, sauvegardes et alertes, puis exécuter la recette C12 sur des données fictives ou autorisées. L’abonnement et l’envoi de candidature restent désactivés.
 

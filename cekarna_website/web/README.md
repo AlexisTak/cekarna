@@ -18,7 +18,7 @@ npm test
 npm run build
 ```
 
-Le build produit `dist/`. Le site statique est configuré pour un déploiement Sites avec reprise des routes côté client. L’API NestJS du dossier parent est nécessaire pour l’import de CV, la recherche d’offres collectées et la comparaison Ollama locale ; le reste de l’espace candidat reste utilisable sans elle.
+Le build produit `dist/`. Le site statique est configuré pour un déploiement Sites avec reprise des routes côté client. L’API NestJS du dossier parent est nécessaire pour l’import de CV, la recherche d’offres collectées et les outils Hermes hébergés ; le reste de l’espace candidat reste utilisable sans elle.
 
 ## Données et limites
 
@@ -29,7 +29,7 @@ Le build produit `dist/`. Le site statique est configuré pour un déploiement S
 - 1 000 offres maximum et import de sauvegarde limité à 5 Mo ; le quota réel dépend aussi du navigateur. Une sauvegarde impossible affiche une alerte.
 - Les liens externes n’acceptent que HTTP(S), sans identifiants intégrés.
 - Les repères de correspondance ont trois états, affichent leurs preuves et la version de la méthode ; ils ne constituent ni un classement IA ni une probabilité d’embauche.
-- L’import de CV PDF textuel nécessite une session active et l’API NestJS. La comparaison Ollama locale est proposée à la demande depuis une offre, sans score d’embauche.
+- L’import de CV PDF textuel nécessite une session active et l’API NestJS. La comparaison Hermes est proposée à la demande depuis une offre, sans score d’embauche ; le navigateur ne contacte jamais le moteur d’inférence directement.
 - Un brouillon texte peut être préparé localement ou assisté par Hermes après le choix d'une offre. Hermes sélectionne uniquement des extraits littéraux vérifiés ; le serveur assemble le texte, qui reste corrigible et exportable. Aucun scraping ni envoi automatique.
 
 ## Sources

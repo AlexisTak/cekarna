@@ -10,8 +10,9 @@ Le brouillon reste modifiable avant un export `.txt`. L'application ne possède
 aucune route ni action d'envoi de candidature. Repartir du modèle remplace les
 corrections courantes et demande donc une action explicite sur le bouton associé.
 
-Hermes est réservé à la comparaison locale facultative documentée dans
-`COMPARISON_PROFILE_OFFRE.md`. Son URL, son modèle, son délai et ses erreurs sont
-encadrés par `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_MODEL`, un délai de 60 secondes et
-une validation du JSON retourné. Une panne n'empêche ni de lire le dossier, ni de
-préparer le brouillon déterministe, ni de l'exporter.
+Hermes est appelé par l’API Cekarna pour la comparaison et la sélection de preuves
+du brouillon assisté. Son URL, son modèle, son authentification, son délai et ses
+erreurs sont encadrés par `HERMES_BASE_URL`, `HERMES_MODEL`, `HERMES_API_KEY`, un
+délai de 60 secondes et une validation du JSON retourné. Une panne n'empêche ni
+de lire le dossier, ni de préparer le brouillon déterministe, ni de l'exporter.
+Le navigateur ne contacte jamais Hermes directement ; voir `DEPLOIEMENT_IA.md`.

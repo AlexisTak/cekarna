@@ -11,6 +11,9 @@ const config: Environment = {
   authIdentityUrl: 'http://127.0.0.1:8081/v1/auth/me',
   offersBaseUrl: 'http://127.0.0.1:8083',
   offersInternalToken: '0123456789abcdef0123456789abcdef',
+  hermesBaseUrl: 'http://127.0.0.1:11434',
+  hermesModel: 'hermes3:3b',
+  hermesApiKey: '',
 };
 describe('OffersService', () => {
   afterEach(() => jest.restoreAllMocks());

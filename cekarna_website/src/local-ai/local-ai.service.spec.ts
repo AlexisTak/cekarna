@@ -2,10 +2,39 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { readEnvironment } from '../config/environment';
 import { LocalAiService } from './local-ai.service';
 
 describe('LocalAiService', () => {
   afterEach(() => jest.restoreAllMocks());
+
+  it('calls the configured central service with a server-side credential', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: { content: '{"findings":[]}' } }),
+          { status: 200 },
+        ),
+      );
+    const service = new LocalAiService(
+      readEnvironment({
+        HERMES_BASE_URL: 'https://hermes.internal.example',
+        HERMES_MODEL: 'hermes-cekarna:latest',
+        HERMES_API_KEY: 'server-only-secret',
+      }),
+    );
+    await service.compare({ skills: 'React' }, { title: 'React' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://hermes.internal.example/api/chat',
+      expect.objectContaining({
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer server-only-secret',
+        },
+      }),
+    );
+  });
 
   it('excludes unrelated personal fields and rejects unsupported findings', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(

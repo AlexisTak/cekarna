@@ -3,9 +3,16 @@ import {
   BadRequestException,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import {
+  ENVIRONMENT,
+  readEnvironment,
+  type Environment,
+} from '../config/environment';
 
 export interface LocalFinding {
   criterion: string;
@@ -303,6 +310,7 @@ function shortlist(profile: object, offers: CompactOffer[]) {
 
 @Injectable()
 export class LocalAiService {
+  private readonly config: Environment;
   private readonly llmLimiter = new AsyncLimiter(2);
   private readonly recommendationCache = new Map<
     string,
@@ -317,20 +325,27 @@ export class LocalAiService {
     { startedAt: number; count: number }
   >();
 
+  constructor(@Optional() @Inject(ENVIRONMENT) config?: Environment) {
+    this.config = config ?? readEnvironment(process.env);
+  }
+
   private async chat(prompt: string) {
     return this.llmLimiter.run(() => this.chatNow(prompt));
   }
 
   private async chatNow(prompt: string) {
-    const model = process.env.LOCAL_LLM_MODEL?.trim() || 'hermes3:3b';
-    const base = (
-      process.env.LOCAL_LLM_BASE_URL?.trim() || 'http://127.0.0.1:11434'
-    ).replace(/\/$/, '');
+    const model = this.config.hermesModel;
+    const base = this.config.hermesBaseUrl;
     let response: Response;
     try {
       response = await fetch(`${base}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.config.hermesApiKey
+            ? { Authorization: `Bearer ${this.config.hermesApiKey}` }
+            : {}),
+        },
         body: JSON.stringify({
           model,
           stream: false,
@@ -343,12 +358,12 @@ export class LocalAiService {
       });
     } catch {
       throw new ServiceUnavailableException(
-        'Le modèle Hermes local est indisponible.',
+        'Le service IA Hermes est indisponible.',
       );
     }
     if (!response.ok)
       throw new ServiceUnavailableException(
-        'Le modèle Hermes local est indisponible.',
+        'Le service IA Hermes est indisponible.',
       );
     const envelope = (await response.json()) as {
       message?: { content?: string };
@@ -459,7 +474,7 @@ export class LocalAiService {
         ? page.inspected_offers
         : offers.length;
     const candidates = shortlist(profile, offers);
-    const model = process.env.LOCAL_LLM_MODEL?.trim() || 'hermes3:3b';
+    const model = this.config.hermesModel;
     if (!candidates.length)
       return {
         model,

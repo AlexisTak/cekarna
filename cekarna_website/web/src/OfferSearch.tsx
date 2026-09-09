@@ -80,7 +80,7 @@ export function OfferSearch({
             ? 'Votre session a expiré. Reconnectez-vous puis relancez la recherche.'
             : code === 'offer_recommendations_profile'
               ? 'Complétez votre profil professionnel avant de demander des recommandations.'
-              : 'Les recommandations sont indisponibles. Vérifiez les services d’offres, l’API et Hermes local.',
+              : 'Le service de recommandation est momentanément indisponible. Réessayez dans quelques instants.',
       );
     } finally {
       setRecommending(false);

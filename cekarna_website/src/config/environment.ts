@@ -13,6 +13,9 @@ export interface Environment {
   authIdentityUrl: string;
   offersBaseUrl: string;
   offersInternalToken: string;
+  hermesBaseUrl: string;
+  hermesModel: string;
+  hermesApiKey: string;
 }
 
 /** Plafond technique de l'interception multipart : la configuration ne peut pas le dépasser. */
@@ -66,6 +69,23 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
   } catch {
     throw new Error('OFFERS_BASE_URL must be a valid HTTP(S) origin');
   }
+  const hermesBaseUrl = (
+    env.HERMES_BASE_URL?.trim() ||
+    env.LOCAL_LLM_BASE_URL?.trim() ||
+    'http://127.0.0.1:11434'
+  ).replace(/\/$/, '');
+  try {
+    const url = new URL(hermesBaseUrl);
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/'
+    )
+      throw new Error();
+  } catch {
+    throw new Error('HERMES_BASE_URL must be a valid HTTP(S) origin');
+  }
   const corsOrigins = (env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
@@ -111,5 +131,9 @@ export function readEnvironment(env: NodeJS.ProcessEnv): Environment {
     authIdentityUrl,
     offersBaseUrl,
     offersInternalToken: env.OFFERS_INTERNAL_TOKEN?.trim() ?? '',
+    hermesBaseUrl,
+    hermesModel:
+      env.HERMES_MODEL?.trim() || env.LOCAL_LLM_MODEL?.trim() || 'hermes3:3b',
+    hermesApiKey: env.HERMES_API_KEY?.trim() ?? '',
   };
 }

@@ -26,7 +26,7 @@ Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un fron
 - `GET /health/ready` : disponibilité détaillée de l’identité, du service d’offres et du modèle Hermes configuré. Renvoie 503 avec des états génériques si une dépendance manque, sans exposer d’URL privée ni d’erreur brute.
 - `POST /v1/cv-import/extraction` : import authentifié d’un CV PDF **textuel** (multipart, champ `file`). Renvoie le texte page par page, des propositions de profil et, pour chacune, les extraits sources (page, ligne, bornes). Rien n’est enregistré. Un PDF scanné est refusé en 422 : aucune reconnaissance d’image, aucune valeur devinée.
 - `POST /v1/cv-import/profile` : validation authentifiée du profil après correction manuelle. Chaque champ porte `source` : `extracted` (vérifié caractère pour caractère contre le CV importé) ou `manual` (saisie assumée). Une valeur annoncée comme extraite mais absente du document est refusée en 400.
-- `POST /v1/local-ai/compare` : comparaison sur demande, réservée à une session active, via Ollama local. Les preuves sans extrait littéral sont écartées et le résultat n’est pas un score d’embauche.
+- `POST /v1/local-ai/compare` : comparaison sur demande, réservée à une session active, via le service Hermes configuré côté serveur. Les preuves sans extrait littéral sont écartées et le résultat n’est pas un score d’embauche.
 - `GET /v1/offers` : offres publiques collectées et dédupliquées par `services/offers`, avec filtres et pagination.
 - `GET /v1/offers/:id` : offre, chemins d'origine, membres du groupe de doublons et décisions de regroupement.
 - Validation globale des futurs DTO avec `class-validator` : champs inconnus refusés, sans conversion implicite des valeurs.
@@ -59,10 +59,13 @@ L’API écoute par défaut sur http://127.0.0.1:3000. Aucun service Docker n’
 | `AUTH_IDENTITY_URL` | `http://127.0.0.1:8081/v1/auth/me` | Endpoint HTTP(S) interne utilisé pour vérifier la session des routes privées |
 | `OFFERS_BASE_URL` | `http://127.0.0.1:8083` | Origine interne du service Rust d'offres |
 | `OFFERS_INTERNAL_TOKEN` | vide | Secret partagé ; vide désactive la lecture des offres collectées |
+| `HERMES_BASE_URL` | `http://127.0.0.1:11434` | Origine Ollama/Hermes interne appelée par NestJS uniquement |
+| `HERMES_MODEL` | `hermes3:3b` | Modèle chargé par le service d’inférence |
+| `HERMES_API_KEY` | vide | Jeton Bearer serveur à serveur ; secret hors dépôt |
 
 L'écran d'import du frontend appelle cette API depuis le navigateur : en développement, renseigner `CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173` pour couvrir les deux adresses locales. En production, n’autoriser que l’origine HTTPS réelle. Côté frontend, `VITE_API_BASE_URL` pointe l'API NestJS (défaut `http://127.0.0.1:3000`).
 
-La comparaison assistée peut appeler un modèle Ollama local avec `LOCAL_LLM_BASE_URL` et `LOCAL_LLM_MODEL` (par défaut `hermes3:3b`). Elle exige une session, ne contacte aucun fournisseur externe et écarte les preuves qui ne sont pas des extraits littéraux du profil ou de l’offre.
+La comparaison assistée appelle Hermes depuis l’API NestJS. En développement, `HERMES_BASE_URL` peut viser Ollama sur le poste. En production, elle vise une instance centrale privée afin que les utilisateurs n’installent rien. `HERMES_API_KEY` reste exclusivement dans les secrets du backend et ne doit jamais être préfixée par `VITE_`. Les anciennes variables `LOCAL_LLM_BASE_URL` et `LOCAL_LLM_MODEL` restent acceptées comme alias de développement. Voir `docs/DEPLOIEMENT_IA.md`.
 
 CORS contrôle les autorisations des navigateurs ; il ne remplace pas une authentification. Pour les futures routes recevant des données, déclarer des classes DTO avec des décorateurs de validation ; une interface TypeScript seule ne valide pas les entrées HTTP.
 

@@ -28,7 +28,14 @@ export class OffersService {
   get(id: string) {
     return this.call(`/v1/offers/${encodeURIComponent(id)}`);
   }
-  private async call(path: string): Promise<unknown> {
+  shortlist(body: object) {
+    return this.call('/v1/recommendations/shortlist', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  private async call(path: string, init: RequestInit = {}): Promise<unknown> {
     if (!this.config.offersInternalToken)
       throw new ServiceUnavailableException(
         'Le service d’offres n’est pas configuré.',
@@ -36,7 +43,11 @@ export class OffersService {
     let response: Response;
     try {
       response = await fetch(`${this.config.offersBaseUrl}${path}`, {
-        headers: { Authorization: `Bearer ${this.config.offersInternalToken}` },
+        ...init,
+        headers: {
+          ...Object.fromEntries(new Headers(init.headers).entries()),
+          Authorization: `Bearer ${this.config.offersInternalToken}`,
+        },
         signal: AbortSignal.timeout(5000),
       });
     } catch {

@@ -30,13 +30,13 @@ Le build produit `dist/`. Le site statique est configuré pour un déploiement S
 - Les liens externes n’acceptent que HTTP(S), sans identifiants intégrés.
 - Les repères de correspondance ont trois états, affichent leurs preuves et la version de la méthode ; ils ne constituent ni un classement IA ni une probabilité d’embauche.
 - L’import de CV PDF textuel nécessite une session active et l’API NestJS. La comparaison Ollama locale est proposée à la demande depuis une offre, sans score d’embauche.
-- Un brouillon texte local peut être préparé avec les informations confirmées, corrigé et exporté. Aucun scraping ni envoi automatique.
+- Un brouillon texte peut être préparé localement ou assisté par Hermes après le choix d'une offre. Hermes sélectionne uniquement des extraits littéraux vérifiés ; le serveur assemble le texte, qui reste corrigible et exportable. Aucun scraping ni envoi automatique.
 
 ## Sources
 
 - `src/domain.ts` : schéma, validation, exemples, correspondances et export.
 - `src/domain.test.ts` et `src/comparison-evaluation.test.ts` : validation des sauvegardes et corpus annoté des règles de comparaison.
-- `src/ApplicationDraft.tsx` : brouillon local corrigible et exportable, sans action d’envoi.
+- `src/ApplicationDraft.tsx` : brouillon local ou assisté par Hermes, corrigible et exportable, sans action d’envoi.
 - `src/App.tsx` : vues, formulaires et interactions.
 - `src/Auth.tsx` : formulaires d’inscription et de connexion raccordés au service d’identité.
 - `src/style.css` : thème, composants et adaptation mobile.

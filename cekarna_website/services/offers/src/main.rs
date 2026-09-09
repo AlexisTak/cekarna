@@ -7,6 +7,7 @@ use cekarna_offers::{
 };
 use clap::{Parser, Subcommand};
 use std::sync::Arc;
+use std::{collections::HashMap, sync::Mutex};
 #[derive(Parser)]
 struct Cli {
     #[command(subcommand)]
@@ -49,6 +50,7 @@ async fn main() -> anyhow::Result<()> {
                     pool,
                     token: Arc::new(config.internal_token),
                     registry: Arc::new(registry),
+                    match_cache: Arc::new(Mutex::new(HashMap::new())),
                 }),
             )
             .await?;

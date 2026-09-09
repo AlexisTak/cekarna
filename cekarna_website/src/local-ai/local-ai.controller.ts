@@ -13,6 +13,12 @@ class RecommendOffersDto {
   @IsOptional() @IsArray() education?: unknown[];
   @IsOptional() @IsObject() filters?: object;
 }
+class ApplicationDraftDto {
+  @IsObject() profile!: object;
+  @IsObject() job!: object;
+  @IsOptional() @IsArray() experiences?: unknown[];
+  @IsOptional() @IsArray() education?: unknown[];
+}
 @Controller('v1/local-ai')
 export class LocalAiController {
   constructor(
@@ -36,17 +42,45 @@ export class LocalAiController {
   ) {
     const userId = await this.identity.userId(authorization);
     const filters = body.filters as Record<string, unknown> | undefined;
-    const page = await this.offers.list({
-      limit: '100',
-      q: typeof filters?.q === 'string' ? filters.q.slice(0, 200) : undefined,
-      location:
-        typeof filters?.location === 'string'
-          ? filters.location.slice(0, 200)
-          : undefined,
-      contract:
-        typeof filters?.contract === 'string'
-          ? filters.contract.slice(0, 40)
-          : undefined,
+    const profile = body.profile as Record<string, unknown>;
+    const field = (key: string, max: number) =>
+      typeof profile[key] === 'string' ? profile[key].slice(0, max) : '';
+    const entry = (value: unknown) => {
+      const item =
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? (value as Record<string, unknown>)
+          : {};
+      return Object.fromEntries(
+        ['role', 'employer', 'degree', 'institution', 'description']
+          .filter((key) => typeof item[key] === 'string')
+          .map((key) => [key, String(item[key]).slice(0, 500)]),
+      );
+    };
+    const page = await this.offers.shortlist({
+      profile: {
+        title: field('title', 200),
+        city: field('city', 200),
+        contract: field('contract', 80),
+        skills: field('skills', 1_000),
+        about: field('about', 600),
+        experiences: Array.isArray(body.experiences)
+          ? body.experiences.slice(0, 50).map(entry)
+          : [],
+        education: Array.isArray(body.education)
+          ? body.education.slice(0, 50).map(entry)
+          : [],
+      },
+      filters: {
+        q: typeof filters?.q === 'string' ? filters.q.slice(0, 200) : '',
+        location:
+          typeof filters?.location === 'string'
+            ? filters.location.slice(0, 200)
+            : '',
+        contract:
+          typeof filters?.contract === 'string'
+            ? filters.contract.slice(0, 40)
+            : '',
+      },
     });
     return this.ai.recommendOffers(
       userId,
@@ -54,6 +88,20 @@ export class LocalAiController {
       body.experiences,
       body.education,
       page,
+    );
+  }
+
+  @Post('application-draft')
+  async applicationDraft(
+    @Body() body: ApplicationDraftDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    await this.identity.userId(authorization);
+    return this.ai.applicationDraft(
+      body.profile,
+      body.experiences,
+      body.education,
+      body.job,
     );
   }
 }

@@ -19,7 +19,7 @@ Ouvrir http://127.0.0.1:5173 pour la page d’accueil, puis utiliser http://127.
 
 ## État réel
 
-Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, ainsi qu’un service Rust de notifications transactionnelles avec PostgreSQL et SMTP. La comparaison optionnelle peut appeler un modèle Ollama local. Le brouillon de candidature est construit localement avec les informations confirmées, reste modifiable et n’est jamais envoyé par Cekarna. Le cadrage prioritaire actuel est `docs/B2C.md` et le cahier des charges V3 du dossier parent.
+Le dépôt contient une API NestJS 11 avec Express et TypeScript strict, un frontend React/Vite B2C, un service Go/Chi d’identité et de stockage candidat utilisant PostgreSQL et Redis, un service Rust de notifications transactionnelles avec PostgreSQL et SMTP et un service Rust d'offres. Ce dernier préfiltre un lot borné avec un cache d'empreintes avant l'appel optionnel à Ollama/Hermes. Le brouillon de candidature peut être construit localement ou avec des preuves sélectionnées par Hermes après choix d'une offre ; il reste modifiable et n’est jamais envoyé par Cekarna. Le cadrage prioritaire actuel est `docs/B2C.md` et le cahier des charges V3 du dossier parent.
 
 - `GET /` : identité de l’API et état `initialization`.
 - `GET /health` : disponibilité du processus HTTP (`{"status":"ok"}`). Ce contrôle ne vérifie aucune dépendance externe.

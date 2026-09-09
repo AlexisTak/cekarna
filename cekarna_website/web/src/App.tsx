@@ -1972,7 +1972,13 @@ export default function App() {
               </small>
             </div>
             <LocalAiComparison profile={profile} job={selected} />
-            <ApplicationDraft profile={profile} job={selected} />
+            <ApplicationDraft
+              profile={profile}
+              job={selected}
+              experiences={workspace.experiences}
+              education={workspace.education}
+              authenticated={Boolean(account)}
+            />
             <label className="detail-status">
               Avancement de ma candidature
               <select

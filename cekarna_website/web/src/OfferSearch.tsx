@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search, Sparkles } from 'lucide-react';
 import {
   CONTRACTS,
@@ -43,6 +43,7 @@ export function OfferSearch({
     useState<OfferRecommendations | null>(null);
   const [recommendationError, setRecommendationError] = useState('');
   const [recommending, setRecommending] = useState(false);
+  const lastAutomaticProfile = useRef('');
   async function run(cursor?: string) {
     setBusy(true);
     setError('');
@@ -92,6 +93,33 @@ export function OfferSearch({
     experiences.length ||
     education.length,
   );
+  const profileFingerprint = JSON.stringify([
+    profile.title,
+    profile.city,
+    profile.contract,
+    profile.skills,
+    profile.about,
+    experiences.map(({ role, employer, description }) => [
+      role,
+      employer,
+      description,
+    ]),
+    education.map(({ degree, institution, description }) => [
+      degree,
+      institution,
+      description,
+    ]),
+  ]);
+  useEffect(() => {
+    if (
+      authenticated &&
+      profileReady &&
+      lastAutomaticProfile.current !== profileFingerprint
+    ) {
+      lastAutomaticProfile.current = profileFingerprint;
+      void recommend();
+    }
+  }, [authenticated, profileFingerprint]);
   return (
     <section className="public-offers">
       <div>

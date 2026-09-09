@@ -80,6 +80,7 @@ Ces éléments existent dans le dépôt ; leur exploitation en production reste 
 | C13 | P1 | Réconcilier la documentation avec le code | Terminé | Codex | `B2C.md`, `PROJECT.md`, README, `AUDIT.md`, mémoire | À revalider après chaque nouvelle tranche |
 | C14 | P2 | Abonnement éventuel | Différé | Non attribué | Paiement, quotas, droits | Parcours validé et décision commerciale |
 | C15 | P1 | Recommandations d’offres avec Hermes | Terminé | Codex | API NestJS, offres publiques et recherche frontend | C02, C07, C08 et Hermes local |
+| C16 | P1 | Industrialiser le préfiltrage et les brouillons IA | Terminé | Codex | Préfiltrage Rust, cache par empreinte, orchestration Hermes et brouillon choisi | C02, C07, C09 et C15 |
 
 P0 = fondations et fiabilité ; P1 = suite fonctionnelle ; P2 = après validation de la valeur. L’ordre ne signifie pas qu’il faut lancer de nouveaux microservices : documenter le besoin et le coût de toute infrastructure ajoutée.
 
@@ -193,6 +194,14 @@ Lire [la spécification](superpowers/specs/2026-09-08-hermes-offer-recommendatio
 - [x] Afficher les recommandations séparément de la recherche et exiger une action pour ajouter une offre au suivi.
 - [x] Tester indisponibilité, données malveillantes, preuves inventées, limites de lot et réutilisation du cache.
 
+### C16 — Préfiltrage Rust et brouillons IA
+
+- [x] Déplacer le préfiltrage borné vers Rust et ne transmettre que les données professionnelles confirmées.
+- [x] Mettre en cache les sélections par empreinte du profil, des filtres et des offres, sans stocker le CV brut ni les coordonnées.
+- [x] Borner les appels Hermes et conserver un seul appel groupé par sélection.
+- [x] Générer une lettre uniquement après le choix explicite d’une offre, avec correction et export avant toute utilisation.
+- [x] Refuser ou neutraliser toute affirmation qui ne peut pas être reliée aux faits transmis.
+
 ### C12 — Recette et exploitation avant lancement
 
 **Blocage actuel :** les contrôles locaux sont disponibles, mais la recette de
@@ -258,5 +267,6 @@ Les PDF proposent notamment 95 % de champs factuels correctement extraits sur 10
 | 2026-09-09 | C15 / C12 local | Codex | Service d’offres ajouté au panneau Tauri avec préparation locale ; configuration NestJS/Rust synchronisée ; repli textuel explicite quand Hermes respecte mal son schéma, avec preuves littérales calculées uniquement depuis les données fournies ; profil Hermes Cekarna fourni | Trajet authentifié réel NestJS → offres Rust → Hermes `hermes3:3b` : 1 offre analysée, 1 suggestion et 4 preuves, puis compte synthétique supprimé ; `npm run check:all` : 80 tests NestJS, 23 tests HTTP, 71 tests web et deux builds ; test Rust Tauri, Clippy strict et build desktop réussis | Le repli est affiché « à vérifier » et ne devient jamais une probabilité ; France Travail reste désactivé |
 | 2026-09-09 | C12 (disponibilité locale) | Codex | Nouvelle route NestJS `/health/ready` contrôlant identité, offres et présence du modèle Hermes ; panneau Tauri raccordé avec diagnostic par dépendance | Contrôle réel : état `ready`, trois dépendances `up`, modèle `hermes3:3b` ; `npm run check:all`, puis test du 503 ajouté : 83 tests NestJS, 24 tests HTTP, 71 tests web et deux builds ; 2 tests Rust Tauri, Clippy strict et build desktop réussis | Contrôle local uniquement ; alertes persistantes, responsables d’incident et environnement de préproduction restent bloqués par les choix d’exploitation |
 | 2026-09-09 | C15 (session des recommandations) | Codex | Les appels IA protégés renouvellent désormais une fois le jeton d’accès expiré avant de rejouer la requête ; erreurs de session et profil distinguées ; l’état sans offre explique les filtres actifs | Parcours réel dans Chrome après expiration : erreur supprimée et réponse reçue ; identité, API, offres et Ollama en HTTP 200 ; `npm run check:all` : 83 tests NestJS, 24 tests HTTP, 75 tests web et deux builds réussis | Une session dont le refresh a réellement expiré exige toujours une reconnexion explicite, indiquée dans l’interface |
+| 2026-09-09 | C16 | Codex | Préfiltrage déplacé dans le service Rust : 500 offres examinées au maximum, six transmises à Hermes, cache de quinze minutes par empreinte sans CV brut ni coordonnées ; première analyse automatique pour chaque profil actif nouveau ou modifié ; file Hermes limitée à deux appels concurrents ; brouillon assisté créé seulement sur l’offre choisie avec preuves littérales, correction et export | Parcours réel Chrome : brouillon produit pour une offre synthétique avec un rapprochement vérifié et repli sûr ; API, identité, offres et Ollama en HTTP 200 ; `cargo test` : 12 tests, Clippy strict ; `npm run check:all` : 86 tests NestJS, 24 tests HTTP, 76 tests web et deux builds réussis | Le calcul automatique concerne les personnes actives lorsqu’elles ouvrent leur espace ; une analyse hors connexion de tous les comptes demanderait une file durable et un événement de profil dans l’environnement de production |
 
 À chaque reprise : commencer par le tableau, vérifier l’état Git et les dernières preuves du journal. Ne pas déduire qu’une autre session travaille encore à partir d’une ancienne réservation.

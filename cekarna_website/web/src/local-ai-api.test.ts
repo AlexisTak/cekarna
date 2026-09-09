@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { emptyWorkspace } from './domain';
-import { recommendOffersWithLocalAi } from './local-ai-api';
+import {
+  generateApplicationDraftWithLocalAi,
+  recommendOffersWithLocalAi,
+} from './local-ai-api';
 
 vi.mock('./auth-api', async (original) => ({
   ...(await original<typeof import('./auth-api')>()),
@@ -94,5 +97,35 @@ describe('Hermes offer recommendations API', () => {
         {},
       ),
     ).rejects.toThrow(code);
+  });
+
+  it('sends only professional fields for a selected application draft', async () => {
+    const mock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          model: 'hermes3:3b',
+          method: 'hermes_evidence',
+          subject: 'Candidature',
+          body: 'Bonjour',
+          evidence: [],
+        }),
+        { status: 200 },
+      ),
+    );
+    const workspace = emptyWorkspace();
+    workspace.profile.email = 'secret@example.test';
+    workspace.profile.phone = '0600000000';
+    workspace.profile.skills = 'Rust';
+    const job = { ...workspace.jobs[0], source: 'test' };
+    await generateApplicationDraftWithLocalAi(
+      workspace.profile,
+      workspace.experiences,
+      workspace.education,
+      job,
+    );
+    const body = String((mock.mock.calls[0][1] as RequestInit).body);
+    expect(body).toContain('Rust');
+    expect(body).not.toContain('secret@example.test');
+    expect(body).not.toContain('0600000000');
   });
 });

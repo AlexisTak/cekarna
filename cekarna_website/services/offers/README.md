@@ -28,7 +28,11 @@ cargo run -- serve
 ```
 
 Routes internes protégées par `OFFERS_INTERNAL_TOKEN` : `GET /v1/offers`,
-`GET /v1/offers/{id}`, `GET /v1/sources` et `POST /v1/collect`. Les routes santé
+`GET /v1/offers/{id}`, `GET /v1/sources`, `POST /v1/collect` et
+`POST /v1/recommendations/shortlist`. Cette dernière route reçoit uniquement un
+profil professionnel compact, examine au plus 500 offres et renvoie au plus six
+candidates. Son cache de quinze minutes conserve seulement une empreinte et des
+identifiants d'offres ; le CV brut et les coordonnées sont refusés. Les routes santé
 `/health` et `/health/ready` sont publiques en boucle locale. La liste accepte
 `q`, `location`, `contract`, `cursor`, `limit` et `duplicates=include`.
 

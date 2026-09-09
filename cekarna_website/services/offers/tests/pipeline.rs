@@ -8,7 +8,12 @@ use cekarna_offers::{
     sources::Registry,
     store,
 };
-use std::{fs, path::Path, sync::Arc};
+use std::{
+    collections::HashMap,
+    fs,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 use tempfile::TempDir;
 use tower::ServiceExt;
 
@@ -102,6 +107,7 @@ async fn http_requires_token_and_lists_canonical_offers() {
         pool,
         token: Arc::new("0123456789abcdef0123456789abcdef".into()),
         registry: Arc::new(registry),
+        match_cache: Arc::new(Mutex::new(HashMap::new())),
     });
     let unauthorized = app
         .clone()
@@ -130,6 +136,78 @@ async fn http_requires_token_and_lists_canonical_offers() {
         .unwrap();
     let page: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(page["offers"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn shortlists_in_rust_without_accepting_personal_fields() {
+    let (_d, pool, registry) = setup(&[("a", ONE)]).await;
+    collect::run(&pool, &registry, None).await.unwrap();
+    let app = http::router(AppState {
+        pool,
+        token: Arc::new("0123456789abcdef0123456789abcdef".into()),
+        registry: Arc::new(registry),
+        match_cache: Arc::new(Mutex::new(HashMap::new())),
+    });
+    let body = serde_json::json!({
+        "profile": {"title":"Développeur", "city":"Lyon", "contract":"CDI", "skills":"Rust"},
+        "filters": {}
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/recommendations/shortlist")
+                .header("content-type", "application/json")
+                .header("Authorization", "Bearer 0123456789abcdef0123456789abcdef")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let result: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(result["offers"].as_array().unwrap().len(), 1);
+    assert_eq!(result["inspected_offers"], 1);
+    assert_eq!(result["cached"], false);
+
+    let cached = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/recommendations/shortlist")
+                .header("content-type", "application/json")
+                .header("Authorization", "Bearer 0123456789abcdef0123456789abcdef")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let cached_bytes = axum::body::to_bytes(cached.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let cached_result: serde_json::Value = serde_json::from_slice(&cached_bytes).unwrap();
+    assert_eq!(cached_result["cached"], true);
+
+    let rejected = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/recommendations/shortlist")
+                .header("content-type", "application/json")
+                .header("Authorization", "Bearer 0123456789abcdef0123456789abcdef")
+                .body(Body::from(
+                    r#"{"profile":{"title":"Dev","email":"secret@example.test"}}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(rejected.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[tokio::test]

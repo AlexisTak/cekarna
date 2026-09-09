@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { Job, Profile } from './domain';
+import type { Education, Experience, Job, Profile } from './domain';
+import {
+  generateApplicationDraftWithLocalAi,
+  type AiApplicationDraft,
+} from './local-ai-api';
 
 export interface ApplicationDraftValue {
   subject: string;
@@ -37,12 +41,58 @@ export function buildApplicationDraft(
 export function ApplicationDraft({
   profile,
   job,
+  experiences,
+  education,
+  authenticated,
 }: {
   profile: Profile;
   job: Job;
+  experiences: Experience[];
+  education: Education[];
+  authenticated: boolean;
 }) {
   const [draft, setDraft] = useState<ApplicationDraftValue | null>(null);
-  useEffect(() => setDraft(null), [job.id, job.updatedAt]);
+  const [aiMeta, setAiMeta] = useState<AiApplicationDraft | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setDraft(null);
+    setAiMeta(null);
+    setError('');
+  }, [job.id, job.updatedAt]);
+
+  async function generateWithHermes() {
+    setBusy(true);
+    setError('');
+    try {
+      const generated = await generateApplicationDraftWithLocalAi(
+        profile,
+        experiences,
+        education,
+        job,
+      );
+      setAiMeta(generated);
+      const identity = [profile.firstName.trim(), profile.lastName.trim()]
+        .filter(Boolean)
+        .join(' ');
+      setDraft({
+        subject: generated.subject,
+        body: generated.body.replace(
+          '[Ajoutez votre nom.]',
+          identity || '[Ajoutez votre nom.]',
+        ),
+      });
+    } catch (reason) {
+      setError(
+        reason instanceof Error &&
+          reason.message === 'application_draft_session'
+          ? 'Votre session a expiré. Reconnectez-vous avant de relancer Hermes.'
+          : 'Hermes est indisponible. Vous pouvez préparer le brouillon local.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   function download() {
     if (!draft) return;
@@ -66,13 +116,26 @@ export function ApplicationDraft({
         Relisez et complétez les passages entre crochets.
       </p>
       {!draft ? (
-        <button
-          className="button secondary"
-          type="button"
-          onClick={() => setDraft(buildApplicationDraft(profile, job))}
-        >
-          Préparer un brouillon
-        </button>
+        <div className="form-actions">
+          <button
+            className="button primary"
+            type="button"
+            disabled={!authenticated || busy}
+            onClick={() => void generateWithHermes()}
+          >
+            {busy ? 'Hermes prépare le brouillon…' : 'Générer avec Hermes'}
+          </button>
+          <button
+            className="button secondary"
+            type="button"
+            onClick={() => {
+              setAiMeta(null);
+              setDraft(buildApplicationDraft(profile, job));
+            }}
+          >
+            Préparer sans IA
+          </button>
+        </div>
       ) : (
         <>
           <label>
@@ -110,7 +173,19 @@ export function ApplicationDraft({
             Cekarna n’envoie jamais ce brouillon. L’export reste une action
             explicite.
           </small>
+          {aiMeta && (
+            <small>
+              {aiMeta.method === 'hermes_evidence'
+                ? `Hermes ${aiMeta.model} a sélectionné ${aiMeta.evidence.length} rapprochement(s) vérifié(s).`
+                : 'Brouillon de repli construit avec des rapprochements textuels vérifiés.'}
+            </small>
+          )}
         </>
+      )}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
       )}
     </section>
   );

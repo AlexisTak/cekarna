@@ -1,6 +1,13 @@
-use crate::{collect, normalize::norm, sources::Registry, store};
+use crate::{
+    collect,
+    matching::{self, MatchCache, MatchOffer, MatchRequest},
+    normalize::norm,
+    sources::Registry,
+    store,
+};
 use axum::{
     Json, Router,
+    extract::DefaultBodyLimit,
     extract::{Path, Query, Request, State},
     http::{StatusCode, header},
     middleware::{self, Next},
@@ -10,15 +17,16 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, SqlitePool};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 pub struct AppState {
     pub pool: SqlitePool,
     pub token: Arc<String>,
     pub registry: Arc<Registry>,
+    pub match_cache: Arc<Mutex<MatchCache>>,
 }
-#[derive(Serialize, FromRow)]
-struct Offer {
+#[derive(Clone, Serialize, FromRow)]
+pub(crate) struct Offer {
     id: String,
     source_id: String,
     external_id: Option<String>,
@@ -74,10 +82,79 @@ pub fn router(state: AppState) -> Router {
         .route("/health/ready", get(ready))
         .route("/v1/offers", get(list))
         .route("/v1/offers/{id}", get(detail))
+        .route(
+            "/v1/recommendations/shortlist",
+            post(shortlist).layer(DefaultBodyLimit::max(64 * 1024)),
+        )
         .route("/v1/sources", get(sources))
         .route("/v1/collect", post(collect_now))
         .layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
+}
+async fn shortlist(
+    State(s): State<AppState>,
+    Json(input): Json<MatchRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let rows = sqlx::query_as::<_, Offer>("SELECT id,source_id,external_id,title,company,location,contract,url,description,published_at,salary,work_duration,experience,qualification,skills_json AS skills,accessible_th,group_id,origins,first_seen_at,last_seen_at FROM offers o WHERE active=1 AND id=(SELECT id FROM offers c WHERE c.group_id=o.group_id AND c.active=1 ORDER BY first_seen_at,id LIMIT 1) ORDER BY id LIMIT 500")
+        .fetch_all(&s.pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let candidates = rows
+        .iter()
+        .map(|offer| MatchOffer {
+            id: offer.id.clone(),
+            title: offer.title.clone(),
+            location: offer.location.clone(),
+            contract: offer.contract.clone().unwrap_or_default(),
+            text: format!(
+                "{} {} {} {} {} {} {} {}",
+                offer.title,
+                offer.company,
+                offer.location,
+                offer.contract.as_deref().unwrap_or_default(),
+                offer.description,
+                offer.skills.join(" "),
+                offer.experience.as_deref().unwrap_or_default(),
+                offer.qualification.as_deref().unwrap_or_default(),
+            ),
+            version: offer.last_seen_at.clone(),
+        })
+        .collect::<Vec<_>>();
+    let key = matching::cache_key(&input, &candidates);
+    let cached = {
+        let mut cache = s
+            .match_cache
+            .lock()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        matching::cached(&mut cache, &key)
+    };
+    if let Some(hit) = cached {
+        let selected = hit
+            .offer_ids
+            .iter()
+            .filter_map(|id| rows.iter().find(|offer| &offer.id == id))
+            .cloned()
+            .collect::<Vec<_>>();
+        return Ok(Json(
+            json!({"offers":selected,"inspected_offers":hit.inspected,"cached":true,"selection_fingerprint":key}),
+        ));
+    }
+    let (inspected, ids) = matching::select(&input, &candidates);
+    let selected = ids
+        .iter()
+        .filter_map(|id| rows.iter().find(|offer| &offer.id == id))
+        .cloned()
+        .collect::<Vec<_>>();
+    {
+        let mut cache = s
+            .match_cache
+            .lock()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        matching::insert(&mut cache, key.clone(), inspected, ids);
+    }
+    Ok(Json(
+        json!({"offers":selected,"inspected_offers":inspected,"cached":false,"selection_fingerprint":key}),
+    ))
 }
 async fn ready(State(s): State<AppState>) -> impl IntoResponse {
     match store::ping(&s.pool).await {

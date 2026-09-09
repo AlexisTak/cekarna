@@ -61,6 +61,35 @@ describe('LocalAiService', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
+  it('limits concurrent Hermes calls to protect local resources', async () => {
+    const releases: Array<(response: Response) => void> = [];
+    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          releases.push(resolve);
+        }),
+    );
+    const service = new LocalAiService();
+    const calls = [
+      service.compare({ skills: 'React' }, { title: 'React' }),
+      service.compare({ skills: 'Rust' }, { title: 'Rust' }),
+      service.compare({ skills: 'TypeScript' }, { title: 'TypeScript' }),
+    ];
+    await Promise.resolve();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const answer = () =>
+      new Response(
+        JSON.stringify({ message: { content: '{"findings":[]}' } }),
+        { status: 200 },
+      );
+    releases[0](answer());
+    await calls[0];
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    releases[1](answer());
+    releases[2](answer());
+    await Promise.all(calls);
+  });
+
   it('prefilters a bounded batch and keeps only literal recommendation evidence', async () => {
     const offers = Array.from({ length: 12 }, (_, index) => ({
       id: `offer-${index}`,
@@ -243,6 +272,46 @@ describe('LocalAiService', () => {
       ]),
     );
     expect(result.method).toBe('textual_fallback');
+  });
+
+  it('builds an editable application draft only from literal evidence', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            content: JSON.stringify({
+              evidence: [
+                { profile: 'React', offer: 'React' },
+                { profile: 'dix ans inventés', offer: 'React' },
+              ],
+            }),
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await new LocalAiService().applicationDraft(
+      {
+        title: 'Développeuse web',
+        skills: 'React',
+        email: 'secret@example.test',
+      },
+      [],
+      [],
+      {
+        id: 'offer-1',
+        source_id: 'test',
+        title: 'Développeuse React',
+        company: 'Entreprise fictive',
+        location: 'Lyon',
+        description: 'React',
+      },
+    );
+    expect(result.method).toBe('hermes_evidence');
+    expect(result.evidence).toEqual([{ profile: 'React', offer: 'React' }]);
+    expect(result.body).toContain('React');
+    expect(result.body).not.toContain('dix ans inventés');
+    expect(result.body).not.toContain('secret@example.test');
   });
 
   it('coalesces concurrent requests for the same profile and offer batch', async () => {

@@ -28,6 +28,26 @@ describe('OffersService', () => {
       (mock.mock.calls[0][1]?.headers as Record<string, string>).Authorization,
     ).toBe(`Bearer ${config.offersInternalToken}`);
   });
+  it('forwards compact shortlist requests as JSON', async () => {
+    const mock = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ offers: [], inspected_offers: 0 }), {
+        status: 200,
+      }),
+    );
+    await new OffersService(config).shortlist({
+      profile: { title: 'Développeuse', skills: 'Rust' },
+      filters: {},
+    });
+    expect(mock.mock.calls[0][0]).toBe(
+      'http://127.0.0.1:8083/v1/recommendations/shortlist',
+    );
+    const init = mock.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(init.body).toContain('Développeuse');
+    expect(new Headers(init.headers).get('Authorization')).toBe(
+      `Bearer ${config.offersInternalToken}`,
+    );
+  });
   it('fails closed without configuration', async () => {
     await expect(
       new OffersService({ ...config, offersInternalToken: '' }).list({}),
